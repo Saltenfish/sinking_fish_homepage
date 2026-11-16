@@ -1,0 +1,57 @@
+/* 骨架階段的最低限度樣式：只求看得清楚、能操作。正式美術之後再換。 */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#10141c;color:#e8e6f0;font:14px/1.6 system-ui,"Noto Sans TC",sans-serif}
+[hidden]{display:none!important}
+#app{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#game{width:min(100vw,calc(100vh*4/3));height:min(100vh,calc(100vw*3/4));image-rendering:pixelated;touch-action:none;background:#000}
+.btn{font:inherit;color:#e8e6f0;background:#2b3145;border:1px solid #4a5270;border-radius:6px;padding:6px 12px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{background:#3a4260}.btn:focus-visible{outline:2px solid #f6c453;outline-offset:2px}
+.btn.big{padding:12px 28px;font-size:16px}.btn.on{background:#5a4fcf;border-color:#8f86ff}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.row input{flex:1;min-width:0}
+input,textarea{font:inherit;color:inherit;background:#161a26;border:1px solid #4a5270;border-radius:6px;padding:6px 8px;width:100%}
+.hud{position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:5}
+.prompt{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(16,20,28,.85);border:1px solid #4a5270;border-radius:8px;padding:6px 14px;z-index:4;pointer-events:none}
+.toasts{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:30;pointer-events:none}
+.toast{background:rgba(16,20,28,.9);border-left:3px solid #f6c453;padding:6px 12px;border-radius:4px}
+.ui-layer{position:absolute;inset:0;z-index:10;pointer-events:none}
+.ui-layer>*{pointer-events:auto;position:absolute}
+.dialog{left:50%;bottom:24px;transform:translateX(-50%);width:min(560px,calc(100% - 24px));background:#1b2030;border:2px solid #6c7499;border-radius:10px;padding:14px 16px;cursor:pointer}
+.dialog.choose{cursor:default;display:flex;flex-direction:column;gap:6px}.dialog .choice{text-align:left}
+.dialog-name{font-weight:700;color:#f6c453;margin-bottom:4px}.dialog-text{white-space:pre-wrap;min-height:3.2em}
+.dialog-hint,.hint,.note{font-size:12px;opacity:.7}.dialog-hint{text-align:right}
+.warn{color:#ffb4a2}
+.panel{left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100% - 24px));max-height:calc(100% - 24px);display:flex;flex-direction:column;background:#1b2030;border:2px solid #6c7499;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.panel.wide{width:min(640px,calc(100% - 24px))}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #3a4260}
+.panel-body{padding:12px;overflow:auto}
+h4{margin:12px 0 4px}.list{margin:0;padding-left:1.2em}.list a{color:#9fc6ff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.cell{border:1px solid #4a5270;border-radius:6px;padding:8px 4px;text-align:center;min-height:44px}.cell.unknown{opacity:.35}
+.item{display:flex;flex-direction:column;padding:4px 0;border-bottom:1px dashed #3a4260}.item.locked{opacity:.5}
+.tags{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}.tag{border:1px solid #4a5270;border-radius:10px;padding:0 8px;font-size:12px}
+.r-N{--rare:#8a93a8}.r-R{--rare:#5aa9e6}.r-SR{--rare:#b388ff}.r-SSR{--rare:#f6c453}
+/* 卡環 */
+.ring{text-align:center}.ring .row{justify-content:center}
+.ring-stage{position:relative;height:190px;perspective:700px;overflow:hidden;touch-action:none;cursor:grab;user-select:none}
+.ring-stage:active{cursor:grabbing}
+.rcard{position:absolute;left:50%;top:20px;width:84px;height:124px;margin-left:-42px;border-radius:8px;border:2px solid var(--rare,#8a93a8);
+  background:repeating-linear-gradient(45deg,#2a2550,#2a2550 6px,#342e63 6px,#342e63 12px);display:flex;align-items:center;justify-content:center;
+  color:var(--rare,#fff);font-size:20px;will-change:transform,opacity;box-shadow:0 0 10px -2px var(--rare,#8a93a8)}
+.rcard.owned{box-shadow:0 0 14px 1px var(--rare,#8a93a8)}
+.rcard.face{background:#e8e6f0;color:#1b2030;font-size:13px;padding:4px;text-align:center}
+.ring-title{min-height:1.6em;font-weight:700}
+/* 單張卡 */
+.card{text-align:center}.card-face{border:2px solid var(--rare,#8a93a8);border-radius:10px;padding:12px;margin-bottom:8px;min-height:220px}
+.card-art{height:150px;display:flex;align-items:center;justify-content:center;background:#161a26;border-radius:6px;font-size:48px;overflow:hidden}
+.card-art img{max-width:100%;max-height:100%}.card-name{font-weight:700;font-size:16px;margin-top:6px}.card-rarity{color:var(--rare)}
+/* 許願牌 */
+.plaques{display:flex;flex-direction:column;gap:6px}.plaque{width:100%;text-align:left;background:#5b4636;border-color:#8a6a50}
+.plaque-back{padding:6px 10px;border-left:3px solid #8a6a50;margin:4px 0 0 6px}.plaque-back p{margin:0 0 6px}
+.wish{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:2px 0}
+/* 魚魚 */
+.chat-sub{font-size:12px;opacity:.7}.chat-msgs{height:260px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:8px;background:#161a26;border-radius:6px;margin:6px 0}
+.chat-row{display:flex}.chat-row.me{justify-content:flex-end}
+.chat-bub{max-width:82%;padding:6px 10px;border-radius:12px;background:#2b3145;white-space:pre-wrap;word-break:break-word}.chat-row.me .chat-bub{background:#5a4fcf}
+/* 釣魚 */
+.fishing{text-align:center}.fishing .row{justify-content:center}.fishing-status{min-height:3em;font-size:16px}.fishing-status.bite{color:#f6c453;font-weight:700;font-size:20px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}

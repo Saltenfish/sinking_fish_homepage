@@ -1,0 +1,188 @@
+/* ============================================================
+   地圖物件類型。地圖資料裡的 objects 用 type 指到這裡。
+   新增一種互動物件：在最下面 register('名稱', (def, game) => ({ ... })) 即可。
+
+   每個類型回傳的物件可以有：
+     prompt()    靠近時顯示的提示文字（回傳 null = 不顯示）
+     interact()  按下互動鍵時做的事（可以是 async）
+     color()     佔位色塊顏色          label()  佔位文字
+     draw(ctx, px, py, tile, time)   自己畫（有的話取代色塊）
+   物件只透過 game.ui / game.farm 等系統做事，不直接碰畫面。
+============================================================ */
+import { CONFIG } from '../config.js';
+import { rollLoot } from '../systems/loot.js';
+import { splitRings } from '../systems/ringModel.js';
+
+const types = new Map();
+export function register(name, factory) {
+  if (types.has(name)) throw new Error(`物件類型重複註冊：${name}`);
+  types.set(name, factory);
+}
+
+/* 依地圖資料建立物件；資料有問題時回傳 null 並印出原因 */
+export function createEntity(def, game) {
+  const factory = types.get(def?.type);
+  if (!factory) { console.warn(`[world] 未知的物件類型，已略過：`, def); return null; }
+  if (typeof def.id !== 'string' || !Number.isFinite(def.x) || !Number.isFinite(def.y)) { console.warn('[world] 物件缺少 id / x / y，已略過：', def); return null; }
+  const base = {
+    id: def.id, type: def.type, x: def.x, y: def.y, w: def.w || 1, h: def.h || 1, solid: def.solid === true,
+    prompt: () => null, interact: () => {}, color: () => '#888', label: () => '',
+  };
+  try { return Object.assign(base, factory(def, game)); }
+  catch (e) { console.error(`[world] 物件「${def.id}」建立失敗`, e); return null; }
+}
+
+/* 共用：從掉落表拿一樣東西（有冷卻）。回傳 'cooldown' / 'nothing' / 物品 id */
+function forage(game, key, cdMs, tableName) {
+  if (game.progress.cooldownLeft(key, cdMs) > 0) return 'cooldown';
+  game.progress.markCooldown(key);
+  const id = rollLoot(game.reg.lootTables[tableName], { rng: game.rng, phase: game.clock.phase() });
+  if (!id) return 'nothing';
+  return game.inv.add(id, 1) > 0 ? id : 'nothing';
+}
+
+/* ---------- 公告欄 ---------- */
+register('board', (def, game) => ({
+  color: () => '#8d6e63', label: () => '告',
+  prompt: () => '閱讀公告',
+  interact: () => game.ui.say(Array.isArray(def.lines) && def.lines.length ? def.lines : ['（空白的公告欄）']),
+}));
+
+/* ---------- 許願樹 ---------- */
+register('tree', (def, game) => ({
+  color: () => '#9c6b98', label: () => '許願樹',
+  prompt: () => '許願樹',
+  async interact() {
+    const pickIdx = await game.ui.choose('許願樹', ['看許願牌', '搖一搖樹']);
+    if (pickIdx === 0) return game.ui.show('plaques');
+    if (pickIdx !== 1) return undefined;
+    const got = forage(game, 'tree', CONFIG.TREE_SHAKE_CD_MS, 'tree');
+    if (got === 'cooldown') return game.ui.say(['樹葉還在晃。等一下再搖吧。']);
+    game.progress.inc('treeShakes');
+    if (got === 'nothing') return game.ui.say(['沙沙沙……只有風吹過。']);
+    return undefined;   // 拿到東西時由通知顯示
+  },
+}));
+
+/* ---------- 召喚法陣 ---------- */
+register('altar', (def, game) => ({
+  color: () => '#6c5ce7', label: () => '法陣',
+  prompt: () => '站上法陣',
+  interact: () => game.ui.show('ring'),
+  draw(ctx, px, py, tile, time) {
+    const cx = px + tile, cy = py + tile;
+    ctx.fillStyle = '#6c5ce7';
+    ctx.fillRect(px + 3, py + 3, tile * 2 - 6, tile * 2 - 6);
+    // 地圖上的卡環：依卡片數自動分圈，交替反向公轉
+    const rings = splitRings(game.reg.characters.length, CONFIG.RING_PER_RING);
+    rings.forEach((count, ri) => {
+      const radius = tile * (1.9 + ri * 0.8), dir = ri % 2 ? -1 : 1;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2 + dir * time * 0.25;
+        ctx.fillStyle = '#2d2a4a';
+        ctx.fillRect(cx + Math.cos(a) * radius - 3, cy + Math.sin(a) * radius * 0.7 - 5, 6, 9);
+      }
+    });
+  },
+}));
+
+/* ---------- 農田 ---------- */
+register('plot', (def, game) => {
+  const i = def.index;
+  if (!Number.isInteger(i) || i < 0 || i >= game.farm.size) throw new Error(`農田 index 不合法：${i}`);
+  const st = () => game.farm.status(i);
+  return {
+    color() { const s = st(); return s.state === 'empty' ? '#6d4c41' : s.state === 'ripe' ? '#f4a261' : s.wet ? '#4e6b3a' : '#7a6a3a'; },
+    label() { const s = st(); return s.state === 'empty' ? '' : s.state === 'ripe' ? '熟' : `${Math.floor(s.pct * 100)}%`; },
+    prompt() { const s = st(); return s.state === 'empty' ? '播種' : s.state === 'ripe' ? `收成${s.crop.name}` : s.wet ? `查看${s.crop.name}` : '澆水'; },
+    async interact() {
+      const s = st();
+      if (s.state === 'ripe') { game.farm.harvest(i); return; }
+      if (s.state === 'growing') {
+        if (!s.wet) { game.farm.water(i); game.ui.toast('澆水了'); return; }
+        await game.ui.say([`${s.crop.name}正在長大（${Math.floor(s.pct * 100)}%）。土還是濕的。`]);
+        return;
+      }
+      const seeds = game.farm.plantable();
+      if (!seeds.length) { await game.ui.say(['手上沒有種子。草叢和地上發亮的地方也許找得到。']); return; }
+      const idx = await game.ui.choose('要種什麼？', seeds.map((e) => `${e.seed.name} ×${e.count}`));
+      if (idx < 0) return;
+      const r = game.farm.plant(i, seeds[idx].seed.id);
+      if (r.ok) game.ui.toast(`種下了${r.crop.name}`);
+    },
+  };
+});
+
+/* ---------- 釣魚點 ---------- */
+register('fishspot', (def, game) => ({
+  color: () => '#90caf9', label: () => '釣',
+  prompt: () => '釣魚',
+  interact: () => game.ui.show('fishing'),
+}));
+
+/* ---------- 隱藏池塘（魚魚的家） ---------- */
+register('pond', (def, game) => ({
+  color: () => (game.fish.found() ? '#ff8a65' : '#5c8fb0'), label: () => (game.fish.found() ? '魚' : ''),
+  prompt: () => (game.fish.found() ? '找魚魚' : '看看水面'),
+  async interact() {
+    const found = game.fish.found();
+    const hasFeed = game.inv.has('feed');
+    if (!found && !hasFeed) { await game.ui.say([await game.fish.misc('NO_FEED') || '水面很平靜。']); return; }
+    let feedNow = hasFeed;
+    if (found && hasFeed) {
+      const idx = await game.ui.choose('池塘', ['餵飼料', '只是來聊天']);
+      if (idx < 0) return;
+      feedNow = idx === 0;
+    }
+    if (feedNow) {
+      if (!found) await game.ui.say(await game.fish.misc('FIRST_FEED') || ['（你把飼料撒進水裡。）']);
+      feedNow = game.fish.feed();
+    }
+    await game.ui.show('fishChat', { justFed: feedNow });
+  },
+}));
+
+/* ---------- 草叢 ---------- */
+register('bush', (def, game) => ({
+  color: () => '#4caf50', label: () => '草',
+  prompt: () => '翻翻草叢',
+  async interact() {
+    const got = forage(game, `bush:${def.id}`, CONFIG.DAILY_CD_MS, 'bush');
+    if (got === 'cooldown') await game.ui.say(['草叢已經翻過了。晚點再來。']);
+    else if (got === 'nothing') await game.ui.say(['沙沙……什麼都沒有。']);
+  },
+}));
+
+/* ---------- 挖掘點 ---------- */
+register('dig', (def, game) => {
+  const key = `dig:${def.id}`;
+  const ready = () => game.progress.cooldownLeft(key, CONFIG.DAILY_CD_MS) === 0;
+  return {
+    color: () => (ready() ? '#ffe082' : '#8d7b5a'), label: () => (ready() ? '✦' : ''),
+    prompt: () => (ready() ? '挖挖看' : null),
+    async interact() {
+      const got = forage(game, key, CONFIG.DAILY_CD_MS, 'dig');
+      if (got === 'cooldown') return;
+      game.progress.inc('digs');
+      if (got === 'nothing') await game.ui.say(['挖了半天，只有土。']);
+    },
+  };
+});
+
+/* ---------- 石燈 ---------- */
+register('lantern', (def, game) => {
+  const key = `lit:${def.id}`;
+  const lit = () => game.progress.flag(key);
+  return {
+    color: () => (lit() ? '#ffd54f' : '#607d8b'), label: () => '燈',
+    prompt: () => (lit() ? '熄燈' : '點燈'),
+    interact() {
+      if (lit()) { game.progress.clearFlag(key); return; }
+      game.progress.setFlag(key);
+      const all = game.world.entities.filter((e) => e.type === 'lantern');
+      if (all.length && all.every((e) => game.progress.flag(`lit:${e.id}`))) {
+        if (game.progress.setFlag('lanternsAll')) game.ui.toast('所有石燈都亮了');
+      }
+    },
+  };
+});
