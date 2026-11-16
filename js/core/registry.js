@@ -97,8 +97,17 @@ export function buildRegistry(src) {
     return null;
   });
 
+  const offerings = collect(src.offerings || [], 'offerings', errors, (o) => {
+    if (!str(o.name, 30)) return '缺少 name';
+    if (!isObj(o.cost) || !Object.keys(o.cost).length) return 'cost 必須是 {物品id: 數量}';
+    for (const k of Object.keys(o.cost)) if (!items.byId.has(k) || !(Number.isInteger(o.cost[k]) && o.cost[k] > 0)) return `cost「${k}」不合法`;
+    if (o.cardBack !== undefined && !/^[a-z0-9]{1,20}$/.test(o.cardBack)) return 'cardBack 只能用小寫英數字';
+    return null;
+  });
+
   return {
     errors,
+    offerings: offerings.list, offeringById: offerings.byId,
     characters: characters.list, characterById: characters.byId,
     sites: sites.list, siteById: sites.byId,
     items: items.list, itemById: items.byId,

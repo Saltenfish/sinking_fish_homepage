@@ -1,6 +1,6 @@
 # 沉魚的小鎮（sinking_fish_homepage）
 
-Caveduck 角色卡與 GitHub 網站的入口。訪客操作小人在像素小鎮上走動：北邊的**召喚卡殿**翻角色卡、中央的**許願樹**掛著各網站的許願牌、西邊可以**種菜**、溪邊可以**釣魚**，另外有一個不在地圖上的地方。
+Caveduck 角色卡與 GitHub 網站的入口。訪客操作小人在像素小鎮上走動：北邊的**召喚卡殿**翻角色卡、中央的**許願樹**垂掛著各網站的許願牌、西邊可以**種菜**、溪邊可以**釣魚**、天黑後可以**抓蟲**、西北的**成就小屋**展示收集成果，另外有一個不在地圖上的地方。
 
 > 目前是**底層邏輯骨架**：所有功能都能實際操作，但畫面全部是佔位色塊，美術之後再換。
 
@@ -19,11 +19,23 @@ npm test                       # 跑邏輯測試（需要 Node 20 以上，沒�
 
 | 按鍵 | 動作 |
 |---|---|
-| WASD／方向鍵、點擊地面 | 移動 |
+| WASD／方向鍵、點擊地面 | 移動（點擊物件會自己走過去並互動） |
+| 按住 Shift | 潛行（抓蟲時用） |
 | E／空白／Enter | 互動、對話下一句 |
 | B | 背包（卡冊、物品、圖鑑、成就） |
+| M | 地圖（可直接傳送） |
 | L | 快速目錄（不逛地圖也能找到所有連結） |
 | Esc | 選單（存檔匯出／匯入／重置）、關閉視窗 |
+
+**手機**：左下角虛擬搖桿（輕推是潛行、推到底是正常走），右下角互動鍵，也可以直接點地面或物件。
+
+**畫面**：畫布永遠填滿整個視窗；視窗越大，自動放大倍率並看到更廣的範圍（規則在 `engine/view.js`，數值在 `config.js` 的 `VIEW_*`）。
+
+**時間**：小鎮的時間就是訪客的現實時間，天色整天連續變化；黃昏與夜晚才有蟲、深夜才釣得到某種魚。想預覽其他時段，網址加 `?hour=22`（0–24，可含小數）。
+
+## 更新方式
+
+所有更新都走 Pull Request：從 `main` 開分支、推上去、開 PR，確認後再合併。
 
 ## 平常要改的檔案（都在 `js/data/`）
 
@@ -35,7 +47,9 @@ npm test                       # 跑邏輯測試（需要 Node 20 以上，沒�
 | 新增作物 | `crops.js`（種子與收成物要先在 `items.js` 建好） |
 | 調整掉落（釣魚、搖樹、草叢、挖掘） | `loot.js` |
 | 新增成就 | `achievements.js` |
-| 改地圖、擺放物件 | `maps/town.js` |
+| 祭壇可以換的東西 | `offerings.js` |
+| 許願樹上的掛點位置 | `js/systems/treeLayout.js` |
+| 改地圖、擺放物件、傳送地點 | `maps/town.js` |
 | 魚魚的台詞 | `js/fish/words-home.js`（格式與 prompt_list 的 `fish-words.js` 相同） |
 | 數值（速度、冷卻、生長倍率…） | `js/config.js` |
 
@@ -64,16 +78,19 @@ js/
 │   ├── ringModel.js  卡環的轉動（慣性、吸附、輪盤、只取可見範圍）
 │   ├── farm.js       農田（用時間戳計算，關掉網頁照樣長）
 │   ├── fishing.js    釣魚狀態機
-│   ├── achievements.js / clock.js / loot.js
+│   ├── bugs.js       捕蟲判定
+│   ├── shop.js       祭壇供奉與卡背花色
+│   ├── treeLayout.js 許願樹掛點
+│   ├── achievements.js / clock.js（時段與天色）/ loot.js
 ├── fish/             魚魚（用到時才載入）
 │   ├── index.js      對外窗口：狀態、熟悉度、跨網站連動
 │   ├── brain.js      回覆引擎與語氣規則
 │   └── words-home.js 詞庫
-├── engine/           地圖引擎：loop / input / camera / tilemap / collision / pathfind / renderer
+├── engine/           地圖引擎：loop / input / view（全螢幕與倍率）/ camera / tilemap / collision / pathfind / renderer
 ├── world/
 │   ├── world.js      地圖、玩家、互動判定
-│   └── types.js      互動物件類型（公告欄、許願樹、法陣、農田、釣點、池塘、草叢、挖掘點、石燈）
-└── ui/               介面：ui.js（視窗堆疊、對話、選項、通知）＋ 各畫面
+│   └── types.js      互動物件類型（公告欄、許願樹、法陣、農田、釣點、池塘、草叢、挖掘點、石燈、成就小屋、供奉石、蟲）
+└── ui/               介面：ui.js（視窗堆疊、對話、選項、通知）、touch.js（觸控搖桿）＋ 各畫面
 tests/                邏輯測試
 ```
 
@@ -97,6 +114,7 @@ tests/                邏輯測試
 | `farm:changed` | `{index, action, crop, qty?}` | farm |
 | `fishing:end` | `{state, item?}` | fishing |
 | `fish:opened` | `{}` | fish |
+| `shop:bought` / `shop:back` | `{offering}` / `{id}` | shop |
 | `save:loaded` / `save:failed` | `{status}` / `{}` | save |
 | `input:action` / `input:tap` | `{action}` / `{x, y}` | input |
 | `ui:block` / `ui:unblock` | `{}` | ui |
@@ -126,8 +144,7 @@ register('bench', (def, game) => ({
 
 ## 尚未製作
 
-- 正式美術（地圖圖塊、人物、混色許願樹、卡背、卡面 Q 圖）
-- 手機虛擬搖桿（目前手機可用點擊移動）
-- 許願牌實際掛在樹上的呈現、卡片召喚特效
-- 夜間捕蟲、祭壇兌換、擺設、全圖傳送
+- 正式美術（地圖圖塊、人物、許願樹、卡背、卡面 Q 圖）。許願樹畫面目前是佔位線稿，構圖與掛點已定
+- 卡片召喚特效
+- 自由擺設（目前收藏品統一展示在成就小屋的收藏架）
 - prompt_list 那一側的連動台詞

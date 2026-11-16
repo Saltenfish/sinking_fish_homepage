@@ -14,6 +14,9 @@ export const items = [
   { id: 'fish_koi', name: '花鯉', cat: 'fish', desc: '白天比較活躍。' },
   { id: 'fish_odd', name: '顏色不太對的魚', cat: 'fish', desc: '牠用一種「你認真？」的眼神看你。夜裡才釣得到。' },
 
+  { id: 'bug_firefly', name: '螢火蟲', cat: 'bug', desc: '黃昏之後才出現。要慢慢靠近。' },
+  { id: 'bug_glow', name: '發光甲蟲', cat: 'bug', desc: '深夜才看得到，很稀有。' },
+
   { id: 'leaf_pink', name: '櫻粉落葉', cat: 'treasure', desc: '許願樹的葉子。' },
   { id: 'leaf_purple', name: '紫藤落葉', cat: 'treasure', desc: '許願樹的葉子。' },
   { id: 'leaf_teal', name: '青綠落葉', cat: 'treasure', desc: '許願樹的葉子。' },

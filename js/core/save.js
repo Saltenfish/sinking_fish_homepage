@@ -21,6 +21,7 @@ export function blankSave(now) {
     achievements: {},             // {成就id: 解鎖時間}
     fish: { visits: 0, feeds: 0, msgs: 0, lastAt: 0 },
     wishes: [],                   // 訪客自己掛的願望
+    settings: { cardBack: 'default' },   // 外觀設定
   };
 }
 
@@ -87,6 +88,7 @@ export function normalize(raw, now) {
   if (isObj(raw.fish)) {
     for (const k of ['visits', 'feeds', 'msgs', 'lastAt']) if (nonNeg(raw.fish[k])) out.fish[k] = raw.fish[k];
   }
+  if (isObj(raw.settings) && safeKey(raw.settings.cardBack)) out.settings.cardBack = raw.settings.cardBack;
   if (Array.isArray(raw.wishes)) {
     out.wishes = raw.wishes.filter((w) => typeof w === 'string' && w.trim()).slice(0, 10).map((w) => w.trim().slice(0, 30));
   }

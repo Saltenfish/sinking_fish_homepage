@@ -15,7 +15,7 @@ export function ringView(game) {
   const half = CONFIG.RING_WINDOW;
   let showFaces = false, rafId = null, lastT = 0, alive = true, summoning = false;
 
-  const stage = h('div', { class: 'ring-stage' });
+  const stage = h('div', { class: `ring-stage back-${game.shop.back()}` });   // 卡背花色由供奉石決定
   const slots = Array.from({ length: half * 2 + 2 }, () => {
     const el = h('div', { class: 'rcard', hidden: true });
     stage.append(el);

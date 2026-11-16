@@ -1,12 +1,9 @@
 /* 繪製：目前全部是佔位色塊。之後換美術時，只需要改這個檔（與各物件的 draw）。
    ・不會動的地面先畫成一張底圖，每幀只貼上鏡頭範圍
-   ・物件只畫鏡頭內的 */
-const TINT = { dawn: 'rgba(255,190,150,0.12)', day: null, dusk: 'rgba(255,140,90,0.16)', night: 'rgba(20,24,70,0.38)' };
-
-export function createRenderer({ canvas, tile, viewW, viewH }) {
-  canvas.width = viewW; canvas.height = viewH;
+   ・物件只畫鏡頭內的
+   ・天色依現實時間連續變化；會發光的物件（點亮的石燈、螢火蟲、卡環）在夜色之上再畫一層光 */
+export function createRenderer({ canvas, tile }) {
   const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
   let ground = null, groundFor = null;
 
   function buildGround(map) {
@@ -21,16 +18,22 @@ export function createRenderer({ canvas, tile, viewW, viewH }) {
   }
 
   return {
-    draw({ map, entities, player, camera, phase, time }) {
+    draw({ map, entities, player, camera, tint, time }) {
+      const viewW = canvas.width, viewH = canvas.height;
       if (groundFor !== map) buildGround(map);
+      ctx.imageSmoothingEnabled = false;          // 畫布改變大小後這個設定會被重置，所以每幀設一次
       ctx.fillStyle = '#10141c';
       ctx.fillRect(0, 0, viewW, viewH);
       ctx.drawImage(ground, -camera.x, -camera.y);
 
       ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const glows = [];
       for (const e of entities) {
         const px = e.x * tile - camera.x, py = e.y * tile - camera.y, pw = e.w * tile, ph = e.h * tile;
-        if (px > viewW + tile * 3 || py > viewH + tile * 3 || px + pw < -tile * 3 || py + ph < -tile * 3) continue;
+        if (px > viewW + tile * 4 || py > viewH + tile * 4 || px + pw < -tile * 4 || py + ph < -tile * 4) continue;
+        const glow = e.glow ? e.glow() : 0;
+        if (glow > 0) glows.push([px + pw / 2, py + ph / 2, glow * tile]);
+        if (e.visible && !e.visible()) continue;
         if (e.draw) { e.draw(ctx, px, py, tile, time); continue; }
         ctx.fillStyle = e.color();
         ctx.fillRect(px + 3, py + 3, pw - 6, ph - 6);
@@ -45,7 +48,21 @@ export function createRenderer({ canvas, tile, viewW, viewH }) {
       ctx.fillStyle = '#3a2a10';                                  // 面向標記
       ctx.fillRect(cx + player.face.x * r * 0.6 - 2, cy + player.face.y * r * 0.6 - 2, 4, 4);
 
-      if (TINT[phase]) { ctx.fillStyle = TINT[phase]; ctx.fillRect(0, 0, viewW, viewH); }
+      if (tint && tint.a > 0) {
+        ctx.fillStyle = `rgba(${tint.r},${tint.g},${tint.b},${tint.a})`;
+        ctx.fillRect(0, 0, viewW, viewH);
+        if (glows.length) {
+          ctx.globalCompositeOperation = 'lighter';
+          for (const [gx, gy, gr] of glows) {
+            const grad = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr);
+            grad.addColorStop(0, `rgba(255,220,140,${Math.min(0.5, tint.a)})`);
+            grad.addColorStop(1, 'rgba(255,220,140,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(gx - gr, gy - gr, gr * 2, gr * 2);
+          }
+          ctx.globalCompositeOperation = 'source-over';
+        }
+      }
     },
   };
 }

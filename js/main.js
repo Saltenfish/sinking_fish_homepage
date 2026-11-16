@@ -14,6 +14,7 @@ import { items } from './data/items.js';
 import { crops } from './data/crops.js';
 import { fish as fishTable, loot } from './data/loot.js';
 import { achievements } from './data/achievements.js';
+import { offerings } from './data/offerings.js';
 import { town } from './data/maps/town.js';
 
 import { createProgress } from './systems/progress.js';
@@ -23,11 +24,13 @@ import { createFarm } from './systems/farm.js';
 import { createFishing } from './systems/fishing.js';
 import { createAchievements } from './systems/achievements.js';
 import { createClock } from './systems/clock.js';
+import { createShop } from './systems/shop.js';
 import { createFish } from './fish/index.js';
 
 import { createLoop } from './engine/loop.js';
 import { createInput } from './engine/input.js';
 import { createCamera } from './engine/camera.js';
+import { createView } from './engine/view.js';
 import { createRenderer } from './engine/renderer.js';
 import { createWorld } from './world/world.js';
 
@@ -41,13 +44,17 @@ import { fishChatView } from './ui/fishChatView.js';
 import { fishingView } from './ui/fishingView.js';
 import { listView } from './ui/listView.js';
 import { menuView } from './ui/menuView.js';
+import { hutView } from './ui/hutView.js';
+import { offeringsView } from './ui/offeringsView.js';
+import { mapView } from './ui/mapView.js';
+import { createTouchControls } from './ui/touch.js';
 
 function boot() {
   const root = document.getElementById('app');
   const canvas = document.getElementById('game');
 
   /* 1. 資料 */
-  const reg = buildRegistry({ characters, sites, items, crops, fish: fishTable, loot, achievements });
+  const reg = buildRegistry({ characters, sites, items, crops, fish: fishTable, loot, achievements, offerings });
   if (reg.errors.length) console.warn(`[資料檢查] 有 ${reg.errors.length} 筆資料被略過：\n- ${reg.errors.join('\n- ')}`);
 
   /* 2. 存檔 */
@@ -61,17 +68,21 @@ function boot() {
   /* 3. 系統 */
   const rng = Math.random;
   const clock = createClock();
+  // 預覽用：網址加 ?hour=22 可以固定時間（例如看夜晚的樣子），不影響存檔
+  const debugHour = new URLSearchParams(location.search).get('hour');
+  if (debugHour !== null && debugHour !== '' && Number.isFinite(Number(debugHour))) clock.setDebugHour(Number(debugHour));
   const progress = createProgress({ save, bus });
   const inv = createInventory({ save, reg, bus, cap: CONFIG.ITEM_CAP });
   const cards = createCards({ save, reg, bus, progress, rng });
   const farm = createFarm({ save, reg, bus, inv, progress, rng, plots: CONFIG.FARM_PLOTS, wetMs: CONFIG.FARM_WET_MS, dryRate: CONFIG.FARM_DRY_RATE });
   const fishing = createFishing({ reg, inv, progress, clock, bus, rng, waitMs: CONFIG.FISH_WAIT_MS, biteMs: CONFIG.FISH_BITE_MS });
   const ach = createAchievements({ save, reg, bus, inv, progress });
+  const shop = createShop({ save, reg, inv, progress, bus });
   const fish = createFish({ save, reg, cards, farm, inv, clock, progress, bus, crossStorage: storage, rng });
 
   /* 4. 介面 */
   const ui = createUI({ root, bus });
-  const game = { bus, reg, save, storage, rng, clock, progress, inv, cards, farm, fishing, ach, fish, ui, world: null };
+  const game = { bus, reg, save, storage, rng, clock, progress, inv, cards, farm, fishing, ach, shop, fish, ui, world: null };
   ui.register('ring', () => ringView(game));
   ui.register('card', (args) => cardView(game, args));
   ui.register('plaques', () => plaquesView(game));
@@ -80,16 +91,26 @@ function boot() {
   ui.register('fishing', () => fishingView(game));
   ui.register('list', () => listView(game));
   ui.register('menu', () => menuView(game));
+  ui.register('hut', () => hutView(game));
+  ui.register('offerings', () => offeringsView(game));
+  ui.register('map', () => mapView(game));
 
   const open = (name) => { if (!ui.isBlocking()) ui.show(name); };
-  root.append(h('div', { class: 'hud' },
+  const clockEl = h('div', { class: 'hud-clock', title: '小鎮的時間跟你那邊的現實時間一樣' });
+  const PHASE_ICON = { dawn: '🌅', day: '☀️', dusk: '🌇', night: '🌙' };
+  const tickClock = () => { const t = `${PHASE_ICON[clock.phase()]} ${clock.label()}`; if (clockEl.textContent !== t) clockEl.textContent = t; };
+  tickClock(); setInterval(tickClock, 5000);
+  root.append(h('div', { class: 'hud' }, clockEl,
     h('button', { class: 'btn', type: 'button', text: '🎒 背包', title: '背包（B）', onclick: () => open('bag') }),
+    h('button', { class: 'btn', type: 'button', text: '🗺 地圖', title: '地圖（M）', onclick: () => open('map') }),
     h('button', { class: 'btn', type: 'button', text: '📋 目錄', title: '快速目錄（L）', onclick: () => open('list') }),
     h('button', { class: 'btn', type: 'button', text: '⚙ 選單', title: '選單（Esc）', onclick: () => open('menu') })));
 
   /* 5. 世界 */
-  const camera = createCamera(CONFIG.VIEW_W, CONFIG.VIEW_H);
-  const input = createInput({ canvas, ui, bus, viewW: CONFIG.VIEW_W, viewH: CONFIG.VIEW_H });
+  const camera = createCamera(CONFIG.VIEW_MIN_W, CONFIG.VIEW_MIN_H);
+  const view = createView({ canvas, camera, config: CONFIG });      // 畫布填滿視窗，視窗變大小時自動調整
+  const input = createInput({ canvas, ui, bus, camera, sneak: CONFIG.SNEAK_RATE });
+  createTouchControls({ root, input, bus, ui });
   const world = createWorld({ game, maps: { town }, input, camera });
   game.world = world;
   const saved = save.data.player;
@@ -97,7 +118,7 @@ function boot() {
   catch (e) { console.error(e); ui.say(['地圖載入失敗，請看主控台的錯誤訊息。']); return; }
 
   /* 6. 事件 → 通知 */
-  bus.on('input:action', ({ action }) => { if (action === 'bag' || action === 'list' || action === 'menu') open(action); });
+  bus.on('input:action', ({ action }) => { if (action === 'bag' || action === 'list' || action === 'menu' || action === 'map') open(action); });
   bus.on('inv:changed', ({ id, delta }) => { if (delta > 0) ui.toast(`獲得 ${reg.itemById.get(id)?.name ?? id} ×${delta}`); });
   bus.on('ach:unlocked', ({ achievement }) => ui.toast(`成就解鎖：${achievement.name}`));
   bus.on('card:summoned', ({ first, card }) => { if (first) ui.toast(`新卡片：${card.name}`); });
@@ -109,12 +130,12 @@ function boot() {
   if (loadStatus === 'recovered') ui.toast('舊存檔讀取失敗，已重新開始');
 
   /* 8. 主迴圈 */
-  const renderer = createRenderer({ canvas, tile: CONFIG.TILE, viewW: CONFIG.VIEW_W, viewH: CONFIG.VIEW_H });
+  const renderer = createRenderer({ canvas, tile: CONFIG.TILE });
   const loop = createLoop({
     update: (dt) => world.update(dt),
     render: () => {
       world.followCamera();
-      renderer.draw({ map: world.map, entities: world.entities, player: world.player, camera, phase: clock.phase(), time: world.time });
+      renderer.draw({ map: world.map, entities: world.entities, player: world.player, camera, tint: clock.tint(), time: world.time });
     },
   });
   loop.start();
@@ -124,6 +145,7 @@ function boot() {
   window.addEventListener('pagehide', persist);
   document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
 
+  game.view = view;
   window.__sfh = game;   // 開發用：在主控台輸入 __sfh 可以查看所有系統
 }
 

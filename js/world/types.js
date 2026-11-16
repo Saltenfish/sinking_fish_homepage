@@ -7,11 +7,14 @@
      interact()  按下互動鍵時做的事（可以是 async）
      color()     佔位色塊顏色          label()  佔位文字
      draw(ctx, px, py, tile, time)   自己畫（有的話取代色塊）
+     update(dt)  每幀更新（需要時才寫）
+     visible()   回傳 false 時不畫       glow()  夜晚的發光半徑（格），0 = 不發光
    物件只透過 game.ui / game.farm 等系統做事，不直接碰畫面。
 ============================================================ */
 import { CONFIG } from '../config.js';
 import { rollLoot } from '../systems/loot.js';
 import { splitRings } from '../systems/ringModel.js';
+import { bugReaction } from '../systems/bugs.js';
 
 const types = new Map();
 export function register(name, factory) {
@@ -68,6 +71,7 @@ register('tree', (def, game) => ({
 register('altar', (def, game) => ({
   color: () => '#6c5ce7', label: () => '法陣',
   prompt: () => '站上法陣',
+  glow: () => 3,
   interact: () => game.ui.show('ring'),
   draw(ctx, px, py, tile, time) {
     const cx = px + tile, cy = py + tile;
@@ -175,6 +179,7 @@ register('lantern', (def, game) => {
   const lit = () => game.progress.flag(key);
   return {
     color: () => (lit() ? '#ffd54f' : '#607d8b'), label: () => '燈',
+    glow: () => (lit() ? 3.5 : 0),
     prompt: () => (lit() ? '熄燈' : '點燈'),
     interact() {
       if (lit()) { game.progress.clearFlag(key); return; }
@@ -183,6 +188,54 @@ register('lantern', (def, game) => {
       if (all.length && all.every((e) => game.progress.flag(`lit:${e.id}`))) {
         if (game.progress.setFlag('lanternsAll')) game.ui.toast('所有石燈都亮了');
       }
+    },
+  };
+});
+
+/* ---------- 成就小屋 ---------- */
+register('hut', (def, game) => ({
+  color: () => '#d7a86e', label: () => '成就小屋',
+  prompt: () => '進入小屋',
+  interact: () => game.ui.show('hut'),
+}));
+
+/* ---------- 供奉石（祭壇兌換） ---------- */
+register('offering', (def, game) => ({
+  color: () => '#c9b6ff', label: () => '供',
+  prompt: () => '供奉',
+  interact: () => game.ui.show('offerings'),
+}));
+
+/* ---------- 蟲（黃昏與夜晚才出現；靠太快會飛走） ---------- */
+register('bugspot', (def, game) => {
+  const caughtKey = `bug:${def.id}`, fleeKey = `bugflee:${def.id}`;
+  const table = () => (game.reg.lootTables.bugs || []).filter((t) => !t.phases || t.phases.includes(game.clock.phase()));
+  const active = () => table().length > 0
+    && game.progress.cooldownLeft(caughtKey, CONFIG.BUG_CATCH_CD_MS) === 0
+    && game.progress.cooldownLeft(fleeKey, CONFIG.BUG_FLEE_CD_MS) === 0;
+  return {
+    visible: active,
+    glow: () => (active() ? 1.2 : 0),
+    prompt: () => (active() ? '抓蟲' : null),
+    update() {
+      if (!active()) return;
+      const p = game.world.player;
+      const dist = Math.hypot(p.x - (def.x + 0.5), p.y - (def.y + 0.5));
+      if (bugReaction(dist, p.speed, { alertRadius: CONFIG.BUG_ALERT_RADIUS, sneakSpeed: CONFIG.BUG_SNEAK_SPEED }) === 'flee') {
+        game.progress.markCooldown(fleeKey);
+        game.ui.toast('蟲被嚇跑了。下次慢慢靠近（按住 Shift 或輕推搖桿）');
+      }
+    },
+    interact() {
+      if (!active()) return;
+      const id = rollLoot(table(), { rng: game.rng });
+      game.progress.markCooldown(caughtKey);
+      if (id && game.inv.add(id, 1) > 0) game.progress.inc('bugsCaught');
+    },
+    draw(ctx, px, py, tile, time) {
+      const bob = Math.sin(time * 3 + def.x) * 4;
+      ctx.fillStyle = '#eaff8f';
+      ctx.fillRect(px + tile / 2 - 2, py + tile / 2 - 2 + bob, 4, 4);
     },
   };
 });

@@ -14,8 +14,10 @@ import { items } from '../js/data/items.js';
 import { crops } from '../js/data/crops.js';
 import { fish, loot } from '../js/data/loot.js';
 import { achievements } from '../js/data/achievements.js';
+import { offerings } from '../js/data/offerings.js';
+import { createShop } from '../js/systems/shop.js';
 
-export const realData = () => ({ characters, sites, items, crops, fish, loot, achievements });
+export const realData = () => ({ characters, sites, items, crops, fish, loot, achievements, offerings });
 
 export function memLS() {
   const m = new Map();
@@ -42,5 +44,6 @@ export function makeGame({ data = realData(), ls = memLS(), start = 1_000_000 } 
   const farm = createFarm({ save, reg, bus, inv, progress, now, rng, plots: 6, wetMs: 600000, dryRate: 0.5 });
   const fishing = createFishing({ reg, inv, progress, clock, bus, rng, waitMs: [1000, 1000], biteMs: 800 });
   const ach = createAchievements({ save, reg, bus, inv, progress, now });
-  return { t, setRng: (v) => { r = v; }, phase, bus, events, reg, storage, ls, save, clock, progress, inv, cards, farm, fishing, ach, rng, now };
+  const shop = createShop({ save, reg, inv, progress, bus });
+  return { shop, t, setRng: (v) => { r = v; }, phase, bus, events, reg, storage, ls, save, clock, progress, inv, cards, farm, fishing, ach, rng, now };
 }
