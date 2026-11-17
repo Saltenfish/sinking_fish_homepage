@@ -108,7 +108,7 @@ def stamp(im, pattern, x0, y0, colors, flip=False):
 
 # ───────────────────────── 卡背 ─────────────────────────
 # 構圖：深色厚邊框 + 細金線 + 四角各一隻小鴨子，正中央是一個漩渦狀的橢圓（像要把人吸進去的感覺），
-# 漩渦中心是一隻發光的鴨子徽記。全部是原創圖樣，只借用「神秘漩渦卡背」的氣氛。
+# 漩渦中心浮出一隻鴨子（由漩渦本身變亮形成，旋臂照樣穿過牠）。全部是原創圖樣，只借用「神秘漩渦卡背」的氣氛。
 
 BACKS = {
     #           邊框暗,     邊框,      金線,      漩渦暗,     漩渦中,     漩渦亮,     中心光
@@ -122,7 +122,7 @@ BACKS = {
 def card_back(name):
     W, H = 84, 124
     edge_d, edge, gold, sw_d, sw_m, sw_l, glow = BACKS[name]
-    r = random.Random(hash(name) % 1000)
+    r = random.Random(sum(map(ord, name)))                    # 固定種子（不能用 hash()，每次執行結果會不同）
     im = new(W, H)
     rect(im, 0, 0, W - 1, H - 1, edge_d)                     # 外框
     rect(im, 2, 2, W - 3, H - 3, edge)
@@ -133,6 +133,20 @@ def card_back(name):
     rect(im, 6, 6, W - 7, H - 7, sw_d)                        # 內框的深底
     # 漩渦：橢圓裡每個點依「角度 + 半徑的對數」決定落在哪一條旋臂上
     cx, cy, rx, ry = W / 2 - 0.5, H / 2 - 0.5, 33, 47
+    # 鴨子不另外畫一個徽章，而是「漩渦本身在鴨子形狀的地方變亮」：旋臂照樣穿過鴨子，
+    # 鴨子只是漩渦裡比較亮的一塊，邊緣用棋盤格淡出，所以看起來是從漩渦裡浮出來的
+    duck = {}
+    dw, dh = len(DUCK_BIG[0]) * 2, len(DUCK_BIG) * 2
+    ox, oy = round(cx - dw / 2) + 1, round(cy - dh / 2) + 2
+    for j, row in enumerate(DUCK_BIG):
+        for i, ch in enumerate(row):
+            if ch != '.':
+                for a2 in range(2):
+                    for b2 in range(2):
+                        duck[(ox + i * 2 + a2, oy + j * 2 + b2)] = ch
+    edge = {p for p in duck if any((p[0] + dx, p[1] + dy) not in duck for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))}
+    # 鴨子外圍一圈深色：和漩渦的暗色旋臂同色，暗臂流到鴨子身邊就變成牠的輪廓
+    rim = {(x + dx, y + dy) for (x, y) in edge for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))} - set(duck)
     for y in range(7, H - 7):
         for x in range(7, W - 7):
             dx, dy = (x - cx) / rx, (y - cy) / ry
@@ -143,11 +157,28 @@ def card_back(name):
             v = math.sin(3 * a + 7.5 * math.log(d + 0.06))   # 三條旋臂
             k = (1 - d) ** 0.8                                 # 越靠中心越亮
             t = (v * 0.5 + 0.5) * 0.65 + k * 0.55
-            c = sw_d if t < 0.32 else sw_m if t < 0.62 else sw_l if t < 0.95 else glow
-            if (x + y) % 2 and 0.29 < t < 0.35:                # 交界的棋盤格過渡
-                c = sw_m
-            if (x + y) % 2 and 0.6 < t < 0.65:
-                c = sw_l
+            t0 = v * 0.5 + 0.5                                 # 只看旋臂的明暗（0~1），給鴨子身上的紋路用
+            if d < 0.34:                                       # 漩渦正中間是比較暗的「渦眼」，鴨子浮在裡面才看得清楚
+                t -= (0.34 - d) * 2.6
+            ch = duck.get((x, y))
+            if (x, y) in rim:
+                px(im, x, y, sw_d)
+                continue
+            if ch == 'b':
+                c = '#f6a33c' if (x + y) % 3 else '#ffd27a'      # 嘴巴
+            elif ch == 'o':
+                c = sw_d                                           # 眼睛
+            else:
+                # 鴨子身上把漩渦的明暗壓進「亮色」的範圍：旋臂的紋路還在，但整體是一隻亮的鴨子
+                if ch == '#':
+                    t = 0.66 + t0 * 0.42                           # 身體只用亮色和最亮色，旋臂的紋路還看得到
+                elif ch == 'w':
+                    t = 0.4 + t0 * 0.3                             # 翅膀用中間色，看得出形狀
+                c = sw_d if t < 0.32 else sw_m if t < 0.62 else sw_l if t < 0.95 else glow
+                if (x + y) % 2 and 0.29 < t < 0.35:                # 交界的棋盤格過渡
+                    c = sw_m
+                if (x + y) % 2 and 0.6 < t < 0.65:
+                    c = sw_l
             px(im, x, y, c)
     for a in range(0, 360, 2):                                # 橢圓外圈的金框與小點
         x = round(cx + math.cos(math.radians(a)) * (rx + 1.5))
@@ -155,11 +186,6 @@ def card_back(name):
         px(im, x, y, gold)
         if a % 30 == 0:
             px(im, round(cx + math.cos(math.radians(a)) * (rx + 4)), round(cy + math.sin(math.radians(a)) * (ry + 4)), gold)
-    # 中心的鴨子徽記：先畫一圈深色的圓底，鴨子才不會被漩渦吃掉
-    ellipse(im, cx, cy, 10, 9, sw_d)
-    for a in range(0, 360, 6):
-        px(im, round(cx + math.cos(math.radians(a)) * 10.5), round(cy + math.sin(math.radians(a)) * 9.5), gold)
-    stamp(im, DUCK_BIG, round(cx) - 7, round(cy) - 6, {'#': glow, 'o': sw_d, 'b': '#f6a33c', 'w': sw_l})
     # 四角紋飾：一個直角框，框裡一隻小鴨子（右邊兩角的鴨子面向內側）
     for (x0, y0, sx, sy) in ((8, 8, 1, 1), (W - 9, 8, -1, 1), (8, H - 9, 1, -1), (W - 9, H - 9, -1, -1)):
         for k in range(6):
@@ -214,36 +240,41 @@ def bezier(p0, p1, p2, p3, t):
 
 
 def wish_tree_big():
-    """許願樹畫面：只有從畫面上緣與兩側伸進來的枝條和葉子（像站在樹下往上看），背景透明。
+    """許願樹畫面：只有枝條和葉子，背景透明。兩根粗枝從畫面下方中央長上來，
+    在中間分岔後一路往外、往上擴散到畫面兩側與上緣，葉子集中在往外伸的那一段。
     許願牌用細繩掛在枝條的下緣。回傳 (圖, 掛點)"""
     r = random.Random(7)
     im = new(TW, TH)
     D, M, L = '#5c3b26', '#7a5236', '#9a6e4a'
-    # 枝條：三次貝茲曲線，從畫面外伸進來，由粗變細
+    # 枝條：三次貝茲曲線，由內往外畫（起點粗、終點細）。最後一欄：從哪裡開始長葉子（0~1；大於 1 = 不長）
+    HL, HR = (146, 150), (304, 150)                         # 左右兩個分岔點
     branches = [
-        ((-12, 26), (60, 34), (120, 92), (205, 142), 7),      # 左上 → 中間偏左，最長
-        ((92, -12), (106, 28), (138, 58), (176, 70), 5),       # 上方往左下
-        ((214, -12), (220, 36), (240, 74), (226, 116), 6),     # 正上方垂下來
-        ((334, -12), (314, 28), (290, 58), (250, 84), 5),      # 上方往右下
-        ((462, 36), (402, 46), (352, 92), (300, 138), 7),      # 右側 → 中間偏右
-        ((462, 108), (432, 112), (402, 128), (368, 146), 5),   # 右下
-        ((-12, 116), (30, 114), (58, 126), (86, 146), 5),      # 左下
+        ((196, 282), (186, 220), (168, 176), HL, 15, 9, 2),         # 左邊的粗枝（從畫面下方長上來，不長葉子）
+        ((254, 282), (264, 220), (282, 176), HR, 15, 9, 2),         # 右邊的粗枝
+        (HL, (104, 140), (50, 128), (-14, 132), 9, 2, 0.35),        # 往左，低
+        (HL, (118, 104), (70, 66), (-14, 44), 9, 2, 0.3),           # 往左上
+        (HL, (156, 106), (148, 54), (118, -14), 8, 2, 0.35),        # 往上偏左
+        (HL, (192, 124), (226, 96), (262, -14), 7, 2, 0.4),         # 往中間上方（和右邊那根交叉）
+        (HR, (346, 140), (400, 128), (464, 132), 9, 2, 0.35),       # 往右，低
+        (HR, (332, 104), (380, 66), (464, 44), 9, 2, 0.3),          # 往右上
+        (HR, (294, 106), (302, 54), (332, -14), 8, 2, 0.35),        # 往上偏右
+        (HR, (258, 124), (224, 96), (188, -14), 7, 2, 0.4),         # 往中間上方（和左邊那根交叉）
     ]
-    lowest = {}                                            # 每個 x 上枝條的最低點（掛繩子用）
+    branch_ys = {}                                         # 每個 x 上有枝條的 y（掛繩子用）
     twig_tips = []
     paths = []
-    for p0, p1, p2, p3, w0 in branches:
+    for p0, p1, p2, p3, w0, w1, leaf_from in branches:
         pts = [bezier(p0, p1, p2, p3, i / 240) for i in range(241)]
-        paths.append(pts)
+        paths.append((pts, leaf_from))
         for i, (x, y) in enumerate(pts):
-            w = w0 * (1 - i / 240) + 1.5 * (i / 240)
+            w = w0 * (1 - i / 240) + w1 * (i / 240)
             for k in range(-int(w), int(w) + 1):
                 c = L if k < -w * 0.4 else D if k > w * 0.45 else M
                 X, Y = round(x), round(y + k)
                 px(im, X, Y, c)
-                if 0 <= X < TW and Y <= 142:
-                    lowest[X] = max(lowest.get(X, -1), Y)
-        for t in (0.3, 0.55, 0.8):                         # 往上翹的細枝，末端長一小叢葉子
+                if 0 <= X < TW and 0 <= Y < TH:
+                    branch_ys.setdefault(X, set()).add(Y)
+        for t in ((0.45, 0.7, 0.9) if leaf_from <= 1 else ()):   # 往上翹的細枝，末端長一小叢葉子
             x, y = bezier(p0, p1, p2, p3, t)
             side = r.choice([-1, 1])
             for k in range(12):
@@ -252,17 +283,22 @@ def wish_tree_big():
             twig_tips.append((x + side * 8, y - 13))
     # 葉子：沿著枝條的「上方」長，枝條下方保持乾淨，繩子和許願牌才看得清楚
     lumps = []
-    for pts in paths:                                     # 一小叢一小叢、中間留空，看得到枝條
-        for i in range(0, 200, 22):
+    for pts, leaf_from in paths:                          # 一小叢一小叢、中間留空，看得到枝條；越往外越密
+        if leaf_from > 1:
+            continue
+        for i in range(int(leaf_from * 240), 236, 18):
             x, y = pts[i]
             for _ in range(2):
                 lumps.append((x + r.uniform(-7, 7), y - r.uniform(9, 17), r.choice([6, 7, 8, 9]), r.randrange(4)))
-        tx, ty = pts[-1]                                   # 枝頭再多一叢
-        lumps.append((tx + r.uniform(-3, 3), ty - 8, 8, r.randrange(4)))
+        tx, ty = pts[-14]                                  # 枝頭再多一叢
+        lumps.append((tx + r.uniform(-3, 3), ty - 8, 9, r.randrange(4)))
     for x, y in twig_tips:
         lumps.append((x, y, r.choice([6, 7, 8]), r.randrange(4)))
-    for x in range(-10, TW + 10, 14):                       # 上緣再鋪一排，畫面頂端是一整片樹冠
+    for x in range(-10, TW + 10, 16):                       # 上緣與兩側是枝條往外長的末端，葉子最茂密
         lumps.append((x + r.uniform(-4, 4), r.uniform(-8, 4), r.choice([9, 11, 13]), r.randrange(4)))
+    for y in range(10, 140, 16):
+        for x in (r.uniform(-6, 4), TW + r.uniform(-4, 6)):
+            lumps.append((x, y + r.uniform(-4, 4), r.choice([9, 11, 12]), r.randrange(4)))
     owner = {}
     for cx, cy, rad, k in sorted(lumps, key=lambda q: q[1]):
         jag = [rad + r.choice([-2, -1, 0, 0, 1]) for _ in range(24)]
@@ -303,10 +339,14 @@ def wish_tree_big():
             (140, 420), (260, 428), (380, 416), (520, 424), (640, 418), (760, 426), (40, 422)]
     anchors = []
     for fx, top in rows:
-        hx = fx // 2
-        hy = max((lowest[x] for x in range(hx - 1, hx + 2) if x in lowest), default=None)
-        if hy is None:
+        # 找這個 x 上「離牌頂至少 40 的最低一根枝條」；正上方沒有就往左右最多 12 格找
+        limit = (top - 40) // 2
+        ok = lambda x: any(y <= limit for y in branch_ys.get(x, ()))
+        hx = next((fx // 2 + d for d in sorted(range(-12, 13), key=abs) if ok(fx // 2 + d)), None)
+        if hx is None:
             raise SystemExit(f'x={fx} 附近沒有枝條可以掛許願牌，請調整 branches 或 rows')
+        hy = max(y for y in branch_ys[hx] if y <= limit)
+        fx = hx * 2
         ellipse(im, hx, hy, 1.6, 1.6, D)                   # 綁繩子的小結
         anchors.append({'x': fx, 'y': hy * 2 + 2, 'len': top - (hy * 2 + 2)})
     return im, anchors
