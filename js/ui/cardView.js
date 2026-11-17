@@ -22,7 +22,7 @@ export function cardView(game, { id } = {}) {
     url ? extLink(url, '前往 Caveduck 聊天 ↗', 'btn link') : null);
   const flip = () => { flipped = !flipped; front.hidden = flipped; back.hidden = !flipped; };
   const body = h('div', { class: `card r-${c.rarity || 'N'}` }, front, back,
-    h('button', { class: 'btn', type: 'button', text: '翻面（F）', onclick: flip }));
+    h('button', { class: 'btn', type: 'button', text: '翻面', onclick: flip }));
 
   return game.ui.panel({
     title: '角色卡', body, scene: 'card',

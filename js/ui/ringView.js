@@ -115,7 +115,8 @@ export function ringView(game) {
   const body = h('div', { class: 'ring' }, counter, stage, title,
     h('div', { class: 'row' }, btn('◀', () => model.nudge(-1)), btn('召喚這張', summonFront), btn('▶', () => model.nudge(1))),
     h('div', { class: 'row' }, btn('命運輪盤', randomSpin), faceBtn),
-    h('div', { class: 'hint', text: '拖曳／滾輪／← → 轉動・Enter 召喚・R 隨機' }));
+    h('div', { class: 'hint kbd', text: '拖曳／滾輪／← → 轉動・Enter 召喚・R 隨機' }),
+    h('div', { class: 'hint tap', text: '左右滑動轉動卡環・點正中央的卡召喚' }));
 
   const p = ui.panel({
     title: '召喚卡環', body, cls: 'xl', scene: 'ring',

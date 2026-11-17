@@ -8,8 +8,11 @@ export function createUI({ root, bus, assets = null, animMs = 220 }) {
   const toasts = h('div', { class: 'toasts', role: 'status', 'aria-live': 'polite' });
   // 互動提示本身也是按鈕：點它等於按互動鍵（手機上最直覺）
   const prompt = h('button', { class: 'prompt', type: 'button', hidden: true, onclick: () => { if (!stack.length) bus.emit('input:action', { action: 'interact' }); } });
+  // 觸控裝置：一開始就判斷（不等第一次觸碰），提示不顯示鍵盤按鍵，並在根元素加上 touch-ui 讓 CSS 隱藏鍵盤說明
   let touchUi = false;
-  window.addEventListener('touchstart', () => { touchUi = true; }, { once: true, passive: true });
+  const setTouch = () => { if (!touchUi) { touchUi = true; root.classList.add('touch-ui'); prompt.textContent = ''; } };
+  if (window.matchMedia?.('(pointer: coarse)').matches) setTouch();
+  window.addEventListener('touchstart', setTouch, { once: true, passive: true });
   root.append(prompt, layer, toasts);
 
   const stack = [];          // 開著的視窗，最後一個在最上面
@@ -59,7 +62,7 @@ export function createUI({ root, bus, assets = null, animMs = 220 }) {
 
     setPrompt(text) {
       if (stack.length || !text) { prompt.hidden = true; return; }
-      const s = touchUi ? `👆 ${text}` : `E　${text}`;
+      const s = touchUi ? `👆 點這裡：${text}` : `E　${text}`;   // 手機上不出現「E」，避免以為要按鍵盤
       if (prompt.textContent !== s) prompt.textContent = s;
       prompt.hidden = false;
     },
@@ -96,7 +99,7 @@ export function createUI({ root, bus, assets = null, animMs = 220 }) {
         const el = h('div', { class: 'dialog choose' },
           h('div', { class: 'dialog-name', text: title }),
           options.map((o, i) => h('button', { class: 'btn choice', type: 'button', text: `${i + 1}. ${o}`, onclick: (e) => { e.stopPropagation(); pickIt(i); } })),
-          h('div', { class: 'dialog-hint', text: '數字鍵選擇・Esc 取消' }));
+          h('div', { class: 'dialog-hint' }, h('span', { class: 'kbd', text: '數字鍵選擇・Esc 取消' }), h('span', { class: 'tap', text: '點選一個選項' })));
         const closeIt = open({
           el, onClose: () => resolve(result),
           onKey: (e) => {

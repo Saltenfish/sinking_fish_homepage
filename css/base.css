@@ -10,6 +10,8 @@ html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;touch-ac
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.row input{flex:1;min-width:0}
 input,textarea{font:inherit;color:inherit;background:#161a26;border:1px solid #4a5270;border-radius:6px;padding:6px 8px;width:100%}
 .hud{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));display:flex;gap:6px;z-index:5;flex-wrap:wrap;justify-content:flex-end;align-items:center;max-width:calc(100% - 20px)}
+/* 鍵盤說明只給鍵盤裝置看，觸控說明只給觸控裝置看 */
+.tap{display:none}.touch-ui .tap{display:revert}.touch-ui .kbd{display:none}
 /* 小圖示與金幣 */
 .icon{width:20px;height:20px;image-rendering:pixelated;vertical-align:-4px;margin-right:6px}.coins{font-weight:700;color:#f6c453;font-variant-numeric:tabular-nums}
 .hud-clock{background:rgba(16,20,28,.75);border-radius:6px;padding:6px 10px;font-variant-numeric:tabular-nums}
