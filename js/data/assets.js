@@ -71,7 +71,6 @@ export const assets = {
   'card.back.tide': 'assets/cards/back-tide.png',
   'card.back.star': 'assets/cards/back-star.png',
   'tree.bg': 'assets/scenes/wish-tree.png',
-  'tree.plaque': 'assets/ui/plaque.png',
   'scene.ring': 'assets/scenes/ring.png',
   'scene.card': 'assets/scenes/card.png',
   'scene.tree': 'assets/scenes/tree.png',

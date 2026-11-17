@@ -58,17 +58,21 @@ h4{margin:12px 0 4px}.list{margin:0;padding-left:1.2em}.list a{color:#9fc6ff}
 .card-art img{max-width:100%;max-height:100%}.card-name{font-weight:700;font-size:16px;margin-top:6px}.card-rarity{color:var(--rare)}
 /* 許願牌 */
 .tree-scroll{overflow-x:auto;border-radius:8px;background:linear-gradient(#dff1ff,#f7fbff 60%,#e9f5e1)}
-.tree-stage{position:relative;aspect-ratio:900/540;width:min(100%,max(620px,calc((100dvh - 250px) * 5 / 3)));min-width:620px;margin:0 auto;container-type:inline-size}  /* 桌機上整棵樹與下方說明要同時放得進畫面 */
+.tree-stage{position:relative;aspect-ratio:900/540;width:100%;min-width:620px;container-type:inline-size}
 .tree-svg{position:absolute;inset:0;width:100%;height:100%}
 .tree-hang{position:absolute;inset:0}
 .hang{position:absolute;display:flex;flex-direction:column;align-items:center;transform-origin:50% 0;animation:sway 3.6s ease-in-out infinite alternate}
-.hang-string{flex:0 0 auto;width:2px;background:var(--pc,#e79ab8);opacity:.9}
-.hang:has(.c0){--pc:#ee8fb5}.hang:has(.c1){--pc:#a99be0}.hang:has(.c2){--pc:#6cc5dc}.hang:has(.c3){--pc:#72c9a4}.hang:has(.c4){--pc:#e3b64f}
-.plaque{flex:1 1 0;min-height:0;width:100%;border:2px solid var(--pc,#e79ab8);border-radius:6px 6px 4px 4px;background:rgba(255,255,255,.88);color:#3b3350;
+.hang-string{flex:0 0 auto;width:1px;background:var(--pc,#e79ab8);box-shadow:1px 0 0 rgba(255,255,255,.5)}
+/* 淡色系的卡：每塊牌一種顏色，繩子用同色系深一點的顏色 */
+.hang:has(.c0){--pc:#d98fb0;--pb:#fde4ee}.hang:has(.c1){--pc:#9f8fd6;--pb:#ece6fb}.hang:has(.c2){--pc:#6fb6cf;--pb:#e1f3f9}.hang:has(.c3){--pc:#73bc98;--pb:#e3f5ea}.hang:has(.c4){--pc:#d6ad52;--pb:#fbf1d6}
+.plaque{flex:1 1 0;min-height:0;width:100%;border:2px solid var(--pc,#e79ab8);border-radius:6px;background:var(--pb,#fff);color:#4a4160;outline:1px dashed color-mix(in srgb,var(--pc) 55%,transparent);outline-offset:-6px;
   font:inherit;font-weight:700;font-size:clamp(9px,1.55cqw,17px);line-height:1.25;padding:4% 3%;cursor:pointer;overflow:hidden;word-break:break-word;
   display:flex;align-items:center;justify-content:center;text-align:center;box-shadow:0 3px 6px rgba(60,40,80,.18)}
-.plaque.wish{font-weight:400;background:rgba(255,253,240,.9)}
+.plaque.wish{font-weight:400}
+.plaque::before{content:'';position:absolute;top:5px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--pc);box-shadow:inset 0 0 0 1.5px #fff}  /* 穿繩的小孔 */
+.plaque{position:relative}
 .plaque:hover,.plaque:focus-visible{background:#fff;outline:2px solid var(--pc);outline-offset:2px}
+.tree-scroll{background:linear-gradient(#fbf7ee,#f6f1fb 70%,#eef6f0)!important;width:min(100%,max(620px,calc((100dvh - 250px) * 5 / 3)));margin:0 auto}  /* 框跟樹圖一樣寬，枝條從框的邊緣伸進來；桌機上整棵樹與下方說明同時放得進畫面 */
 @keyframes sway{from{transform:rotate(-2.4deg)}to{transform:rotate(2.4deg)}}
 .tree-detail{min-height:4.6em;margin:10px 0 4px;padding:8px 12px;border-left:3px solid #b9a5e8;background:#161a26;border-radius:0 6px 6px 0}.tree-detail p{margin:2px 0 6px}
 /* 成就小屋 */

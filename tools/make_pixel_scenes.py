@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""產生卡背、許願樹大圖、許願牌、全螢幕畫面背景的暫用像素圖，輸出到 assets/。
+"""產生卡背、許願樹大圖（枝條與葉子）、全螢幕畫面背景的暫用像素圖，輸出到 assets/。
 
 用法：  python3 tools/make_pixel_scenes.py        （需要 Pillow）
 
@@ -72,9 +72,43 @@ def sparkles(im, n, colors, seed, area=None):
                 px(im, x + dx, y + dy, lerp(c if isinstance(c, str) else '#ffffff', '#000000', 0.35))
 
 
+# 小鴨子圖樣（Caveduck 的鴨子元素）。'#' = 身體、'o' = 眼睛、'b' = 嘴、'w' = 翅膀
+DUCK_BIG = [
+    '.....###.......',
+    '....#####......',
+    '....##o##bb....',
+    '....#####bbb...',
+    '.....###.......',
+    '.....####......',
+    '#...#######....',
+    '##.#########...',
+    '#####www#####..',
+    '.####wwww####..',
+    '..##########...',
+    '...########....',
+]
+DUCK_SMALL = [
+    '.##..',
+    '#o#b.',
+    '.##..',
+    '#####',
+    '.###.',
+]
+
+
+def stamp(im, pattern, x0, y0, colors, flip=False):
+    """把字元圖樣印到圖上；colors 對應每個字元的顏色，'.' 是透明"""
+    for y, row in enumerate(pattern):
+        if flip:
+            row = row[::-1].replace('b', 'B').replace('B', 'b')
+        for x, ch in enumerate(row):
+            if ch in colors:
+                px(im, x0 + x, y0 + y, colors[ch])
+
+
 # ───────────────────────── 卡背 ─────────────────────────
-# 構圖：深色厚邊框 + 細金線 + 四角的小紋飾，正中央是一個漩渦狀的橢圓（像要把人吸進去的感覺），
-# 漩渦中心有一個發光的小魚徽記。全部是原創圖樣，只借用「神秘漩渦卡背」的氣氛。
+# 構圖：深色厚邊框 + 細金線 + 四角各一隻小鴨子，正中央是一個漩渦狀的橢圓（像要把人吸進去的感覺），
+# 漩渦中心是一隻發光的鴨子徽記。全部是原創圖樣，只借用「神秘漩渦卡背」的氣氛。
 
 BACKS = {
     #           邊框暗,     邊框,      金線,      漩渦暗,     漩渦中,     漩渦亮,     中心光
@@ -121,20 +155,17 @@ def card_back(name):
         px(im, x, y, gold)
         if a % 30 == 0:
             px(im, round(cx + math.cos(math.radians(a)) * (rx + 4)), round(cy + math.sin(math.radians(a)) * (ry + 4)), gold)
-    # 中心的小魚徽記
-    ellipse(im, cx, cy, 5.5, 3.2, glow)
-    for k in range(3):
-        rect(im, round(cx) - 6 - k, round(cy) - k, round(cx) - 6 - k, round(cy) + k, glow)
-    px(im, round(cx) + 2, round(cy) - 1, sw_d)
-    # 四角紋飾：一個小菱形加兩段弧
+    # 中心的鴨子徽記：先畫一圈深色的圓底，鴨子才不會被漩渦吃掉
+    ellipse(im, cx, cy, 10, 9, sw_d)
+    for a in range(0, 360, 6):
+        px(im, round(cx + math.cos(math.radians(a)) * 10.5), round(cy + math.sin(math.radians(a)) * 9.5), gold)
+    stamp(im, DUCK_BIG, round(cx) - 7, round(cy) - 6, {'#': glow, 'o': sw_d, 'b': '#f6a33c', 'w': sw_l})
+    # 四角紋飾：一個直角框，框裡一隻小鴨子（右邊兩角的鴨子面向內側）
     for (x0, y0, sx, sy) in ((8, 8, 1, 1), (W - 9, 8, -1, 1), (8, H - 9, 1, -1), (W - 9, H - 9, -1, -1)):
         for k in range(6):
             px(im, x0 + sx * k, y0, gold)
             px(im, x0, y0 + sy * k, gold)
-        for dx, dy in ((2, 2), (3, 2), (2, 3), (3, 3)):
-            px(im, x0 + sx * dx, y0 + sy * dy, glow)
-        px(im, x0 + sx * 4, y0 + sy * 1, gold)
-        px(im, x0 + sx * 1, y0 + sy * 4, gold)
+        stamp(im, DUCK_SMALL, x0 + (2 if sx > 0 else -6), y0 + (2 if sy > 0 else -6), {'#': glow, 'o': sw_d, 'b': '#f6a33c'}, flip=sx < 0)
     # 上下中央的小飾條
     for y0 in (8, H - 9):
         rect(im, W // 2 - 8, y0, W // 2 + 7, y0, gold)
@@ -176,55 +207,65 @@ def branch(im, x0, y0, x1, y1, w0, w1, dark, mid, light):
             px(im, round(x + k), round(y), c)
 
 
+def bezier(p0, p1, p2, p3, t):
+    u = 1 - t
+    return (u ** 3 * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t ** 3 * p3[0],
+            u ** 3 * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t ** 3 * p3[1])
+
+
 def wish_tree_big():
+    """許願樹畫面：只有從畫面上緣與兩側伸進來的枝條和葉子（像站在樹下往上看），背景透明。
+    許願牌用細繩掛在枝條的下緣。回傳 (圖, 掛點)"""
     r = random.Random(7)
     im = new(TW, TH)
-    # 天空、遠山、草地
-    bands(im, 0, 0, TW - 1, 190, '#bfe6ff', '#f2fbff', 10)
-    for x in range(TW):                                       # 遠山
-        h1 = 150 + int(14 * math.sin(x / 41) + 8 * math.sin(x / 13 + 1))
-        h2 = 172 + int(10 * math.sin(x / 29 + 2) + 5 * math.sin(x / 9))
-        rect(im, x, h1, x, 200, '#cfe6d6')
-        rect(im, x, h2, x, 205, '#a9d3a8')
-    for cx_, cy_, w_ in ((60, 30, 26), (330, 22, 34), (400, 48, 18)):   # 雲
-        for dx, dy, rr in ((0, 0, 8), (10, -3, 10), (22, 0, 8), (12, 3, 9)):
-            ellipse(im, cx_ + dx * w_ / 26, cy_ + dy, rr * w_ / 26 + 2, rr * 0.6 + 1, '#ffffff')
-    bands(im, 0, 200, TW - 1, TH - 1, '#8cc96d', '#5f9e4c', 5)
-    for _ in range(500):                                      # 草地紋理
-        x, y = r.randrange(TW), r.randrange(202, TH)
-        px(im, x, y, r.choice(['#7ab95e', '#a4d67e', '#6aa853']))
-    # 樹幹與主枝
     D, M, L = '#5c3b26', '#7a5236', '#9a6e4a'
-    trunk_top = 150
-    for y in range(trunk_top, 252):                           # 樹幹（下面比較粗）
-        w = 13 + max(0, (y - 225)) * 0.6
-        for k in range(-int(w), int(w) + 1):
-            c = L if k < -w * 0.45 else D if k > w * 0.5 else M
-            px(im, 225 + k, y, c)
-    branch(im, 213, 244, 186, 256, 5, 1, D, M, L)
-    branch(im, 237, 244, 266, 257, 5, 1, D, M, L)
-    branch(im, 225, 246, 222, 258, 6, 2, D, M, L)
-    for y in (180, 200, 220):                                 # 樹皮紋
-        rect(im, 220, y, 228, y, D)
-        px(im, 222, y + 1, D)
-    tips = [(62, 98), (128, 62), (225, 40), (322, 62), (388, 98), (170, 112), (280, 112)]
-    for tx, ty in tips:
-        branch(im, 225, trunk_top + 6, tx, ty, 9, 2.5, D, M, L)
-    for tx, ty in tips[:5]:                                   # 細枝
-        branch(im, tx, ty, tx - 14, ty + 10, 2.5, 1, D, M, L)
-        branch(im, tx, ty, tx + 14, ty + 8, 2.5, 1, D, M, L)
-    # 樹冠：每根枝頭一團，團與團之間留一點縫，看得到後面的枝條
-    clusters = [(62, 96, 46, 30), (130, 62, 50, 32), (225, 44, 60, 32), (320, 62, 50, 32), (388, 96, 46, 30),
-                (172, 104, 30, 18), (278, 104, 30, 18)]
+    # 枝條：三次貝茲曲線，從畫面外伸進來，由粗變細
+    branches = [
+        ((-12, 26), (60, 34), (120, 92), (205, 142), 7),      # 左上 → 中間偏左，最長
+        ((92, -12), (106, 28), (138, 58), (176, 70), 5),       # 上方往左下
+        ((214, -12), (220, 36), (240, 74), (226, 116), 6),     # 正上方垂下來
+        ((334, -12), (314, 28), (290, 58), (250, 84), 5),      # 上方往右下
+        ((462, 36), (402, 46), (352, 92), (300, 138), 7),      # 右側 → 中間偏右
+        ((462, 108), (432, 112), (402, 128), (368, 146), 5),   # 右下
+        ((-12, 116), (30, 114), (58, 126), (86, 146), 5),      # 左下
+    ]
+    lowest = {}                                            # 每個 x 上枝條的最低點（掛繩子用）
+    twig_tips = []
+    paths = []
+    for p0, p1, p2, p3, w0 in branches:
+        pts = [bezier(p0, p1, p2, p3, i / 240) for i in range(241)]
+        paths.append(pts)
+        for i, (x, y) in enumerate(pts):
+            w = w0 * (1 - i / 240) + 1.5 * (i / 240)
+            for k in range(-int(w), int(w) + 1):
+                c = L if k < -w * 0.4 else D if k > w * 0.45 else M
+                X, Y = round(x), round(y + k)
+                px(im, X, Y, c)
+                if 0 <= X < TW and Y <= 142:
+                    lowest[X] = max(lowest.get(X, -1), Y)
+        for t in (0.3, 0.55, 0.8):                         # 往上翹的細枝，末端長一小叢葉子
+            x, y = bezier(p0, p1, p2, p3, t)
+            side = r.choice([-1, 1])
+            for k in range(12):
+                px(im, round(x + side * k * 0.7), round(y - k), M)
+                px(im, round(x + side * k * 0.7) + 1, round(y - k), D)
+            twig_tips.append((x + side * 8, y - 13))
+    # 葉子：沿著枝條的「上方」長，枝條下方保持乾淨，繩子和許願牌才看得清楚
     lumps = []
-    for i, (cx, cy, rx, ry) in enumerate(clusters):
-        for j in range(70):                                   # 葉團要多、要大，才會疊成一整片而不是一顆顆的球
-            a = r.random() * math.tau
-            d = math.sqrt(r.random())
-            lumps.append((cx + math.cos(a) * d * rx, cy + math.sin(a) * d * ry, r.choice([11, 13, 14, 16, 18]), (i * 2 + j // 9) % 4))
+    for pts in paths:                                     # 一小叢一小叢、中間留空，看得到枝條
+        for i in range(0, 200, 22):
+            x, y = pts[i]
+            for _ in range(2):
+                lumps.append((x + r.uniform(-7, 7), y - r.uniform(9, 17), r.choice([6, 7, 8, 9]), r.randrange(4)))
+        tx, ty = pts[-1]                                   # 枝頭再多一叢
+        lumps.append((tx + r.uniform(-3, 3), ty - 8, 8, r.randrange(4)))
+    for x, y in twig_tips:
+        lumps.append((x, y, r.choice([6, 7, 8]), r.randrange(4)))
+    for x in range(-10, TW + 10, 14):                       # 上緣再鋪一排，畫面頂端是一整片樹冠
+        lumps.append((x + r.uniform(-4, 4), r.uniform(-8, 4), r.choice([9, 11, 13]), r.randrange(4)))
     owner = {}
     for cx, cy, rad, k in sorted(lumps, key=lambda q: q[1]):
-        jag = [rad + r.choice([-2, -1, 0, 0, 1]) for _ in range(28)]
+        jag = [rad + r.choice([-2, -1, 0, 0, 1]) for _ in range(24)]
         d_, m_, l_, h_ = SETS[k]
         for y in range(int(cy - rad) - 3, int(cy + rad) + 4):
             for x in range(int(cx - rad) - 3, int(cx + rad) + 4):
@@ -232,7 +273,7 @@ def wish_tree_big():
                     continue
                 dx, dy = x - cx, y - cy
                 dist = math.hypot(dx, dy)
-                lim = jag[int((math.atan2(dy, dx) + math.pi) / math.tau * 28) % 28]
+                lim = jag[int((math.atan2(dy, dx) + math.pi) / math.tau * 24) % 24]
                 if dist > lim:
                     continue
                 t = (dx + dy * 1.2) / lim + (r.random() - 0.5) * 0.45
@@ -241,60 +282,34 @@ def wish_tree_big():
                     c = d_
                 px(im, x, y, c)
                 owner[(x, y)] = k
-    for (x, y), k in list(owner.items()):                     # 交界處的混色
+    for (x, y), k in list(owner.items()):                 # 交界處的混色
         for nx, ny in ((x + 1, y), (x, y + 1)):
             k2 = owner.get((nx, ny))
             if k2 is not None and k2 != k and r.random() < 0.5:
                 px(im, x, y, SETS[k2][1])
-    for _ in range(90):                                       # 葉間的閃光
+    for _ in range(80):                                   # 葉間的閃光
         x, y = r.randrange(TW), r.randrange(TH)
         if (x, y) in owner and r.random() < 0.5:
             px(im, x, y, '#ffffff')
-    for _ in range(70):                                       # 地上的落花
-        x, y = r.randrange(20, TW - 20), r.randrange(205, TH - 3)
+    for _ in range(26):                                   # 飄在空中的花瓣
+        x, y = r.randrange(10, TW - 10), r.randrange(150, TH - 6)
         k = r.randrange(4)
         px(im, x, y, SETS[k][2])
         px(im, x + 1, y, SETS[k][1])
 
-    # 許願牌的掛點：在預先挑好的位置，找樹冠的下緣，綁一小段細枝
-    # 兩排：短繩一排、長繩一排，彼此錯開（座標都是 900×540 的大小）
-    rows = [(320, 16), (580, 16), (200, 16), (700, 16), (450, 24), (80, 16), (820, 16),
-            (140, 118), (260, 118), (380, 118), (520, 118), (640, 118), (760, 118), (40, 118)]
+    # 許願牌的掛點（座標是 900×540）。兩排：上排的牌頂大約在 y=290、下排大約在 y=420，
+    # 繩長 = 牌頂 − 枝條下緣，所以兩排一定不會疊在一起
+    rows = [(320, 292), (580, 300), (200, 286), (700, 296), (450, 304), (80, 290), (820, 298),
+            (140, 420), (260, 428), (380, 416), (520, 424), (640, 418), (760, 426), (40, 422)]
     anchors = []
-    for fx, ln in rows:
+    for fx, top in rows:
         hx = fx // 2
-        ys = [y for (x, y) in owner if abs(x - hx) <= 2]
-        hy = (max(ys) - 3) if ys else 120
-        hy = min(hy, (540 - 100 - ln) // 2 - 1)
-        for k in range(4):                                    # 細枝
-            px(im, hx, hy + k, D if k else M)
-        px(im, hx - 1, hy, M)
-        anchors.append({'x': fx, 'y': (hy + 3) * 2, 'len': ln})
+        hy = max((lowest[x] for x in range(hx - 1, hx + 2) if x in lowest), default=None)
+        if hy is None:
+            raise SystemExit(f'x={fx} 附近沒有枝條可以掛許願牌，請調整 branches 或 rows')
+        ellipse(im, hx, hy, 1.6, 1.6, D)                   # 綁繩子的小結
+        anchors.append({'x': fx, 'y': hy * 2 + 2, 'len': top - (hy * 2 + 2)})
     return im, anchors
-
-
-def plaque():
-    """許願牌：屋頂形的木牌，中間是淺色的寫字區，最上面有穿繩的洞"""
-    W, H = 36, 50
-    im = new(W, H)
-    for y in range(0, 12):                                    # 屋頂形的上緣
-        half = 6 + y * 1.0
-        rect(im, round(W / 2 - half), y, round(W / 2 + half) - 1, y, '#a8743f')
-    rect(im, 0, 12, W - 1, H - 1, '#a8743f')
-    for y in range(0, 12):
-        half = 6 + y * 1.0
-        px(im, round(W / 2 - half), y, '#c08c52')
-        px(im, round(W / 2 + half) - 1, y, '#6e4527')
-    rect(im, 0, 12, 0, H - 1, '#c08c52')
-    rect(im, W - 1, 12, W - 1, H - 1, '#6e4527')
-    rect(im, 0, H - 1, W - 1, H - 1, '#6e4527')
-    rect(im, 3, 14, W - 4, H - 4, '#f4e4c4')                  # 寫字區
-    rect(im, 3, 14, W - 4, 14, '#e2cda3')
-    rect(im, 3, 14, 3, H - 4, '#e2cda3')
-    ellipse(im, W / 2 - 0.5, 6, 1.6, 1.6, '#3a2a18')          # 穿繩的洞
-    for x, y in ((6, 9), (28, 10), (8, 46), (30, 45)):
-        px(im, x, y, '#8a5a30')
-    return im
 
 
 # ───────────────────────── 全螢幕畫面的背景 ─────────────────────────
@@ -579,7 +594,6 @@ def main():
         out[f'card.back.{name}'] = save(card_back(name), 'cards', f'back-{name}.png')
     tree, anchors = wish_tree_big()
     out['tree.bg'] = save(tree, 'scenes', 'wish-tree.png')
-    out['tree.plaque'] = save(plaque(), 'ui', 'plaque.png')
     scenes = {
         'market': scene_market(), 'casino': scene_casino(), 'hut': scene_hut(), 'offerings': scene_offerings(),
         'ring': scene_ring(), 'card': scene_card(), 'tree': scene_tree(), 'bag': scene_bag(),
