@@ -114,7 +114,7 @@ assets/scenes/    全螢幕畫面背景    assets/fx/        召喚特效
 
 ### 暫用的像素圖
 
-`tools/make_pixel_assets.py` 會用程式畫出目前所有地圖圖塊、成就小屋、地圖物件；`tools/make_pixel_scenes.py` 畫出四種卡背、許願樹大圖、許願牌、各個全螢幕畫面的背景。兩支都輸出到 `assets/`，並已填進 `js/data/assets.js`。
+`tools/make_pixel_assets.py` 會用程式畫出目前所有地圖圖塊、成就小屋、地圖物件；`tools/make_pixel_scenes.py` 畫出四種卡背（帶鴨子圖樣）、許願樹大圖（只有枝條與葉子，背景透明）、各個全螢幕畫面的背景。兩支都輸出到 `assets/`，並已填進 `js/data/assets.js`。
 
 `make_pixel_scenes.py` 執行完會印出許願牌的掛點座標，這組座標已經放進 `js/systems/treeLayout.js`；之後換了自己的樹，要依自己的枝條位置改這組座標。
 這些是暫用的：換成自己的圖時，覆蓋同名檔案或在清單改路徑即可。**換過之後就不要再執行那支程式**，否則會被蓋回去。
@@ -194,6 +194,6 @@ assets/scenes/    全螢幕畫面背景    assets/fx/        召喚特效
 1. `tile.grass`、`tile.wall`、`tile.water`、`tile.stone`：地圖馬上不一樣。
 2. `player`：四方向行走圖。
 3. `card.back.default` 與角色卡面 Q 圖：網站的主角。
-4. `tree.bg` 與 `tree.plaque`，並調整掛點座標。
+4. `tree.bg`（可再加 `tree.plaque`），並調整掛點座標。
 5. 地圖物件（`ent.*`）。
 6. 物品圖示、魚、場景背景、召喚特效。
