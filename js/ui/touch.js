@@ -31,7 +31,11 @@ export function createTouchControls({ root, input, bus, ui, win = window }) {
   base.addEventListener('pointerup', end);
   base.addEventListener('pointercancel', end);
   base.addEventListener('lostpointercapture', end);
-  act.addEventListener('click', () => { if (!ui.isBlocking()) bus.emit('input:action', { action: 'interact' }); });
+  // 用 pointerdown 觸發：另一隻手指還按著搖桿時，瀏覽器不一定會送出 click
+  let handledAt = -1e9;
+  const fire = () => { if (!ui.isBlocking()) bus.emit('input:action', { action: 'interact' }); };
+  act.addEventListener('pointerdown', (e) => { e.preventDefault(); handledAt = performance.now(); fire(); });
+  act.addEventListener('click', () => { if (performance.now() - handledAt > 700) fire(); });   // 鍵盤或輔助工具觸發的 click
 
   bus.on('ui:block', () => { pid = null; set(0, 0); wrap.classList.add('covered'); });
   bus.on('ui:unblock', () => wrap.classList.remove('covered'));

@@ -9,4 +9,7 @@ export function assetImg(game, key, alt = '', cls = 'icon') {
   img.src = url;
   return img;
 }
+/* 給 CSS 變數用的 url()：一定要轉成絕對網址。CSS 變數裡的相對路徑會以 css 檔的位置為基準，而不是網頁 */
+export const cssUrl = (url) => `url("${new URL(url, document.baseURI).href}")`;
+
 export const itemIcon = (game, id) => assetImg(game, `item.${id}`);

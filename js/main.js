@@ -163,7 +163,7 @@ function boot() {
 
   /* 8. 主迴圈 */
   const renderer = createRenderer({ canvas, tile: CONFIG.TILE, assets });
-  bus.on('asset:loaded', ({ key }) => { if (key.startsWith('tile.')) renderer.invalidateGround(); });
+  bus.on('asset:loaded', ({ key }) => { if (key.startsWith('tile.') || key.startsWith('decor.')) renderer.invalidateGround(); });
   const loop = createLoop({
     update: (dt) => world.update(dt),
     render: () => {

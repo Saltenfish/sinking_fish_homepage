@@ -3,6 +3,7 @@
 import { h } from './dom.js';
 import { CONFIG } from '../config.js';
 import { createRing } from '../systems/ringModel.js';
+import { cssUrl } from './icon.js';
 
 const GAP = 92;   // 相鄰兩張卡的水平距離（像素）
 
@@ -17,7 +18,7 @@ export function ringView(game) {
 
   const stage = h('div', { class: `ring-stage back-${game.shop.back()}` });   // 卡背花色由供奉石決定
   const backImg = game.assets?.url(`card.back.${game.shop.back()}`);            // 有卡背圖檔就用圖檔
-  if (backImg) { stage.style.setProperty('--back-img', `url("${backImg}")`); stage.classList.add('has-back-img'); }
+  if (backImg) { stage.style.setProperty('--back-img', cssUrl(backImg)); stage.classList.add('has-back-img'); }
   const slots = Array.from({ length: half * 2 + 2 }, () => {
     const el = h('div', { class: 'rcard', hidden: true });
     stage.append(el);
@@ -115,7 +116,8 @@ export function ringView(game) {
   const body = h('div', { class: 'ring' }, counter, stage, title,
     h('div', { class: 'row' }, btn('◀', () => model.nudge(-1)), btn('召喚這張', summonFront), btn('▶', () => model.nudge(1))),
     h('div', { class: 'row' }, btn('命運輪盤', randomSpin), faceBtn),
-    h('div', { class: 'hint', text: '拖曳／滾輪／← → 轉動・Enter 召喚・R 隨機' }));
+    h('div', { class: 'hint kbd', text: '拖曳／滾輪／← → 轉動・Enter 召喚・R 隨機' }),
+    h('div', { class: 'hint tap', text: '左右滑動轉動卡環・點正中央的卡召喚' }));
 
   const p = ui.panel({
     title: '召喚卡環', body, cls: 'xl', scene: 'ring',

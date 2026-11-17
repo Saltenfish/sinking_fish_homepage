@@ -29,10 +29,11 @@ export function createAssets({ manifest, base = '', loadImage, onLoad }) {
     const obj = typeof raw === 'string' ? { src: raw } : raw;
     const src = isObj(obj) ? resolveSrc(obj.src, base) : null;
     if (!src) { errors.push(`素材「${key}」的路徑不合法：${JSON.stringify(raw)}`); continue; }
-    const meta = { src, frames: 1, fps: 0, frameW: 0, frameH: 0 };
+    const meta = { src, frames: 1, fps: 0, frameW: 0, frameH: 0, variants: false };
     if (obj.frames !== undefined) {
       if (!posInt(obj.frames) || !posInt(obj.frameW) || !posInt(obj.frameH)) { errors.push(`素材「${key}」的動畫設定不完整（需要 frameW、frameH、frames）`); continue; }
-      Object.assign(meta, { frames: obj.frames, frameW: obj.frameW, frameH: obj.frameH, fps: obj.fps > 0 ? obj.fps : 6 });
+      // variants: true → 這些影格不是動畫，而是「變化款」：地圖上每一格固定挑其中一款，避免整片長得一模一樣
+      Object.assign(meta, { frames: obj.frames, frameW: obj.frameW, frameH: obj.frameH, variants: obj.variants === true, fps: obj.variants === true ? 0 : (obj.fps > 0 ? obj.fps : 6) });
     }
     entries.set(key, meta);
   }
@@ -64,6 +65,14 @@ export function createAssets({ manifest, base = '', loadImage, onLoad }) {
     },
     status(key) { const s = state.get(key); return s === undefined ? 'idle' : typeof s === 'string' ? s : 'ready'; },
   };
+}
+
+/* 變化款：依格子座標固定挑一款（純函式；同一格永遠是同一款） */
+export function variantAt(meta, x, y) {
+  if (!meta || meta.frames <= 1) return 0;
+  let h = (x * 374761393 + y * 668265263) | 0;
+  h = (h ^ (h >>> 13)) * 1274126177 | 0;
+  return ((h ^ (h >>> 16)) >>> 0) % meta.frames;
 }
 
 /* 計算動畫目前該畫哪一格（純函式） */

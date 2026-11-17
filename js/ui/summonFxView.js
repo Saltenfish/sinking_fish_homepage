@@ -7,6 +7,7 @@
    點擊或按鍵可以跳過；使用者設定「減少動態效果」時直接略過。 */
 import { h } from './dom.js';
 import { buildTimeline, stepAt } from '../systems/summonFx.js';
+import { cssUrl } from './icon.js';
 
 export function summonFxView(game, { id, first = true } = {}) {
   const c = game.reg.characterById.get(id);
@@ -22,6 +23,8 @@ export function summonFxView(game, { id, first = true } = {}) {
     h('div', { class: 'sfx-card' }, h('div', { class: 'sfx-card-back' }), h('div', { class: 'sfx-card-front', text: c.name })),
     h('div', { class: 'sfx-particles' }, particles), art, h('div', { class: 'sfx-skip', text: '點一下跳過' }));
   el.style.setProperty('--c', tl.style.color);
+  const backUrl = game.assets?.url(`card.back.${game.shop?.back?.() || 'default'}`);   // 用目前選的卡背
+  if (backUrl) el.style.setProperty('--back-img', cssUrl(backUrl));
   el.style.setProperty('--shake', `${tl.style.shake}px`);
 
   let raf = null, start = 0, lastStep = '', done = false;

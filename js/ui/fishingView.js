@@ -5,7 +5,7 @@ import { h } from './dom.js';
 
 const TEXT = {
   cast: '拋竿……',
-  waiting: '浮標靜靜漂著……咬鉤時點畫面或按 E',
+  waiting: '浮標靜靜漂著……咬鉤時點一下畫面',
   bite: '！！　咬鉤了　！！',
   early: '太早拉了，魚被嚇跑了。',
   missed: '慢了一步，魚跑掉了。',

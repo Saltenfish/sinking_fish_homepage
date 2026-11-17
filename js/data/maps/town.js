@@ -8,7 +8,7 @@ const g = Array.from({ length: H }, () => Array(W).fill('.'));
 const rect = (x0, y0, x1, y1, c) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) g[y][x] = c; };
 
 rect(0, 0, W - 1, H - 1, '#'); rect(1, 1, W - 2, H - 2, '.');   // 外圍樹牆
-rect(11, 1, 28, 11, '#'); rect(12, 2, 27, 10, 's');              // 召喚卡殿（石地板）
+rect(11, 1, 28, 11, 'W'); rect(12, 2, 27, 10, 's');              // 召喚卡殿（石牆與石地板）
 rect(19, 11, 20, 11, 's');                                       // 卡殿大門
 rect(31, 1, 32, 28, '~'); rect(31, 14, 32, 14, '=');             // 溪流與小橋
 rect(33, 20, 38, 20, 'r');                                       // 蘆葦叢：看起來擋路，其實走得過去（秘密入口）
@@ -20,6 +20,7 @@ export const town = {
   legend: {
     '.': { key: 'grass', solid: false, color: '#7fb069', name: '草地' },
     '#': { key: 'wall', solid: true, color: '#2f5d3a', name: '樹牆' },
+    'W': { key: 'hallwall', solid: true, color: '#6f6c80', name: '石牆' },
     's': { key: 'stone', solid: false, color: '#b8b3c4', name: '石地板' },
     '~': { key: 'water', solid: true, color: '#4f8fc0', name: '水' },
     '=': { key: 'bridge', solid: false, color: '#a47148', name: '橋' },
@@ -29,6 +30,10 @@ export const town = {
   },
   rows: g.map((r) => r.join('')),
   spawn: { x: 20.5, y: 24.5 },
+  /* 大型佈景：蓋在圖塊上的整張圖（建築外觀等），只是裝飾、不影響碰撞。sprite 對應素材鍵 */
+  decor: [
+    { id: 'hut', x: 3, y: 5, w: 6, h: 4, sprite: 'decor.hut' },
+  ],
   /* 傳送地圖上的地點。secret 是要先達成的旗標（沒達成就不顯示） */
   landmarks: [
     { id: 'plaza', name: '中央草地', x: 20.5, y: 24.5 },
@@ -42,9 +47,16 @@ export const town = {
   ],
   objects: [
     { id: 'board', type: 'board', x: 22, y: 23, solid: true,
-      lines: ['【公告欄】', '歡迎來到沉魚的小鎮。', '北邊是召喚卡殿，中間是許願樹，西邊有田，西北有成就小屋。', '溪邊可以釣魚。聽說許願樹搖一搖會掉東西。', '天黑之後草地上會有蟲。按住 Shift 慢慢靠近才抓得到。', '過了橋往北有商店和小賭場；小屋旁邊有魚缸。', '按 M 可以打開地圖直接傳送。'] },
-    { id: 'tree', type: 'tree', x: 19, y: 16, w: 2, h: 2, solid: true },
+      lines: ['【公告欄】', '歡迎來到沉魚的小鎮。', '北邊是召喚卡殿，中間是許願樹，西邊有田，西北有成就小屋。', '溪邊可以釣魚。聽說許願樹搖一搖會掉東西。', '天黑之後草地上會有蟲。要慢慢靠近才抓得到（鍵盤按住 Shift，手機輕推搖桿）。', '過了橋往北有商店和小賭場；小屋旁邊有魚缸。', '右上角的「地圖」可以直接傳送。'] },
+    { id: 'tree', type: 'tree', x: 19, y: 16, w: 2, h: 2, solid: true, art: { x: -0.5, y: -1, w: 3, h: 3 } },   // 圖是 3×3 格，樹冠往上伸出去
     { id: 'altar', type: 'altar', x: 19, y: 5, w: 2, h: 2, solid: true },
+    // 卡殿裡的裝飾：石柱（佔 1 格、圖往上高 1 格）與牆上的掛旗
+    { id: 'pillar1', type: 'deco', sprite: 'ent.pillar', x: 13, y: 4, solid: true, art: { x: 0, y: -1, w: 1, h: 2 } },
+    { id: 'pillar2', type: 'deco', sprite: 'ent.pillar', x: 26, y: 4, solid: true, art: { x: 0, y: -1, w: 1, h: 2 } },
+    { id: 'pillar3', type: 'deco', sprite: 'ent.pillar', x: 13, y: 9, solid: true, art: { x: 0, y: -1, w: 1, h: 2 } },
+    { id: 'pillar4', type: 'deco', sprite: 'ent.pillar', x: 26, y: 9, solid: true, art: { x: 0, y: -1, w: 1, h: 2 } },
+    { id: 'banner1', type: 'deco', sprite: 'ent.banner', x: 16, y: 2, flat: true, art: { x: 0, y: -1, w: 1, h: 2 } },
+    { id: 'banner2', type: 'deco', sprite: 'ent.banner', x: 23, y: 2, flat: true, art: { x: 0, y: -1, w: 1, h: 2 } },
 
     { id: 'plot0', type: 'plot', x: 5, y: 20, index: 0 },
     { id: 'plot1', type: 'plot', x: 6, y: 20, index: 1 },

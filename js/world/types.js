@@ -8,6 +8,8 @@
      color()     佔位色塊顏色          label()  佔位文字
      draw(ctx, px, py, tile, time)   自己畫（有的話取代色塊）
      update(dt)  每幀更新（需要時才寫）
+     flat        true = 貼在地上（永遠畫在人物下面），例如農田、法陣
+     art         圖比佔地大時，圖的範圍 {x, y, w, h}（相對於物件左上角，單位是格）。也可以寫在地圖資料裡
      visible()   回傳 false 時不畫       glow()  夜晚的發光半徑（格），0 = 不發光
    物件只透過 game.ui / game.farm 等系統做事，不直接碰畫面。
 ============================================================ */
@@ -27,8 +29,9 @@ export function createEntity(def, game) {
   const factory = types.get(def?.type);
   if (!factory) { console.warn(`[world] 未知的物件類型，已略過：`, def); return null; }
   if (typeof def.id !== 'string' || !Number.isFinite(def.x) || !Number.isFinite(def.y)) { console.warn('[world] 物件缺少 id / x / y，已略過：', def); return null; }
+  const art = def.art && [def.art.x, def.art.y, def.art.w, def.art.h].every(Number.isFinite) && def.art.w > 0 && def.art.h > 0 ? { ...def.art } : null;
   const base = {
-    id: def.id, type: def.type, x: def.x, y: def.y, w: def.w || 1, h: def.h || 1, solid: def.solid === true,
+    id: def.id, type: def.type, x: def.x, y: def.y, w: def.w || 1, h: def.h || 1, solid: def.solid === true, art,
     prompt: () => null, interact: () => {}, color: () => '#888', label: () => '',
   };
   try { return Object.assign(base, factory(def, game)); }
@@ -71,20 +74,26 @@ register('tree', (def, game) => ({
 register('altar', (def, game) => ({
   color: () => '#6c5ce7', label: () => '法陣',
   prompt: () => '站上法陣',
+  flat: true,
   glow: () => 3,
   interact: () => game.ui.show('ring'),
-  draw(ctx, px, py, tile, time) {
-    const cx = px + tile, cy = py + tile;
+  draw(ctx, px, py, tile) {
     ctx.fillStyle = '#6c5ce7';
     ctx.fillRect(px + 3, py + 3, tile * 2 - 6, tile * 2 - 6);
+  },
+  drawOver(ctx, px, py, tile, time) {
+    const cx = px + tile, cy = py + tile;
     // 地圖上的卡環：依卡片數自動分圈，交替反向公轉
     const rings = splitRings(game.reg.characters.length, CONFIG.RING_PER_RING);
     rings.forEach((count, ri) => {
       const radius = tile * (1.9 + ri * 0.8), dir = ri % 2 ? -1 : 1;
       for (let i = 0; i < count; i++) {
         const a = (i / count) * Math.PI * 2 + dir * time * 0.25;
-        ctx.fillStyle = '#2d2a4a';
-        ctx.fillRect(cx + Math.cos(a) * radius - 3, cy + Math.sin(a) * radius * 0.7 - 5, 6, 9);
+        const x = Math.round(cx + Math.cos(a) * radius - 4), y = Math.round(cy + Math.sin(a) * radius * 0.7 - 6 + Math.sin(time * 2 + i) * 2);
+        ctx.fillStyle = 'rgba(20,16,40,0.25)'; ctx.fillRect(x + 1, y + 14, 7, 2);   // 影子
+        ctx.fillStyle = '#9d8cff'; ctx.fillRect(x, y, 9, 12);                         // 卡背：亮框、深底、中間一點光
+        ctx.fillStyle = '#2d2a4a'; ctx.fillRect(x + 1, y + 1, 7, 10);
+        ctx.fillStyle = '#6c5ce7'; ctx.fillRect(x + 3, y + 4, 3, 4);
       }
     });
   },
@@ -99,6 +108,7 @@ register('plot', (def, game) => {
     color() { const s = st(); return s.state === 'empty' ? '#6d4c41' : s.state === 'ripe' ? '#f4a261' : s.wet ? '#4e6b3a' : '#7a6a3a'; },
     label() { const s = st(); return s.state === 'empty' ? '' : s.state === 'ripe' ? '熟' : `${Math.floor(s.pct * 100)}%`; },
     prompt() { const s = st(); return s.state === 'empty' ? '播種' : s.state === 'ripe' ? `收成${s.crop.name}` : s.wet ? `照顧${s.crop.name}` : '澆水'; },
+    flat: true,
     /* 素材鍵依狀態切換：ent.plot.empty / ent.plot.growing / ent.plot.ripe */
     sprite() { return `ent.plot.${st().state}`; },
     async interact() {
@@ -135,6 +145,7 @@ register('fishspot', (def, game) => ({
 /* ---------- 隱藏池塘（魚魚的家） ---------- */
 register('pond', (def, game) => ({
   color: () => (game.fish.found() ? '#ff8a65' : '#5c8fb0'), label: () => (game.fish.found() ? '魚' : ''),
+  sprite: () => (game.fish.found() ? 'ent.pond.found' : 'ent.pond'),
   prompt: () => (game.fish.found() ? '找魚魚' : '看看水面'),
   async interact() {
     const found = game.fish.found();
@@ -171,6 +182,8 @@ register('dig', (def, game) => {
   const ready = () => game.progress.cooldownLeft(key, CONFIG.DAILY_CD_MS) === 0;
   return {
     color: () => (ready() ? '#ffe082' : '#8d7b5a'), label: () => (ready() ? '✦' : ''),
+    flat: true,
+    sprite: () => (ready() ? 'ent.dig' : 'ent.dig.used'),
     prompt: () => (ready() ? '挖挖看' : null),
     async interact() {
       const got = forage(game, key, CONFIG.DAILY_CD_MS, 'dig');
@@ -187,6 +200,7 @@ register('lantern', (def, game) => {
   const lit = () => game.progress.flag(key);
   return {
     color: () => (lit() ? '#ffd54f' : '#607d8b'), label: () => '燈',
+    sprite: () => (lit() ? 'ent.lantern.lit' : 'ent.lantern'),
     glow: () => (lit() ? 3.5 : 0),
     prompt: () => (lit() ? '熄燈' : '點燈'),
     interact() {
@@ -222,6 +236,7 @@ register('bugspot', (def, game) => {
     && game.progress.cooldownLeft(caughtKey, CONFIG.BUG_CATCH_CD_MS) === 0
     && game.progress.cooldownLeft(fleeKey, CONFIG.BUG_FLEE_CD_MS) === 0;
   return {
+    sneak: true,          // 點擊牠時，玩家會自動用潛行速度走過去
     visible: active,
     glow: () => (active() ? 1.2 : 0),
     prompt: () => (active() ? '抓蟲' : null),
@@ -268,4 +283,11 @@ register('tank', (def, game) => ({
   color: () => '#4dd0e1', label: () => `魚缸 ${game.tank.count()}`,
   prompt: () => '看魚缸',
   interact: () => game.ui.show('tank'),
+}));
+
+/* ---------- 純裝飾（柱子、旗子…）：不能互動。地圖資料寫 sprite: '素材鍵'（例如 ent.pillar） ---------- */
+register('deco', (def) => ({
+  color: () => '#77758a', label: () => '',
+  sprite: () => (typeof def.sprite === 'string' ? def.sprite : 'ent.deco'),
+  flat: def.flat === true,
 }));

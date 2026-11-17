@@ -9,8 +9,10 @@ export function createTilemap(map) {
     for (const ch of row) if (!map.legend?.[ch]) fail(`第 ${y} 列出現 legend 沒定義的字元「${ch}」`);
   });
   const inside = (tx, ty) => tx >= 0 && ty >= 0 && tx < w && ty < h;
+  // 大型佈景：{id, x, y, w, h, sprite}，只是畫面裝飾，不影響碰撞。格式不對的略過
+  const decor = (Array.isArray(map.decor) ? map.decor : []).filter((d) => d && typeof d.sprite === 'string' && [d.x, d.y, d.w, d.h].every(Number.isFinite) && d.w > 0 && d.h > 0);
   const api = {
-    id: map.id, w, h, legend: map.legend,
+    id: map.id, w, h, legend: map.legend, decor,
     inside,
     char(tx, ty) { return inside(tx, ty) ? map.rows[ty][tx] : null; },
     tile(tx, ty) { return inside(tx, ty) ? map.legend[map.rows[ty][tx]] : null; },
