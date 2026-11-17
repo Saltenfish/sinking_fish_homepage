@@ -1,10 +1,11 @@
 /* 背包：卡冊／物品／圖鑑／成就 四個分頁。 */
 import { h } from './dom.js';
+import { itemIcon } from './icon.js';
 
 const CAT_NAMES = { seed: '種子', crop: '作物', fish: '漁獲', bug: '昆蟲', treasure: '寶物', misc: '其他' };
 
 export function bagView(game) {
-  const { reg, inv, cards, ach, ui } = game;
+  const { reg, inv, cards, ach, ui, wallet } = game;
   const content = h('div', { class: 'bag-content' });
   const tabs = {
     卡冊() {
@@ -16,11 +17,12 @@ export function bagView(game) {
     },
     物品() {
       const all = inv.list();
-      if (!all.length) return h('p', { text: '包包是空的。到處走走看看吧。' });
-      return h('div', null, Object.keys(CAT_NAMES).map((cat) => {
+      const purse = h('p', { class: 'coins', text: `🪙 ${wallet.coins()} 金幣` });
+      if (!all.length) return h('div', null, purse, h('p', { text: '包包是空的。到處走走看看吧。' }));
+      return h('div', null, purse, Object.keys(CAT_NAMES).map((cat) => {
         const rows = all.filter((e) => e.item.cat === cat);
         return rows.length ? h('div', null, h('h4', { text: CAT_NAMES[cat] }),
-          rows.map((e) => h('div', { class: 'item' }, h('b', { text: `${e.item.name} ×${e.count}` }), h('span', { text: e.item.desc || '' })))) : null;
+          rows.map((e) => h('div', { class: 'item' }, h('b', null, itemIcon(game, e.item.id), `${e.item.name} ×${e.count}`), h('span', { text: e.item.desc || '' })))) : null;
       }));
     },
     圖鑑() {
@@ -40,5 +42,5 @@ export function bagView(game) {
     content.replaceChildren(tabs[name]());
   }
   select(names[0]);
-  return ui.panel({ title: '背包', body: h('div', null, h('div', { class: 'row' }, buttons), content), cls: 'wide' }).closed;
+  return ui.panel({ title: '背包', body: h('div', null, h('div', { class: 'row' }, buttons), content), cls: 'wide', scene: 'bag' }).closed;
 }

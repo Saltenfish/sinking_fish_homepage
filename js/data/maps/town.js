@@ -1,6 +1,6 @@
 /* ============================================================
-   地圖：小鎮（目前用程式畫格子，之後可換成 Tiled 匯出的資料，格式維持 {id, legend, rows, spawn, objects} 即可）
-   legend：每種字元的性質。solid = 擋路；color = 佔位顏色（之後換成圖塊）
+   地圖：小鎮（目前用程式畫格子，之後可換成 Tiled 匯出的資料，格式維持 {id, legend, rows, spawn, landmarks, objects} 即可）
+   legend：每種字元的性質。key = 圖塊名稱（對應素材 tile.<key>）；solid = 擋路；color = 沒有圖塊時的佔位顏色
    objects：地圖上的互動物件。type 對應 js/world/types.js 裡註冊的類型
 ============================================================ */
 const W = 40, H = 30;
@@ -13,22 +13,36 @@ rect(19, 11, 20, 11, 's');                                       // 卡殿大門
 rect(31, 1, 32, 28, '~'); rect(31, 14, 32, 14, '=');             // 溪流與小橋
 rect(33, 20, 38, 20, 'r');                                       // 蘆葦叢：看起來擋路，其實走得過去（秘密入口）
 rect(35, 23, 37, 26, '~');                                       // 隱藏池塘
+rect(3, 5, 8, 8, 'H'); rect(5, 8, 6, 8, 'd');                    // 成就小屋與門口
 
 export const town = {
   id: 'town',
   legend: {
-    '.': { solid: false, color: '#7fb069', name: '草地' },
-    '#': { solid: true, color: '#2f5d3a', name: '樹牆' },
-    's': { solid: false, color: '#b8b3c4', name: '石地板' },
-    '~': { solid: true, color: '#4f8fc0', name: '水' },
-    '=': { solid: false, color: '#a47148', name: '橋' },
-    'r': { solid: false, color: '#3a6b45', name: '蘆葦' },
+    '.': { key: 'grass', solid: false, color: '#7fb069', name: '草地' },
+    '#': { key: 'wall', solid: true, color: '#2f5d3a', name: '樹牆' },
+    's': { key: 'stone', solid: false, color: '#b8b3c4', name: '石地板' },
+    '~': { key: 'water', solid: true, color: '#4f8fc0', name: '水' },
+    '=': { key: 'bridge', solid: false, color: '#a47148', name: '橋' },
+    'r': { key: 'reed', solid: false, color: '#3a6b45', name: '蘆葦' },
+    'H': { key: 'hut', solid: true, color: '#b5651d', name: '小屋' },
+    'd': { key: 'door', solid: false, color: '#5d4037', name: '門口' },
   },
   rows: g.map((r) => r.join('')),
   spawn: { x: 20.5, y: 24.5 },
+  /* 傳送地圖上的地點。secret 是要先達成的旗標（沒達成就不顯示） */
+  landmarks: [
+    { id: 'plaza', name: '中央草地', x: 20.5, y: 24.5 },
+    { id: 'tree', name: '許願樹', x: 20, y: 18.5 },
+    { id: 'hall', name: '召喚卡殿', x: 20, y: 8.5 },
+    { id: 'hut', name: '成就小屋', x: 6, y: 9.5 },
+    { id: 'farm', name: '農田', x: 6.5, y: 19.5 },
+    { id: 'stream', name: '溪邊釣點', x: 30.5, y: 20.5 },
+    { id: 'market', name: '商店與小賭場', x: 35.5, y: 6.6 },
+    { id: 'pond', name: '魚魚的池塘', x: 34.5, y: 25.5, secret: 'fishFound' },
+  ],
   objects: [
     { id: 'board', type: 'board', x: 22, y: 23, solid: true,
-      lines: ['【公告欄】', '歡迎來到沉魚的小鎮。', '北邊是召喚卡殿，中間是許願樹，西邊有一小塊田。', '溪邊可以釣魚。聽說許願樹搖一搖會掉東西。'] },
+      lines: ['【公告欄】', '歡迎來到沉魚的小鎮。', '北邊是召喚卡殿，中間是許願樹，西邊有田，西北有成就小屋。', '溪邊可以釣魚。聽說許願樹搖一搖會掉東西。', '天黑之後草地上會有蟲。按住 Shift 慢慢靠近才抓得到。', '過了橋往北有商店和小賭場；小屋旁邊有魚缸。', '按 M 可以打開地圖直接傳送。'] },
     { id: 'tree', type: 'tree', x: 19, y: 16, w: 2, h: 2, solid: true },
     { id: 'altar', type: 'altar', x: 19, y: 5, w: 2, h: 2, solid: true },
 
@@ -50,6 +64,18 @@ export const town = {
     { id: 'dig1', type: 'dig', x: 4, y: 26 },
     { id: 'dig2', type: 'dig', x: 25, y: 14 },
     { id: 'dig3', type: 'dig', x: 36, y: 16 },
+
+    { id: 'hut', type: 'hut', x: 5, y: 8, w: 2, h: 1, solid: true },
+    { id: 'offering', type: 'offering', x: 14, y: 4, solid: true },
+
+    { id: 'bug1', type: 'bugspot', x: 10, y: 16 },
+    { id: 'bug2', type: 'bugspot', x: 24, y: 26 },
+    { id: 'bug3', type: 'bugspot', x: 37, y: 13 },
+    { id: 'bug4', type: 'bugspot', x: 15, y: 13 },
+
+    { id: 'market', type: 'market', x: 33, y: 4, w: 2, h: 2, solid: true },
+    { id: 'casino', type: 'casino', x: 36, y: 4, w: 2, h: 2, solid: true },
+    { id: 'tank', type: 'tank', x: 9, y: 7, w: 2, h: 1, solid: true },
 
     { id: 'lantern1', type: 'lantern', x: 17, y: 13, solid: true },
     { id: 'lantern2', type: 'lantern', x: 22, y: 13, solid: true },

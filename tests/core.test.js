@@ -76,7 +76,7 @@ test('save：normalize 丟掉不合格欄位與危險鍵名', () => {
   assert.deepEqual(n.inv, { feed: 2 });
   assert.deepEqual(n.flags, { a: true });
   assert.deepEqual(n.cards, { c1: { at: 5, count: 1 } });
-  assert.deepEqual(n.farm.plots, [{ crop: 'turnip', progress: 1, last: 2, wetUntil: 0 }, null, null]);
+  assert.deepEqual(n.farm.plots, [{ crop: 'turnip', progress: 1, last: 2, wetUntil: 0, fert: false }, null, null]);
   assert.equal(n.player, null);
   assert.deepEqual(n.wishes, ['hi', 'x'.repeat(30)]);
   assert.deepEqual(n.fish, { visits: 0, feeds: 2, msgs: 0, lastAt: 0 });

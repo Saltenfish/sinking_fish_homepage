@@ -3,8 +3,10 @@ export const CONFIG = Object.freeze({
   SAVE_KEY: 'sfh_save',          // 本站存檔在 localStorage 的鍵名（不要改，改了舊存檔會讀不到）
   SAVE_DELAY_MS: 400,            // 存檔延遲合併時間
   TILE: 32,                      // 一格的像素大小
-  VIEW_W: 640, VIEW_H: 480,      // 畫布邏輯解析度
+  VIEW_MIN_W: 640, VIEW_MIN_H: 400, // 畫面至少要看得到這麼大的範圍（邏輯像素）；視窗越大自動放大倍率
+  VIEW_SCALES: Object.freeze([4, 3, 2, 1.5, 1]), // 可用的放大倍率，由大到小挑第一個放得下的
   PLAYER_SPEED: 4.5,             // 每秒走幾格
+  SNEAK_RATE: 0.4,               // 潛行（按住 Shift 或輕推搖桿）時的速度倍率
   PLAYER_HALF: 0.3,              // 玩家碰撞箱半徑（格）
   INTERACT_RANGE: 0.9,           // 互動距離（格）
   FARM_PLOTS: 6,                 // 農田格數
@@ -14,6 +16,19 @@ export const CONFIG = Object.freeze({
   FISH_BITE_MS: 800,             // 咬鉤後可以拉竿的時間
   TREE_SHAKE_CD_MS: 60 * 1000,   // 搖樹冷卻
   DAILY_CD_MS: 6 * 60 * 60 * 1000, // 草叢、挖掘點的冷卻
+  BUG_ALERT_RADIUS: 2.2,         // 蟲在幾格內會注意到你
+  BUG_SNEAK_SPEED: 2.2,          // 靠近時速度超過這個值（格/秒）蟲就飛走
+  BUG_FLEE_CD_MS: 60 * 1000,     // 蟲被嚇跑後多久回來
+  BUG_CATCH_CD_MS: 30 * 60 * 1000, // 抓到後多久再出現
+  FERTILIZER_RATE: 0.3,          // 施肥一次直接增加幾成的生長進度（每株限一次）
+  BAIT_WAIT_RATE: 0.4,           // 用魚餌時，等待咬鉤的時間倍率
+  START_COINS: 50,               // 新手一開始的金幣
+  COIN_CAP: 999999,              // 金幣上限
+  TANK_CAPACITY: 8,              // 魚缸最多養幾條
+  TANK_HAPPY_MS: 24 * 60 * 60 * 1000,  // 餵一次開心多久
+  TANK_GIFT_CD_MS: 20 * 60 * 60 * 1000, // 魚缸禮物多久可以領一次
+  TANK_GIFT_PER_FISH: 5,         // 每條開心的魚給幾枚金幣
+  SCENE_ANIM_MS: 220,            // 全螢幕畫面切入、切出的動畫長度
   RING_WINDOW: 5,                // 卡環正前方左右各畫幾張（總共 2n+1 張）
   RING_PER_RING: 30,             // 地圖上一圈最多幾張，超過就分圈
   ITEM_CAP: 999,                 // 單一物品持有上限

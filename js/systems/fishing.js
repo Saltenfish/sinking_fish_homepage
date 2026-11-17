@@ -3,7 +3,7 @@
 import { randInt } from '../core/util.js';
 import { rollLoot } from './loot.js';
 
-export function createFishing({ reg, inv, progress, clock, bus, rng = Math.random, waitMs = [1500, 5000], biteMs = 800 }) {
+export function createFishing({ reg, inv, progress, clock, bus, rng = Math.random, waitMs = [1500, 5000], biteMs = 800, baitRate = 0.4 }) {
   let s = null;   // {state, biteAt, biteUntil}
 
   const end = (state, extra = {}) => {
@@ -17,9 +17,17 @@ export function createFishing({ reg, inv, progress, clock, bus, rng = Math.rando
     get active() { return s !== null; },
     get state() { return s ? s.state : 'idle'; },
 
+    /* 這次有沒有用魚餌 */
+    get baited() { return s ? s.bait : false; },
+    /* 咬鉤的時間點（畫面用來安排浮標動畫） */
+    get biteAt() { return s ? s.biteAt : 0; },
+
+    /* 開始釣魚。背包有魚餌會自動用掉一個，等待時間變短 */
     start(now) {
       if (s) return false;
-      s = { state: 'waiting', biteAt: now + randInt(rng, waitMs[0], waitMs[1]), biteUntil: 0 };
+      const bait = inv.remove('bait', 1);
+      const wait = randInt(rng, waitMs[0], waitMs[1]) * (bait ? baitRate : 1);
+      s = { state: 'waiting', biteAt: now + Math.round(wait), biteUntil: 0, bait };
       return true;
     },
 

@@ -14,8 +14,17 @@ import { items } from '../js/data/items.js';
 import { crops } from '../js/data/crops.js';
 import { fish, loot } from '../js/data/loot.js';
 import { achievements } from '../js/data/achievements.js';
+import { offerings } from '../js/data/offerings.js';
+import { createShop } from '../js/systems/shop.js';
+import { createWallet } from '../js/systems/wallet.js';
+import { createMarket } from '../js/systems/market.js';
+import { createCasino } from '../js/systems/casino.js';
+import { createTank } from '../js/systems/tank.js';
+import { goods } from '../js/data/market.js';
+import { casino as casinoCfg } from '../js/data/casino.js';
+import { summonFx } from '../js/data/summonFx.js';
 
-export const realData = () => ({ characters, sites, items, crops, fish, loot, achievements });
+export const realData = () => ({ characters, sites, items, crops, fish, loot, achievements, offerings, goods, casino: casinoCfg, summonFx });
 
 export function memLS() {
   const m = new Map();
@@ -42,5 +51,10 @@ export function makeGame({ data = realData(), ls = memLS(), start = 1_000_000 } 
   const farm = createFarm({ save, reg, bus, inv, progress, now, rng, plots: 6, wetMs: 600000, dryRate: 0.5 });
   const fishing = createFishing({ reg, inv, progress, clock, bus, rng, waitMs: [1000, 1000], biteMs: 800 });
   const ach = createAchievements({ save, reg, bus, inv, progress, now });
-  return { t, setRng: (v) => { r = v; }, phase, bus, events, reg, storage, ls, save, clock, progress, inv, cards, farm, fishing, ach, rng, now };
+  const shop = createShop({ save, reg, inv, progress, bus });
+  const wallet = createWallet({ save, bus, progress });
+  const market = createMarket({ reg, inv, wallet, progress, bus });
+  const casino = createCasino({ cfg: reg.casino, wallet, progress, bus, rng });
+  const tank = createTank({ save, reg, inv, wallet, progress, bus, now, capacity: 3, happyMs: 1000, giftCdMs: 5000, giftPerFish: 5 });
+  return { shop, wallet, market, casino, tank, t, setRng: (v) => { r = v; }, phase, bus, events, reg, storage, ls, save, clock, progress, inv, cards, farm, fishing, ach, rng, now };
 }

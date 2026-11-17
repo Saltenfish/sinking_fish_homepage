@@ -9,10 +9,12 @@ export function createWorld({ game, maps, input, camera }) {
   const { save, bus, ui } = game;
   const T = CONFIG.TILE, HALF = CONFIG.PLAYER_HALF;
   const world = {
-    map: null, entities: [], solids: [], nearest: null, time: 0,
-    player: { x: 0, y: 0, half: HALF, face: { x: 0, y: 1 } },
+    map: null, entities: [], solids: [], updaters: [], nearest: null, time: 0,
+    player: { x: 0, y: 0, half: HALF, face: { x: 0, y: 1 }, speed: 0 },   // speed：這一幀實際的移動速度（格/秒）
+    landmarks: [],
   };
   let path = null;            // 點擊移動的路徑（格座標陣列）
+  let tapTarget = null;       // 點擊了某個物件：走到旁邊後自動互動
   let wantInteract = false;
   let busy = false;           // 互動進行中，避免連按重複觸發
   let sinceSave = 0, movedSinceSave = false;
@@ -32,10 +34,12 @@ export function createWorld({ game, maps, input, camera }) {
       if (e) { ids.add(e.id); world.entities.push(e); }
     }
     world.solids = world.entities.filter((e) => e.solid);
+    world.updaters = world.entities.filter((e) => typeof e.update === 'function');
+    world.landmarks = (data.landmarks || []).filter((l) => l && typeof l.id === 'string' && Number.isFinite(l.x) && Number.isFinite(l.y) && !boxBlocked(world.map, world.solids, l.x, l.y, HALF));
     let p = spawn && Number.isFinite(spawn.x) && Number.isFinite(spawn.y) ? spawn : data.spawn;
     if (boxBlocked(world.map, world.solids, p.x, p.y, HALF)) p = data.spawn;    // 存檔位置現在被擋住（地圖改過）：回出生點
     world.player.x = p.x; world.player.y = p.y;
-    path = null; world.nearest = null;
+    path = null; tapTarget = null; world.nearest = null;
     bus.emit('world:loaded', { map: mapId });
   };
 
@@ -62,6 +66,8 @@ export function createWorld({ game, maps, input, camera }) {
     if (!world.map) return;
     const tx = Math.floor((x + camera.x) / T), ty = Math.floor((y + camera.y) / T);
     const p = world.player;
+    tapTarget = world.entities.find((e) => tx >= e.x && tx < e.x + e.w && ty >= e.y && ty < e.y + e.h && e.prompt() !== null) || null;
+    if (tapTarget && distToRect(p.x, p.y, tapTarget) <= CONFIG.INTERACT_RANGE) { path = null; return; }   // 已經在旁邊：下一幀直接互動
     const found = findPath(passable, world.map.w, world.map.h, Math.floor(p.x), Math.floor(p.y), tx, ty);
     // 先走回自己這格的中心再出發，避免從格子邊緣斜切時卡到牆角
     if (found) path = found.length ? [{ x: Math.floor(p.x), y: Math.floor(p.y) }, ...found] : [];
@@ -70,16 +76,15 @@ export function createWorld({ game, maps, input, camera }) {
   world.update = (dt) => {
     world.time += dt;
     if (!world.map) return;
-    if (ui.isBlocking()) { wantInteract = false; return; }
     const p = world.player;
+    if (ui.isBlocking()) { wantInteract = false; p.speed = 0; return; }
     const ax = input.axis();
     let dx = 0, dy = 0;
 
-    if (ax.x || ax.y) {
-      path = null;
-      const len = Math.hypot(ax.x, ax.y);
-      dx = (ax.x / len) * CONFIG.PLAYER_SPEED * dt;
-      dy = (ax.y / len) * CONFIG.PLAYER_SPEED * dt;
+    if (ax.mag > 0) {
+      path = null; tapTarget = null;
+      dx = ax.x * CONFIG.PLAYER_SPEED * ax.mag * dt;
+      dy = ax.y * CONFIG.PLAYER_SPEED * ax.mag * dt;
     } else if (path) {
       if (!path.length) path = null;
       else {
@@ -94,15 +99,24 @@ export function createWorld({ game, maps, input, camera }) {
     if (dx || dy) {
       const r = moveBox(world.map, world.solids, p, dx, dy, HALF);
       const moved = r.x !== p.x || r.y !== p.y;
+      p.speed = Math.hypot(r.x - p.x, r.y - p.y) / dt;
       p.x = r.x; p.y = r.y;
       p.face = Math.abs(dx) > Math.abs(dy) ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) };
       if (moved) movedSinceSave = true;
       else if (path) path = null;                         // 路被擋住就放棄這條路
+    } else p.speed = 0;
+
+    for (const e of world.updaters) {
+      try { e.update(dt); } catch (err) { console.error(`[world] 物件「${e.id}」更新時出錯`, err); }
     }
 
     world.nearest = findNearest();
     ui.setPrompt(world.nearest ? world.nearest.prompt() : null);
-    if (wantInteract) { wantInteract = false; if (world.nearest) runInteract(world.nearest); }
+    if (wantInteract) { wantInteract = false; tapTarget = null; if (world.nearest) runInteract(world.nearest); }
+    else if (tapTarget && !path) {                         // 點擊物件後走到了（或走不到）
+      const t = tapTarget; tapTarget = null;
+      if (distToRect(p.x, p.y, t) <= CONFIG.INTERACT_RANGE && t.prompt() !== null) runInteract(t);
+    }
 
     sinceSave += dt;
     if (movedSinceSave && sinceSave >= 2) world.savePosition();
@@ -113,6 +127,15 @@ export function createWorld({ game, maps, input, camera }) {
     save.data.player = { map: world.map.id, x: world.player.x, y: world.player.y };
     save.commit();
     sinceSave = 0; movedSinceSave = false;
+  };
+
+  /* 傳送到指定位置（傳送地圖用）。目的地被擋住時不動，回傳 false */
+  world.teleport = (x, y) => {
+    if (!world.map || !Number.isFinite(x) || !Number.isFinite(y) || boxBlocked(world.map, world.solids, x, y, HALF)) return false;
+    world.player.x = x; world.player.y = y; world.player.speed = 0;
+    path = null; tapTarget = null;
+    world.savePosition();
+    return true;
   };
 
   world.followCamera = () => {

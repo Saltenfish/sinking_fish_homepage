@@ -24,6 +24,11 @@ export const loot = {
     { item: 'seed_star', weight: 5 },
     { item: 'feed', weight: 10 },
   ],
+  /* 捕蟲（黃昏與夜晚才有蟲） */
+  bugs: [
+    { item: 'bug_firefly', weight: 80, phases: ['dusk', 'night'] },
+    { item: 'bug_glow', weight: 20, phases: ['night'] },
+  ],
   /* 挖掘點 */
   dig: [
     { item: 'coin_old', weight: 30 },

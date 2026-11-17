@@ -14,7 +14,7 @@ export function settlePlot(plot, growMs, now, dryRate) {
   return { ...plot, progress: Math.min(growMs, plot.progress + gain), last: now };
 }
 
-export function createFarm({ save, reg, bus, inv, progress, now = Date.now, rng = Math.random, plots = 6, wetMs = 600000, dryRate = 0.5 }) {
+export function createFarm({ save, reg, bus, inv, progress, now = Date.now, rng = Math.random, plots = 6, wetMs = 600000, dryRate = 0.5, fertRate = 0.3 }) {
   function ensure() {
     const arr = save.data.farm.plots;
     while (arr.length < plots) arr.push(null);
@@ -48,6 +48,7 @@ export function createFarm({ save, reg, bus, inv, progress, now = Date.now, rng 
         pct: Math.min(1, pct),
         stage: Math.min(3, Math.floor(pct * 3)),       // 0 發芽、1 成長、2 快熟、3 成熟
         wet: s.plot.wetUntil > now(),
+        fertilized: s.plot.fert === true,
       };
     },
 
@@ -68,7 +69,7 @@ export function createFarm({ save, reg, bus, inv, progress, now = Date.now, rng 
       const crop = reg.cropBySeed.get(seedId);
       if (!crop) return { ok: false, reason: 'not-seed' };
       if (!inv.remove(seedId, 1)) return { ok: false, reason: 'no-seed' };
-      ensure()[i] = { crop: crop.id, progress: 0, last: now(), wetUntil: 0 };
+      ensure()[i] = { crop: crop.id, progress: 0, last: now(), wetUntil: 0, fert: false };
       save.commit();
       bus.emit('farm:changed', { index: i, action: 'plant', crop });
       return { ok: true, crop };
@@ -82,6 +83,21 @@ export function createFarm({ save, reg, bus, inv, progress, now = Date.now, rng 
       s.plot.wetUntil = now() + wetMs;
       save.commit();
       bus.emit('farm:changed', { index: i, action: 'water', crop: s.crop });
+      return { ok: true };
+    },
+
+    /* 施肥：每株限一次，直接增加一截生長進度 */
+    fertilize(i) {
+      if (!valid(i)) return { ok: false, reason: 'invalid' };
+      const s = settled(i);
+      if (!s) return { ok: false, reason: 'empty' };
+      if (s.plot.progress >= s.crop.growMs) return { ok: false, reason: 'ripe' };
+      if (s.plot.fert) return { ok: false, reason: 'done' };
+      if (!inv.remove('fertilizer', 1)) return { ok: false, reason: 'no-item' };
+      s.plot.progress = Math.min(s.crop.growMs, s.plot.progress + s.crop.growMs * fertRate);
+      s.plot.fert = true;
+      save.commit();
+      bus.emit('farm:changed', { index: i, action: 'fertilize', crop: s.crop });
       return { ok: true };
     },
 

@@ -152,7 +152,8 @@ test('progress：冷卻與時鐘倒退', () => {
 });
 
 test('clock：時段切換點', () => {
-  assert.deepEqual([4, 5, 6, 7, 16, 17, 18, 19, 23, 0].map(phaseOfHour), ['night', 'dawn', 'dawn', 'day', 'day', 'dusk', 'dusk', 'night', 'night', 'night']);
+  // 清晨 4–7、白天 7–16、傍晚 16–18、夜晚 18–4
+  assert.deepEqual([3, 3.99, 4, 6, 7, 15, 15.99, 16, 17, 18, 23, 0, 24, -1].map((h) => phaseOfHour(h)), ['night', 'night', 'dawn', 'dawn', 'day', 'day', 'day', 'dusk', 'dusk', 'night', 'night', 'night', 'night', 'night']);
 });
 
 test('ring：分圈', () => {

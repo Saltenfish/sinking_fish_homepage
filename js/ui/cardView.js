@@ -25,7 +25,7 @@ export function cardView(game, { id } = {}) {
     h('button', { class: 'btn', type: 'button', text: '翻面（F）', onclick: flip }));
 
   return game.ui.panel({
-    title: '角色卡', body,
+    title: '角色卡', body, scene: 'card',
     onKey: (e) => { if (['KeyF', 'KeyE', 'Space'].includes(e.code)) { if (!e.repeat) flip(); return true; } return false; },
   }).closed;
 }

@@ -7,11 +7,14 @@
      interact()  按下互動鍵時做的事（可以是 async）
      color()     佔位色塊顏色          label()  佔位文字
      draw(ctx, px, py, tile, time)   自己畫（有的話取代色塊）
+     update(dt)  每幀更新（需要時才寫）
+     visible()   回傳 false 時不畫       glow()  夜晚的發光半徑（格），0 = 不發光
    物件只透過 game.ui / game.farm 等系統做事，不直接碰畫面。
 ============================================================ */
 import { CONFIG } from '../config.js';
 import { rollLoot } from '../systems/loot.js';
 import { splitRings } from '../systems/ringModel.js';
+import { bugReaction } from '../systems/bugs.js';
 
 const types = new Map();
 export function register(name, factory) {
@@ -68,6 +71,7 @@ register('tree', (def, game) => ({
 register('altar', (def, game) => ({
   color: () => '#6c5ce7', label: () => '法陣',
   prompt: () => '站上法陣',
+  glow: () => 3,
   interact: () => game.ui.show('ring'),
   draw(ctx, px, py, tile, time) {
     const cx = px + tile, cy = py + tile;
@@ -94,13 +98,21 @@ register('plot', (def, game) => {
   return {
     color() { const s = st(); return s.state === 'empty' ? '#6d4c41' : s.state === 'ripe' ? '#f4a261' : s.wet ? '#4e6b3a' : '#7a6a3a'; },
     label() { const s = st(); return s.state === 'empty' ? '' : s.state === 'ripe' ? '熟' : `${Math.floor(s.pct * 100)}%`; },
-    prompt() { const s = st(); return s.state === 'empty' ? '播種' : s.state === 'ripe' ? `收成${s.crop.name}` : s.wet ? `查看${s.crop.name}` : '澆水'; },
+    prompt() { const s = st(); return s.state === 'empty' ? '播種' : s.state === 'ripe' ? `收成${s.crop.name}` : s.wet ? `照顧${s.crop.name}` : '澆水'; },
+    /* 素材鍵依狀態切換：ent.plot.empty / ent.plot.growing / ent.plot.ripe */
+    sprite() { return `ent.plot.${st().state}`; },
     async interact() {
       const s = st();
       if (s.state === 'ripe') { game.farm.harvest(i); return; }
       if (s.state === 'growing') {
-        if (!s.wet) { game.farm.water(i); game.ui.toast('澆水了'); return; }
-        await game.ui.say([`${s.crop.name}正在長大（${Math.floor(s.pct * 100)}%）。土還是濕的。`]);
+        const canFert = !s.fertilized && game.inv.has('fertilizer');
+        if (!s.wet && !canFert) { game.farm.water(i); game.ui.toast('澆水了'); return; }
+        if (!canFert) { await game.ui.say([`${s.crop.name}正在長大（${Math.floor(s.pct * 100)}%）。土還是濕的。`]); return; }
+        const opts = [...(s.wet ? [] : ['澆水']), '施肥'];
+        const idx = await game.ui.choose(`${s.crop.name}（${Math.floor(s.pct * 100)}%）`, opts);
+        if (idx < 0) return;
+        if (opts[idx] === '澆水') { game.farm.water(i); game.ui.toast('澆水了'); }
+        else if (game.farm.fertilize(i).ok) game.ui.toast('施肥了，長大了一截');
         return;
       }
       const seeds = game.farm.plantable();
@@ -175,6 +187,7 @@ register('lantern', (def, game) => {
   const lit = () => game.progress.flag(key);
   return {
     color: () => (lit() ? '#ffd54f' : '#607d8b'), label: () => '燈',
+    glow: () => (lit() ? 3.5 : 0),
     prompt: () => (lit() ? '熄燈' : '點燈'),
     interact() {
       if (lit()) { game.progress.clearFlag(key); return; }
@@ -186,3 +199,73 @@ register('lantern', (def, game) => {
     },
   };
 });
+
+/* ---------- 成就小屋 ---------- */
+register('hut', (def, game) => ({
+  color: () => '#d7a86e', label: () => '成就小屋',
+  prompt: () => '進入小屋',
+  interact: () => game.ui.show('hut'),
+}));
+
+/* ---------- 供奉石（祭壇兌換） ---------- */
+register('offering', (def, game) => ({
+  color: () => '#c9b6ff', label: () => '供',
+  prompt: () => '供奉',
+  interact: () => game.ui.show('offerings'),
+}));
+
+/* ---------- 蟲（黃昏與夜晚才出現；靠太快會飛走） ---------- */
+register('bugspot', (def, game) => {
+  const caughtKey = `bug:${def.id}`, fleeKey = `bugflee:${def.id}`;
+  const table = () => (game.reg.lootTables.bugs || []).filter((t) => !t.phases || t.phases.includes(game.clock.phase()));
+  const active = () => table().length > 0
+    && game.progress.cooldownLeft(caughtKey, CONFIG.BUG_CATCH_CD_MS) === 0
+    && game.progress.cooldownLeft(fleeKey, CONFIG.BUG_FLEE_CD_MS) === 0;
+  return {
+    visible: active,
+    glow: () => (active() ? 1.2 : 0),
+    prompt: () => (active() ? '抓蟲' : null),
+    update() {
+      if (!active()) return;
+      const p = game.world.player;
+      const dist = Math.hypot(p.x - (def.x + 0.5), p.y - (def.y + 0.5));
+      if (bugReaction(dist, p.speed, { alertRadius: CONFIG.BUG_ALERT_RADIUS, sneakSpeed: CONFIG.BUG_SNEAK_SPEED }) === 'flee') {
+        game.progress.markCooldown(fleeKey);
+        game.ui.toast('蟲被嚇跑了。下次慢慢靠近（按住 Shift 或輕推搖桿）');
+      }
+    },
+    interact() {
+      if (!active()) return;
+      const id = rollLoot(table(), { rng: game.rng });
+      game.progress.markCooldown(caughtKey);
+      if (id && game.inv.add(id, 1) > 0) game.progress.inc('bugsCaught');
+    },
+    draw(ctx, px, py, tile, time) {
+      const bob = Math.sin(time * 3 + def.x) * 4;
+      ctx.fillStyle = '#eaff8f';
+      ctx.fillRect(px + tile / 2 - 2, py + tile / 2 - 2 + bob, 4, 4);
+    },
+  };
+});
+
+/* ---------- 商店 ---------- */
+register('market', (def, game) => ({
+  color: () => '#e0a458', label: () => '商店',
+  prompt: () => '逛商店',
+  interact: () => game.ui.show('market'),
+}));
+
+/* ---------- 小賭場 ---------- */
+register('casino', (def, game) => ({
+  color: () => '#c0392b', label: () => '賭場',
+  glow: () => 2.5,
+  prompt: () => (game.casino ? '進小賭場' : null),
+  interact: () => game.ui.show('casino'),
+}));
+
+/* ---------- 魚缸 ---------- */
+register('tank', (def, game) => ({
+  color: () => '#4dd0e1', label: () => `魚缸 ${game.tank.count()}`,
+  prompt: () => '看魚缸',
+  interact: () => game.ui.show('tank'),
+}));

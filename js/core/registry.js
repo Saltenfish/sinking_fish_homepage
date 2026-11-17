@@ -1,10 +1,13 @@
 /* 資料登錄與檢查：開機時把 js/data/ 的所有資料檢查一遍。
    不合格的項目會被略過並在主控台印出原因，不會讓整個網站壞掉。 */
 import { isObj, isNum, safeKey, safeUrl } from './util.js';
+import { PHASES as TIME_PHASES } from '../data/time.js';
+import { checkPhases } from '../systems/clock.js';
+import { checkCasino } from '../systems/casino.js';
 
 export const RARITIES = ['N', 'R', 'SR', 'SSR'];
 export const ITEM_CATS = ['seed', 'crop', 'fish', 'bug', 'treasure', 'misc'];
-export const PHASES = ['dawn', 'day', 'dusk', 'night'];
+export const PHASES = TIME_PHASES.map((p) => p.id);   // 時段 id 來自 data/time.js
 const str = (v, max = 400) => typeof v === 'string' && v.trim().length > 0 && v.length <= max;
 
 function collect(list, label, errors, check) {
@@ -25,7 +28,7 @@ function collect(list, label, errors, check) {
 }
 
 export function buildRegistry(src) {
-  const errors = [];
+  const errors = [...checkPhases(TIME_PHASES)];
 
   const characters = collect(src.characters, 'characters', errors, (c) => {
     if (!str(c.name, 60)) return '缺少 name';
@@ -45,6 +48,7 @@ export function buildRegistry(src) {
   const items = collect(src.items, 'items', errors, (it) => {
     if (!str(it.name, 30)) return '缺少 name';
     if (!ITEM_CATS.includes(it.cat)) return `cat 只能是 ${ITEM_CATS.join('/')}`;
+    if (it.sell !== undefined && !(Number.isInteger(it.sell) && it.sell > 0)) return 'sell 必須是正整數';
     return null;
   });
 
@@ -97,8 +101,47 @@ export function buildRegistry(src) {
     return null;
   });
 
+  const offerings = collect(src.offerings || [], 'offerings', errors, (o) => {
+    if (!str(o.name, 30)) return '缺少 name';
+    if (!isObj(o.cost) || !Object.keys(o.cost).length) return 'cost 必須是 {物品id: 數量}';
+    for (const k of Object.keys(o.cost)) if (!items.byId.has(k) || !(Number.isInteger(o.cost[k]) && o.cost[k] > 0)) return `cost「${k}」不合法`;
+    if (o.cardBack !== undefined && !/^[a-z0-9]{1,20}$/.test(o.cardBack)) return 'cardBack 只能用小寫英數字';
+    return null;
+  });
+
+  /* 商店商品：物品要存在、不可重複、買價要高於賣價（否則可以無限套利） */
+  const goods = [];
+  const goodByItem = new Map();
+  (Array.isArray(src.goods) ? src.goods : []).forEach((g, i) => {
+    const where = `goods[${i}]`;
+    if (!isObj(g) || !items.byId.has(g.item)) { errors.push(`${where}：item 不在 items 裡`); return; }
+    if (goodByItem.has(g.item)) { errors.push(`${where}：商品重複（${g.item}）`); return; }
+    if (!(Number.isInteger(g.price) && g.price > 0)) { errors.push(`${where}：price 必須是正整數`); return; }
+    const sell = items.byId.get(g.item).sell || 0;
+    if (g.price <= sell) { errors.push(`${where}：買價 ${g.price} 必須高於賣價 ${sell}`); return; }
+    const good = Object.freeze({ item: g.item, price: g.price });
+    goods.push(good); goodByItem.set(g.item, good);
+  });
+
+  /* 賭場設定：有問題就整個停用（casino = null） */
+  let casino = null;
+  if (src.casino !== undefined) {
+    const problems = checkCasino(src.casino);
+    if (problems.length) errors.push(...problems.map((p) => `casino：${p}`)); else casino = src.casino;
+  }
+
+  /* 召喚特效設定：格式不對就停用（直接顯示卡片） */
+  let summonFx = null;
+  if (src.summonFx !== undefined) {
+    const f = src.summonFx;
+    if (isObj(f) && Array.isArray(f.steps) && f.steps.every((x) => safeKey(x)) && isObj(f.base) && isObj(f.rarity)) summonFx = f;
+    else errors.push('summonFx：需要 steps（陣列）、base、rarity');
+  }
+
   return {
     errors,
+    goods, goodByItem, casino, summonFx,
+    offerings: offerings.list, offeringById: offerings.byId,
     characters: characters.list, characterById: characters.byId,
     sites: sites.list, siteById: sites.byId,
     items: items.list, itemById: items.byId,

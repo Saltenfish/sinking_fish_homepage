@@ -37,7 +37,7 @@ export async function fishChatView(game, args = {}) {
 
   const body = h('div', { class: 'chat' }, h('div', { class: 'chat-sub', text: session.subtitle }), msgs,
     h('div', { class: 'row' }, input, h('button', { class: 'btn', type: 'button', text: '送出', onclick: send })));
-  const p = game.ui.panel({ title: session.name, body, onClose: () => { alive = false; timers.forEach(clearTimeout); timers.clear(); } });
+  const p = game.ui.panel({ scene: 'fishchat', title: session.name, body, onClose: () => { alive = false; timers.forEach(clearTimeout); timers.clear(); } });
   botSay(session.greet());
   input.focus();
   return p.closed;
