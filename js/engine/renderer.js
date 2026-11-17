@@ -3,7 +3,7 @@
    ・不會動的地面先畫成一張底圖，每幀只貼上鏡頭範圍
    ・物件只畫鏡頭內的
    ・天色依現實時間連續變化；會發光的物件（點亮的石燈、螢火蟲、卡環）在夜色之上再畫一層光 */
-import { frameAt } from '../core/assets.js';
+import { frameAt, variantAt } from '../core/assets.js';
 
 const ROW = { down: 0, left: 1, right: 2, up: 3 };   // 玩家行走圖的列順序
 const faceRow = (f) => (f.y > 0 ? ROW.down : f.y < 0 ? ROW.up : f.x < 0 ? ROW.left : ROW.right);
@@ -35,9 +35,15 @@ export function createRenderer({ canvas, tile, assets }) {
       const img = key ? assets?.image(key) : null;
       if (img) {
         const m = assets.meta(key);
-        if (m.frames > 1) { animatedTiles.push({ x, y, key }); g.drawImage(img, 0, 0, m.frameW, m.frameH, x * tile, y * tile, tile, tile); }
+        if (m.variants) g.drawImage(img, variantAt(m, x, y) * m.frameW, 0, m.frameW, m.frameH, x * tile, y * tile, tile, tile);
+        else if (m.frames > 1) { animatedTiles.push({ x, y, key }); g.drawImage(img, 0, 0, m.frameW, m.frameH, x * tile, y * tile, tile, tile); }
         else g.drawImage(img, x * tile, y * tile, tile, tile);
       } else { g.fillStyle = t.color || '#000'; g.fillRect(x * tile, y * tile, tile, tile); }
+    }
+    // 大型佈景（建築屋頂等）：直接畫進底圖，蓋在圖塊上面。沒有素材就不畫
+    for (const d of map.decor || []) {
+      const img = assets?.image(d.sprite);
+      if (img) g.drawImage(img, d.x * tile, d.y * tile, d.w * tile, d.h * tile);
     }
     ground = c; groundFor = map;
   }
@@ -60,27 +66,46 @@ export function createRenderer({ canvas, tile, assets }) {
 
       ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const glows = [];
+      // 排序：貼地的東西（flat：農田、法陣、挖掘點…）永遠在最下層；其餘依「腳底的 y」由後往前畫，
+      // 這樣人物走到大樹後面會被樹冠擋住、走到前面會擋住樹
+      const list = [];
       for (const e of entities) {
         const px = e.x * tile - camera.x, py = e.y * tile - camera.y, pw = e.w * tile, ph = e.h * tile;
-        if (px > viewW + tile * 4 || py > viewH + tile * 4 || px + pw < -tile * 4 || py + ph < -tile * 4) continue;
+        const a = e.art;   // 圖比佔地大時的範圍（相對於物件左上角，單位是格）
+        const ax = a ? px + a.x * tile : px, ay = a ? py + a.y * tile : py, aw = a ? a.w * tile : pw, ah = a ? a.h * tile : ph;
+        if (ax > viewW + tile || ay > viewH + tile || ax + aw < -tile || ay + ah < -tile) continue;
         const glow = e.glow ? e.glow() : 0;
         if (glow > 0) glows.push([px + pw / 2, py + ph / 2, glow * tile]);
         if (e.visible && !e.visible()) continue;
-        if (sprite(e.sprite ? e.sprite() : `ent.${e.type}`, time, px, py, pw, ph)) continue;
-        if (e.draw) { e.draw(ctx, px, py, tile, time); continue; }
-        ctx.fillStyle = e.color();
-        ctx.fillRect(px + 3, py + 3, pw - 6, ph - 6);
-        const label = e.label();
-        if (label) { ctx.fillStyle = '#fff'; ctx.fillText(label, px + pw / 2, py + ph / 2); }
+        list.push({ e, px, py, pw, ph, ax, ay, aw, ah, layer: e.flat ? 0 : 1, foot: e.y + e.h });
+      }
+      list.push({ player: true, layer: 1, foot: player.y + player.half });
+      list.sort((p, q) => p.layer - q.layer || p.foot - q.foot);
+
+      for (const d of list) {
+        if (d.player) { drawPlayer(); continue; }
+        const { e, px, py, pw, ph } = d;
+        if (!sprite(e.sprite ? e.sprite() : `ent.${e.type}`, time, d.ax, d.ay, d.aw, d.ah)) {
+          if (e.draw) e.draw(ctx, px, py, tile, time);
+          else {
+            ctx.fillStyle = e.color();
+            ctx.fillRect(px + 3, py + 3, pw - 6, ph - 6);
+            const label = e.label();
+            if (label) { ctx.fillStyle = '#fff'; ctx.fillText(label, px + pw / 2, py + ph / 2); }
+          }
+        }
+        if (e.drawOver) e.drawOver(ctx, px, py, tile, time);     // 疊在素材上面的動態效果（例如法陣周圍公轉的卡）
       }
 
-      const r = player.half * tile;
-      const cx = player.x * tile - camera.x, cy = player.y * tile - camera.y;
-      if (!sprite('player', time, Math.round(cx - tile / 2), Math.round(cy - tile * 0.7), tile, tile, faceRow(player.face), player.speed > 0)) {
-        ctx.fillStyle = '#f6c453';
-        ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-        ctx.fillStyle = '#3a2a10';                                  // 面向標記
-        ctx.fillRect(cx + player.face.x * r * 0.6 - 2, cy + player.face.y * r * 0.6 - 2, 4, 4);
+      function drawPlayer() {
+        const r = player.half * tile;
+        const cx = player.x * tile - camera.x, cy = player.y * tile - camera.y;
+        if (!sprite('player', time, Math.round(cx - tile / 2), Math.round(cy - tile * 0.7), tile, tile, faceRow(player.face), player.speed > 0)) {
+          ctx.fillStyle = '#f6c453';
+          ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+          ctx.fillStyle = '#3a2a10';                                  // 面向標記
+          ctx.fillRect(cx + player.face.x * r * 0.6 - 2, cy + player.face.y * r * 0.6 - 2, 4, 4);
+        }
       }
 
       if (tint && tint.a > 0) {

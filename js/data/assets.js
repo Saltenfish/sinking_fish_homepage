@@ -8,10 +8,13 @@
      'assets/tiles/grass.png'                          一張靜態圖
      'https://.../grass.png'                           外部網址（必須是 https）
      { src: '...', frameW: 32, frameH: 32, frames: 4, fps: 6 }   動畫（橫向排列的連續影格）
+     { src: '...', frameW: 32, frameH: 32, frames: 6, variants: true }   變化款：每一格地圖固定挑一款，不播放
 
    鍵的命名規則：
-     tile.<名稱>        地圖圖塊。名稱是 maps/town.js 的 legend 裡的 key（grass / wall / stone / water / bridge / reed / hut / door）
+     tile.<名稱>        地圖圖塊。名稱是 maps/town.js 的 legend 裡的 key（grass / wall / hallwall / stone / water / bridge / reed / hut / door）
+     decor.<名稱>       大型佈景（整棟建築外觀），位置寫在 maps/town.js 的 decor
      ent.<類型>         地圖物件。類型見 js/world/types.js（board / tree / altar / plot / fishspot / pond / bush / dig / lantern / hut / offering / bugspot / market / casino / tank）
+                        有狀態的物件另有：ent.plot.empty|growing|ripe、ent.lantern.lit、ent.dig.used、ent.pond.found
      player             玩家行走圖。四列依序是 下、左、右、上，每列 frames 格
      tree.bg            許願樹畫面的整張底圖（比例 900:540）
      tree.plaque        許願牌的圖
@@ -27,6 +30,41 @@
 export const ASSET_BASE = '';
 
 export const assets = {
+  /* ── 以下由 tools/make_pixel_assets.py 產生的暫用像素圖（重新執行該程式會覆蓋這些檔案）──
+     換成自己的圖：把路徑改成你的檔案即可。variants: true 代表橫排的是「變化款」而不是動畫 */
+  'tile.grass': { src: 'assets/tiles/grass.png', frameW: 32, frameH: 32, frames: 6, variants: true },
+  'tile.wall': { src: 'assets/tiles/forest.png', frameW: 32, frameH: 32, frames: 3, variants: true },
+  'tile.stone': { src: 'assets/tiles/stone.png', frameW: 32, frameH: 32, frames: 3, variants: true },
+  'tile.hallwall': { src: 'assets/tiles/hallwall.png', frameW: 32, frameH: 32, frames: 2, variants: true },
+  'tile.water': { src: 'assets/tiles/water.png', frameW: 32, frameH: 32, frames: 4, fps: 3 },
+  'tile.bridge': 'assets/tiles/bridge.png',
+  'tile.reed': { src: 'assets/tiles/reed.png', frameW: 32, frameH: 32, frames: 2, variants: true },
+  'tile.hut': 'assets/tiles/roof.png',
+  'tile.door': 'assets/tiles/door.png',
+  'decor.hut': 'assets/decor/hut.png',
+  'ent.hut': 'assets/sprites/hut-door.png',
+  'ent.tree': 'assets/sprites/wish-tree.png',
+  'ent.altar': 'assets/sprites/altar.png',
+  'ent.pillar': 'assets/sprites/pillar.png',
+  'ent.banner': 'assets/sprites/banner.png',
+  'ent.market': 'assets/sprites/market.png',
+  'ent.casino': 'assets/sprites/casino.png',
+  'ent.tank': 'assets/sprites/tank.png',
+  'ent.board': 'assets/sprites/board.png',
+  'ent.bush': 'assets/sprites/bush.png',
+  'ent.dig': 'assets/sprites/dig.png',
+  'ent.dig.used': 'assets/sprites/dig-used.png',
+  'ent.lantern': 'assets/sprites/lantern.png',
+  'ent.lantern.lit': 'assets/sprites/lantern-lit.png',
+  'ent.plot.empty': 'assets/sprites/plot-empty.png',
+  'ent.plot.growing': 'assets/sprites/plot-growing.png',
+  'ent.plot.ripe': 'assets/sprites/plot-ripe.png',
+  'ent.fishspot': 'assets/sprites/fishspot.png',
+  'ent.pond': 'assets/sprites/pond.png',
+  'ent.pond.found': 'assets/sprites/pond-found.png',
+  'ent.offering': 'assets/sprites/offering.png',
+  'ent.bugspot': { src: 'assets/sprites/bug.png', frameW: 32, frameH: 32, frames: 4, fps: 5 },
+
   // 範例（把前面的 // 拿掉並放入圖檔即可生效）：
   // 'tile.grass': 'assets/tiles/grass.png',
   // 'tile.water': { src: 'assets/tiles/water.png', frameW: 32, frameH: 32, frames: 4, fps: 4 },
