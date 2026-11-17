@@ -20,6 +20,15 @@ export const CONFIG = Object.freeze({
   BUG_SNEAK_SPEED: 2.2,          // 靠近時速度超過這個值（格/秒）蟲就飛走
   BUG_FLEE_CD_MS: 60 * 1000,     // 蟲被嚇跑後多久回來
   BUG_CATCH_CD_MS: 30 * 60 * 1000, // 抓到後多久再出現
+  FERTILIZER_RATE: 0.3,          // 施肥一次直接增加幾成的生長進度（每株限一次）
+  BAIT_WAIT_RATE: 0.4,           // 用魚餌時，等待咬鉤的時間倍率
+  START_COINS: 50,               // 新手一開始的金幣
+  COIN_CAP: 999999,              // 金幣上限
+  TANK_CAPACITY: 8,              // 魚缸最多養幾條
+  TANK_HAPPY_MS: 24 * 60 * 60 * 1000,  // 餵一次開心多久
+  TANK_GIFT_CD_MS: 20 * 60 * 60 * 1000, // 魚缸禮物多久可以領一次
+  TANK_GIFT_PER_FISH: 5,         // 每條開心的魚給幾枚金幣
+  SCENE_ANIM_MS: 220,            // 全螢幕畫面切入、切出的動畫長度
   RING_WINDOW: 5,                // 卡環正前方左右各畫幾張（總共 2n+1 張）
   RING_PER_RING: 30,             // 地圖上一圈最多幾張，超過就分圈
   ITEM_CAP: 999,                 // 單一物品持有上限

@@ -16,6 +16,8 @@ export function ringView(game) {
   let showFaces = false, rafId = null, lastT = 0, alive = true, summoning = false;
 
   const stage = h('div', { class: `ring-stage back-${game.shop.back()}` });   // 卡背花色由供奉石決定
+  const backImg = game.assets?.url(`card.back.${game.shop.back()}`);            // 有卡背圖檔就用圖檔
+  if (backImg) { stage.style.setProperty('--back-img', `url("${backImg}")`); stage.classList.add('has-back-img'); }
   const slots = Array.from({ length: half * 2 + 2 }, () => {
     const el = h('div', { class: 'rcard', hidden: true });
     stage.append(el);
@@ -63,7 +65,11 @@ export function ringView(game) {
     const c = reg.characters[model.frontIndex()];
     if (!c) return;
     summoning = true;
-    try { cards.summon(c.id); await ui.show('card', { id: c.id }); }
+    try {
+      const r = cards.summon(c.id);
+      await ui.show('summonFx', { id: c.id, first: !!r?.first });   // 召喚特效（可跳過）
+      await ui.show('card', { id: c.id });
+    }
     finally { summoning = false; }
   }
   function randomSpin() {
@@ -112,7 +118,7 @@ export function ringView(game) {
     h('div', { class: 'hint', text: '拖曳／滾輪／← → 轉動・Enter 召喚・R 隨機' }));
 
   const p = ui.panel({
-    title: '召喚卡環', body, cls: 'wide',
+    title: '召喚卡環', body, cls: 'xl', scene: 'ring',
     onClose: () => { alive = false; if (rafId !== null) cancelAnimationFrame(rafId); },
     onKey: (e) => {
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') { model.nudge(-1); return true; }

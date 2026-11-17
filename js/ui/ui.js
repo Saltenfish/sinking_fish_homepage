@@ -1,8 +1,9 @@
-/* 介面管理：視窗堆疊、對話框、選項、通知、互動提示。
-   只要有視窗開著，isBlocking() 就是 true，地圖會停止接收操作。 */
+/* 介面管理：視窗堆疊、對話框、選項、通知、互動提示、全螢幕畫面。
+   只要有視窗開著，isBlocking() 就是 true，地圖會停止接收操作。
+   panel() 開的是全螢幕畫面（有切入、切出動畫）；say() / choose() 是畫面下方的對話框。 */
 import { h } from './dom.js';
 
-export function createUI({ root, bus }) {
+export function createUI({ root, bus, assets = null, animMs = 220 }) {
   const layer = h('div', { class: 'ui-layer' });
   const toasts = h('div', { class: 'toasts', role: 'status', 'aria-live': 'polite' });
   const prompt = h('div', { class: 'prompt', hidden: true });
@@ -15,7 +16,10 @@ export function createUI({ root, bus }) {
     const i = stack.indexOf(modal);
     if (i === -1) return;                       // 已經關過了
     stack.splice(i, 1);
-    modal.el.remove();
+    if (modal.animated && animMs > 0) {          // 全螢幕畫面：先播切出動畫再移除（邏輯上已經關閉）
+      modal.el.classList.add('leaving');
+      setTimeout(() => modal.el.remove(), animMs);
+    } else modal.el.remove();
     try { modal.onClose?.(); } catch (e) { console.error('[ui] onClose 出錯', e); }
     if (!stack.length) bus.emit('ui:unblock', {});
   }
@@ -91,15 +95,29 @@ export function createUI({ root, bus }) {
       });
     },
 
-    /* 一般視窗。回傳 {close, closed}，closed 是視窗關掉時完成的 Promise */
-    panel({ title, body, onKey, onClose, cls = '' }) {
+    /* 全螢幕畫面。回傳 {close, closed}，closed 是畫面關掉時完成的 Promise。
+       scene：畫面名稱，會加上 class「scene-名稱」，並套用素材 scene.<名稱> 當背景（有的話）
+       cls：  內容寬度 wide / xl / full（full = 內容也填滿，給釣魚、魚缸這類整面動畫用） */
+    panel({ title, body, onKey, onClose, cls = '', scene = '' }) {
       let closeIt = () => {};
       const closed = new Promise((resolve) => {
-        const el = h('div', { class: `panel ${cls}`, role: 'dialog', 'aria-label': title },
+        const el = h('div', { class: `panel ${cls}${scene ? ` scene-${scene}` : ''}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
           h('div', { class: 'panel-head' }, h('b', { text: title }),
-            h('button', { class: 'btn', type: 'button', text: '✕', 'aria-label': '關閉', onclick: () => closeIt() })),
+            h('button', { class: 'btn', type: 'button', text: '✕ 離開', 'aria-label': '關閉', onclick: () => closeIt() })),
           h('div', { class: 'panel-body' }, body));
-        closeIt = open({ el, onKey, onClose: () => { try { onClose?.(); } finally { resolve(); } } });
+        const bg = scene ? assets?.url(`scene.${scene}`) : null;
+        if (bg) { el.style.backgroundImage = `url("${bg}")`; el.classList.add('has-bg'); }
+        closeIt = open({ el, onKey, animated: true, onClose: () => { try { onClose?.(); } finally { resolve(); } } });
+      });
+      return { close: () => closeIt(), closed };
+    },
+
+    /* 沒有標題列的全螢幕覆蓋層（召喚特效用）。回傳 {close, closed} */
+    overlay({ el, onKey, onClose, dismissable = true }) {
+      let closeIt = () => {};
+      const closed = new Promise((resolve) => {
+        closeIt = open({ el, animated: false, onClose: () => { try { onClose?.(); } finally { resolve(); } },
+          onKey: (e) => { if (onKey?.(e) === true) return true; return e.code === 'Escape' && !dismissable; } });
       });
       return { close: () => closeIt(), closed };
     },

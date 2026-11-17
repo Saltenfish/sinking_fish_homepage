@@ -15,5 +15,5 @@ export function offeringsView(game) {
     box.replaceChildren(h('p', { text: '把收集到的東西獻給祭壇，換取不同花色的卡背。' }), ...rows, h('h4', { text: '使用中的卡背' }), h('div', { class: 'row' }, backs));
   }
   render();
-  return ui.panel({ title: '供奉石', body: box, cls: 'wide' }).closed;
+  return ui.panel({ scene: 'offerings', title: '供奉石', body: box, cls: 'wide' }).closed;
 }

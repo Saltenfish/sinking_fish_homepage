@@ -28,7 +28,7 @@ export function mapView(game) {
   const body = h('div', { class: 'mapview' }, cv,
     h('div', { class: 'places' }, places.map((l, i) => h('button', { class: 'btn', type: 'button', text: `${i + 1}. ${l.name}`, onclick: () => go(l) }))),
     h('p', { class: 'hint', text: '黃色方塊是你的位置。按數字鍵或點地點名稱傳送。' }));
-  panel = ui.panel({
+  panel = ui.panel({ scene: 'map',
     title: '地圖', body, cls: 'wide',
     onKey: (e) => {
       const m = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);

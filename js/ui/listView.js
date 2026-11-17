@@ -10,5 +10,5 @@ export function listView(game) {
     h('ul', { class: 'list' }, reg.characters.map((c) => row(c.name, c.url, [cards.has(c.id) ? '已召喚' : '', c.tagline || ''].filter(Boolean).join('・')))),
     h('h4', { text: `網站（${reg.sites.length}）` }),
     h('ul', { class: 'list' }, reg.sites.map((s) => row(s.name, s.url, s.desc))));
-  return ui.panel({ title: '快速目錄', body, cls: 'wide' }).closed;
+  return ui.panel({ scene: 'list', title: '快速目錄', body, cls: 'wide' }).closed;
 }

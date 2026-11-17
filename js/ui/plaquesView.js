@@ -35,7 +35,11 @@ export function plaquesView(game) {
   const { reg, save, ui } = game;
   const pct = (v, total) => `${(v / total * 100).toFixed(3)}%`;
   const layer = h('div', { class: 'tree-hang' });
-  const stage = h('div', { class: 'tree-stage' }, buildTree(), layer);
+  const bgUrl = game.assets?.url('tree.bg');                   // 有提供整張樹的圖檔就用圖檔，否則用佔位線稿
+  const tree = bgUrl ? h('img', { class: 'tree-svg', src: bgUrl, alt: '', decoding: 'async' }) : buildTree();
+  const stage = h('div', { class: 'tree-stage' }, tree, layer);
+  const plaqueUrl = game.assets?.url('tree.plaque');
+  if (plaqueUrl) { stage.style.setProperty('--plaque-img', `url("${plaqueUrl}")`); stage.classList.add('has-plaque-img'); }
   const detail = h('div', { class: 'tree-detail', role: 'status', 'aria-live': 'polite' }, h('p', { class: 'hint', text: '點一下樹上的許願牌看看。' }));
   const input = h('input', { type: 'text', maxLength: MAX_LEN, placeholder: '寫下你的願望，掛到樹上…', 'aria-label': '願望' });
 
@@ -78,5 +82,5 @@ export function plaquesView(game) {
 
   const body = h('div', { class: 'tree' }, h('div', { class: 'tree-scroll' }, stage), detail,
     h('div', { class: 'row' }, input, h('button', { class: 'btn', type: 'button', text: '掛上去', onclick: add })));
-  return ui.panel({ title: '許願樹', body, cls: 'xl' }).closed;
+  return ui.panel({ title: '許願樹', body, cls: 'xl', scene: 'tree' }).closed;
 }

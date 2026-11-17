@@ -31,5 +31,5 @@ export function hutView(game) {
     wall,
     h('h4', { text: '收藏架' }), shelves,
     h('h4', { text: '紀錄' }), h('div', { class: 'stats' }, stats.map(([k, v]) => h('div', null, h('span', { text: k }), h('b', { text: String(v) })))));
-  return ui.panel({ title: '成就小屋', body, cls: 'xl' }).closed;
+  return ui.panel({ scene: 'hut', title: '成就小屋', body, cls: 'xl' }).closed;
 }

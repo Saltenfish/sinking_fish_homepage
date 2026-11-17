@@ -98,13 +98,21 @@ register('plot', (def, game) => {
   return {
     color() { const s = st(); return s.state === 'empty' ? '#6d4c41' : s.state === 'ripe' ? '#f4a261' : s.wet ? '#4e6b3a' : '#7a6a3a'; },
     label() { const s = st(); return s.state === 'empty' ? '' : s.state === 'ripe' ? '熟' : `${Math.floor(s.pct * 100)}%`; },
-    prompt() { const s = st(); return s.state === 'empty' ? '播種' : s.state === 'ripe' ? `收成${s.crop.name}` : s.wet ? `查看${s.crop.name}` : '澆水'; },
+    prompt() { const s = st(); return s.state === 'empty' ? '播種' : s.state === 'ripe' ? `收成${s.crop.name}` : s.wet ? `照顧${s.crop.name}` : '澆水'; },
+    /* 素材鍵依狀態切換：ent.plot.empty / ent.plot.growing / ent.plot.ripe */
+    sprite() { return `ent.plot.${st().state}`; },
     async interact() {
       const s = st();
       if (s.state === 'ripe') { game.farm.harvest(i); return; }
       if (s.state === 'growing') {
-        if (!s.wet) { game.farm.water(i); game.ui.toast('澆水了'); return; }
-        await game.ui.say([`${s.crop.name}正在長大（${Math.floor(s.pct * 100)}%）。土還是濕的。`]);
+        const canFert = !s.fertilized && game.inv.has('fertilizer');
+        if (!s.wet && !canFert) { game.farm.water(i); game.ui.toast('澆水了'); return; }
+        if (!canFert) { await game.ui.say([`${s.crop.name}正在長大（${Math.floor(s.pct * 100)}%）。土還是濕的。`]); return; }
+        const opts = [...(s.wet ? [] : ['澆水']), '施肥'];
+        const idx = await game.ui.choose(`${s.crop.name}（${Math.floor(s.pct * 100)}%）`, opts);
+        if (idx < 0) return;
+        if (opts[idx] === '澆水') { game.farm.water(i); game.ui.toast('澆水了'); }
+        else if (game.farm.fertilize(i).ok) game.ui.toast('施肥了，長大了一截');
         return;
       }
       const seeds = game.farm.plantable();
@@ -239,3 +247,25 @@ register('bugspot', (def, game) => {
     },
   };
 });
+
+/* ---------- 商店 ---------- */
+register('market', (def, game) => ({
+  color: () => '#e0a458', label: () => '商店',
+  prompt: () => '逛商店',
+  interact: () => game.ui.show('market'),
+}));
+
+/* ---------- 小賭場 ---------- */
+register('casino', (def, game) => ({
+  color: () => '#c0392b', label: () => '賭場',
+  glow: () => 2.5,
+  prompt: () => (game.casino ? '進小賭場' : null),
+  interact: () => game.ui.show('casino'),
+}));
+
+/* ---------- 魚缸 ---------- */
+register('tank', (def, game) => ({
+  color: () => '#4dd0e1', label: () => `魚缸 ${game.tank.count()}`,
+  prompt: () => '看魚缸',
+  interact: () => game.ui.show('tank'),
+}));
