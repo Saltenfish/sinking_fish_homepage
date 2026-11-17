@@ -49,6 +49,7 @@ export function createUI({ root, bus, assets = null, animMs = 220 }) {
 
   const ui = {
     isBlocking: () => stack.length > 0,
+    closeTop() { const top = stack[stack.length - 1]; if (top) close(top); },
 
     /* 鍵盤事件交給最上層視窗；視窗沒處理的 Esc 會關掉它 */
     handleKey(e) {
@@ -62,7 +63,7 @@ export function createUI({ root, bus, assets = null, animMs = 220 }) {
 
     setPrompt(text) {
       if (stack.length || !text) { prompt.hidden = true; return; }
-      const s = touchUi ? `👆 點這裡：${text}` : `E　${text}`;   // 手機上不出現「E」，避免以為要按鍵盤
+      const s = touchUi ? `👆 點這裡：${text}` : `F　${text}`;   // 手機上不出現按鍵名稱，避免以為要按鍵盤
       if (prompt.textContent !== s) prompt.textContent = s;
       prompt.hidden = false;
     },
@@ -86,7 +87,7 @@ export function createUI({ root, bus, assets = null, animMs = 220 }) {
           name ? h('div', { class: 'dialog-name', text: name }) : null, text, h('div', { class: 'dialog-hint', text: '▼' }));
         const closeIt = open({
           el, onClose: resolve,
-          onKey: (e) => { if (['KeyE', 'Space', 'Enter'].includes(e.code)) { if (!e.repeat) next(); return true; } return false; },
+          onKey: (e) => { if (['KeyF', 'Space', 'Enter'].includes(e.code)) { if (!e.repeat) next(); return true; } return false; },
         });
       });
     },

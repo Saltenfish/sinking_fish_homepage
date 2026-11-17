@@ -46,6 +46,7 @@ export function createWorld({ game, maps, input, camera }) {
   function findNearest() {
     let best = null, bestD = CONFIG.INTERACT_RANGE;
     for (const e of world.entities) {
+      if (e.visible && !e.visible()) continue;
       const d = distToRect(world.player.x, world.player.y, e);
       if (d <= bestD && e.prompt() !== null) { best = e; bestD = d; }
     }
@@ -70,7 +71,10 @@ export function createWorld({ game, maps, input, camera }) {
     const fx = (x + camera.x) / T, fy = (y + camera.y) / T;
     let best = null, bestD = CONFIG.TAP_SLOP;
     for (const e of world.entities) {
-      const d = distToRect(fx, fy, e);
+      if (e.visible && !e.visible()) continue;
+      // 點擊判定用「畫出來的範圍」：圖比佔地大的物件（大樹、放大的小物件），點在圖上任何地方都算
+      const a = e.art;
+      const d = distToRect(fx, fy, a ? { x: e.x + a.x, y: e.y + a.y, w: a.w, h: a.h } : e);
       if (d <= bestD && e.prompt() !== null && (d < bestD || !best)) { best = e; bestD = d; }
     }
     tapTarget = best;

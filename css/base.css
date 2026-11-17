@@ -27,12 +27,12 @@ input,textarea{font:inherit;color:inherit;background:#161a26;border:1px solid #4
 .warn{color:#ffb4a2}
 /* 全螢幕畫面：整個視窗都是這個場景，有切入與切出動畫 */
 .panel{inset:0;display:flex;flex-direction:column;background:radial-gradient(ellipse at 50% 0%,#2a3152 0%,#161a2b 55%,#0c0f1a 100%);background-size:cover;background-position:center;
-  animation:sceneIn var(--scene-ms,220ms) ease-out both}
+  animation:sceneIn var(--scene-ms,120ms) ease-out both}
 .panel.has-bg{image-rendering:pixelated}
-.panel.leaving{animation:sceneOut var(--scene-ms,220ms) ease-in both;pointer-events:none}
-@keyframes sceneIn{from{opacity:0;transform:scale(1.06)}to{opacity:1;transform:none}}
-@keyframes sceneOut{from{opacity:1;transform:none}to{opacity:0;transform:scale(.97)}}
-.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));background:rgba(12,15,26,.55);backdrop-filter:blur(4px);font-size:16px;flex:0 0 auto}
+.panel.leaving{animation:sceneOut var(--scene-ms,120ms) ease-in both;pointer-events:none}
+@keyframes sceneIn{from{opacity:0}to{opacity:1}}
+@keyframes sceneOut{from{opacity:1}to{opacity:0}}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));background:rgba(12,15,26,.55);font-size:16px;flex:0 0 auto}
 .panel-body{flex:1 1 auto;min-height:0;overflow:auto;width:100%;max-width:640px;margin:0 auto;padding:16px calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
 .panel.wide .panel-body{max-width:980px}.panel.xl .panel-body{max-width:1360px}
 .panel.full .panel-body{max-width:none;padding:0;overflow:hidden;display:flex}
@@ -151,9 +151,56 @@ h4{margin:12px 0 4px}.list{margin:0;padding-left:1.2em}.list a{color:#9fc6ff}
 .sfx-card-back{background-image:var(--back-img,none)!important;background-size:100% 100%!important;image-rendering:pixelated}
 .has-plaque-img .plaque{background:var(--plaque-img) center/100% 100% no-repeat;border:0;border-radius:0;box-shadow:0 3px 0 rgba(60,40,30,.25);image-rendering:pixelated;padding:30% 12% 10%;color:#4a3524}
 .has-plaque-img .plaque:hover,.has-plaque-img .plaque:focus-visible{background:var(--plaque-img) center/100% 100% no-repeat;filter:brightness(1.08);outline:2px solid var(--pc);outline-offset:2px}
-/* 有場景背景時，內容放在一個半透明的框裡，四周露出場景 */
-.panel.has-bg:not(.full) .panel-body{flex:0 1 auto;margin:auto;background:rgba(14,17,30,.82);border:2px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.45);backdrop-filter:blur(2px);max-height:calc(100% - 24px)}
-.panel.has-bg.scene-tree .panel-body{background:rgba(14,17,30,.55)}
-.panel.has-bg .panel-head{background:rgba(10,12,22,.7)}
-@media (max-width:560px){.panel.has-bg:not(.full) .panel-body{margin:8px;max-height:calc(100% - 16px)}}
+/* ───────── 有場景背景的畫面：沒有灰色大框，內容本身做成場景裡的東西 ─────────
+   每個場景只換幾個變數：
+     --ink        直接寫在背景上的字的顏色         --ink-shadow  那些字的陰影（讓字從背景浮出來）
+     --surf       小卡片（價目牌、紙條、石板…）的底色  --surf-ink    小卡片上的字    --edge   小卡片的邊框
+     --btn / --btn-ink / --btn-edge   按鈕
+     --sign / --sign-ink              標題招牌 */
+.panel.has-bg{--ink:#fff8ec;--ink-shadow:0 1px 0 #000,0 0 6px rgba(0,0,0,.7);--surf:#f4ead6;--surf-ink:#3b2a1a;--edge:#6e4527;
+  --btn:#7a4e2c;--btn-ink:#fff4dc;--btn-edge:#4f321c;--sign:#7a4e2c;--sign-ink:#fff4dc;color:var(--ink)}
+.panel.has-bg .panel-head{background:none;padding-top:calc(14px + env(safe-area-inset-top))}
+.panel.has-bg .panel-head b{background:var(--sign);color:var(--sign-ink);border:3px solid var(--edge);box-shadow:0 4px 0 rgba(0,0,0,.35);padding:6px 18px;font-size:18px;letter-spacing:.1em}
+.panel.has-bg:not(.full) .panel-body{flex:0 1 auto;margin:auto;max-height:calc(100% - 16px)}
+.panel.has-bg .panel-body > p,.panel.has-bg .panel-body > div > p,.panel.has-bg .note,.panel.has-bg .hint,.panel.has-bg .ring-count,.panel.has-bg .ring-title,
+.panel.has-bg .casino-msg,.panel.has-bg .chat-sub{color:var(--ink);text-shadow:var(--ink-shadow);opacity:1}
+.panel.has-bg h4{display:inline-block;margin:14px 0 6px;background:var(--sign);color:var(--sign-ink);border:2px solid var(--edge);padding:2px 12px;box-shadow:0 3px 0 rgba(0,0,0,.3)}
+.panel.has-bg .btn{background:var(--btn);color:var(--btn-ink);border:2px solid var(--btn-edge);border-radius:4px;box-shadow:0 3px 0 var(--btn-edge);text-shadow:none}
+.panel.has-bg .btn:hover{filter:brightness(1.12)}.panel.has-bg .btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--btn-edge)}
+.panel.has-bg .btn.on{background:var(--sign-ink);color:var(--btn);border-color:var(--btn)}
+.panel.has-bg .btn:disabled{filter:grayscale(.6) brightness(.85)}
+.panel.has-bg .panel-head .btn{background:var(--surf);color:var(--surf-ink);border-color:var(--edge);box-shadow:0 3px 0 var(--edge)}
+/* 小卡片：清單裡的每一項、成就章、格子、統計、說明欄 */
+.panel.has-bg .shop-row,.panel.has-bg .item,.panel.has-bg .stamp,.panel.has-bg .cell,.panel.has-bg .stats > div,.panel.has-bg .tree-detail,.panel.has-bg .coins{
+  background:var(--surf);color:var(--surf-ink);border:2px solid var(--edge);border-radius:4px;box-shadow:0 3px 0 rgba(0,0,0,.28);text-shadow:none}
+.panel.has-bg .shop-row,.panel.has-bg .item{padding:8px 12px;margin:0 0 8px}
+.panel.has-bg .item.locked,.panel.has-bg .stamp.locked,.panel.has-bg .cell.unknown{opacity:.6}
+.panel.has-bg .stats > div{padding:4px 10px}
+.panel.has-bg .coins{display:inline-block;padding:3px 12px;color:#8a5a12}
+.panel.has-bg .shop-row .note,.panel.has-bg .item span,.panel.has-bg .stamp span,.panel.has-bg .tree-detail .note{color:var(--surf-ink);text-shadow:none;opacity:.8}
+.panel.has-bg .shop-price{color:#9a4a12;font-weight:700}
+.panel.has-bg input,.panel.has-bg textarea{background:var(--surf);color:var(--surf-ink);border:2px solid var(--edge);border-radius:4px}
+.panel.has-bg .list a{color:#7a2f20}
+/* 各場景的配色 */
+.panel.has-bg.scene-market{--surf:#f3dfb4;--edge:#7a4e2c}                                                         /* 木頭價目牌 */
+.panel.has-bg.scene-casino{--ink:#fff3c4;--surf:#1f6b45;--surf-ink:#fff7e0;--edge:#f6c453;--btn:#c0392b;--btn-ink:#fff7e0;--btn-edge:#7a1e18;--sign:#c0392b;--sign-ink:#fff3c4}   /* 綠色賭桌、紅色按鈕 */
+.panel.has-bg.scene-casino .casino-game{background:radial-gradient(ellipse at 50% 30%,#2a8a5a,#1a5a3a);border:4px solid #f6c453;border-radius:18px;box-shadow:0 0 0 3px #7a1e18,0 8px 0 rgba(0,0,0,.35)}
+.panel.has-bg.scene-casino .casino-game h4{background:#7a1e18}
+.panel.has-bg.scene-hut{--surf:#fbf1d6;--edge:#b98a55;--sign:#6e4527}                                              /* 釘在木牆上的紙 */
+.panel.has-bg.scene-hut .stamp{transform:rotate(var(--tilt,0deg))}.scene-hut .stamp:nth-child(3n){--tilt:-1.2deg}.scene-hut .stamp:nth-child(3n+1){--tilt:.8deg}
+.panel.has-bg.scene-offerings{--surf:#77748a;--surf-ink:#f6f2ff;--edge:#b3b1c0;--btn:#6c5ce7;--btn-ink:#fff;--btn-edge:#3d2f9e;--sign:#4f4c63;--sign-ink:#e8e0ff}   /* 石板 */
+.panel.has-bg.scene-offerings .shop-price,.panel.has-bg.scene-offerings .note{color:#e8e0ff}
+.panel.has-bg.scene-ring,.panel.has-bg.scene-card{--btn:#2d2560;--btn-ink:#e8e0ff;--btn-edge:#9d8cff;--sign:#2d2560;--sign-ink:#e8e0ff;--edge:#9d8cff;--surf:#efeaff}   /* 發光的符文鈕 */
+.panel.has-bg.scene-ring .btn,.panel.has-bg.scene-card .btn{box-shadow:0 0 10px rgba(157,140,255,.6),0 3px 0 #1a1440}
+.panel.has-bg.scene-tree{--surf:#fdf8ef;--surf-ink:#4a4160;--edge:#d9c49a;--btn:#b98ac9;--btn-ink:#fff;--btn-edge:#7d5a8f;--sign:#fdf8ef;--sign-ink:#4a4160}
+.panel.has-bg.scene-bag{--surf:#efe0bb;--edge:#5a4a37;--btn:#5a4a37;--btn-ink:#f4e8cc;--btn-edge:#3a2e22;--sign:#8a6f4f}   /* 掛在背包上的吊牌 */
+.panel.has-bg.scene-map,.panel.has-bg.scene-list,.panel.has-bg.scene-menu{--ink:#4a3524;--ink-shadow:none;--surf:rgba(255,248,230,.6);--surf-ink:#4a3524;--edge:#8a6a42;--btn:#f1e2bf;--btn-ink:#4a3524;--btn-edge:#8a6a42;--sign:#7a5a34;--sign-ink:#fbf1d6}   /* 羊皮紙上的墨水字 */
+.panel.has-bg.scene-fishchat{--surf:#e8fbff;--surf-ink:#12324a;--edge:#5aa9d6;--btn:#1d6a92;--btn-ink:#e8fbff;--btn-edge:#0e3a55;--sign:#1d6a92;--sign-ink:#e8fbff}
+.panel.has-bg.scene-fishchat .chat-msgs{background:none}
+.panel.has-bg.scene-fishchat .chat-bub{background:#e8fbff;color:#12324a;border:2px solid #5aa9d6;border-radius:14px 14px 14px 4px}
+.panel.has-bg.scene-fishchat .chat-row.me .chat-bub{background:#ffe6a8;color:#3b2616;border-color:#d1a93f;border-radius:14px 14px 4px 14px}
+/* 對話框：像素 RPG 的文字框 */
+.dialog{background:#fbf6ea;color:#2a2438;border:3px solid #3a2a4a;border-radius:6px;box-shadow:inset 0 0 0 3px #fbf6ea,inset 0 0 0 5px #c9b48f,0 6px 0 rgba(0,0,0,.35)}
+.dialog-name{color:#8a4a12}.dialog .btn.choice{background:#f1e2bf;color:#2a2438;border:2px solid #8a6a42}
+.dialog .btn.choice:hover{background:#ffe6a8}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.hang,.panel,.panel.leaving{animation:none}}

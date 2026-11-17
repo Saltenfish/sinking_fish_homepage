@@ -24,6 +24,7 @@ export function blankSave(now) {
     coins: 0,                     // 金幣
     tank: [],                     // 魚缸裡的魚 [{item, at, fedAt}]
     settings: { cardBack: 'default' },   // 外觀設定
+    upgrades: {},                 // 永久升級 {升級id: 等級}
   };
 }
 
@@ -95,6 +96,7 @@ export function normalize(raw, now) {
     out.tank = raw.tank.filter((f) => isObj(f) && safeKey(f.item) && nonNeg(f.at)).slice(0, 64)
       .map((f) => ({ item: f.item, at: f.at, fedAt: nonNeg(f.fedAt) ? f.fedAt : 0 }));
   }
+  out.upgrades = numMap(raw.upgrades, (v) => Number.isInteger(v) && v >= 0 && v <= 99);
   if (isObj(raw.settings) && safeKey(raw.settings.cardBack)) out.settings.cardBack = raw.settings.cardBack;
   if (Array.isArray(raw.wishes)) {
     out.wishes = raw.wishes.filter((w) => typeof w === 'string' && w.trim()).slice(0, 10).map((w) => w.trim().slice(0, 30));

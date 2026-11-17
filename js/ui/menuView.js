@@ -36,7 +36,7 @@ export function menuView(game) {
     h('h4', { text: '匯出存檔' }), out, h('div', { class: 'row' }, btn('複製', copy)),
     h('h4', { text: '匯入存檔' }), inp, h('div', { class: 'row' }, btn('匯入', doImport)),
     h('h4', { text: '重新開始' }), h('div', { class: 'row' }, btn('清除所有進度', doReset)), msg,
-    h('p', { class: 'hint kbd', text: '操作：WASD／方向鍵或點擊地面移動・按住 Shift 潛行・E 互動・B 背包・M 地圖・L 目錄・Esc 選單' }),
+    h('p', { class: 'hint kbd', text: '操作：WASD／方向鍵或點擊地面移動・按住 Shift 潛行・F 互動・E 背包・M 地圖・L 目錄・Esc 選單' }),
     h('p', { class: 'hint tap', text: '操作：左下搖桿移動（輕推是潛行）・右下「互動」鍵或點畫面上的提示・也可以直接點地圖上的東西' }));
   return ui.panel({ scene: 'menu', title: '選單', body }).closed;
 }

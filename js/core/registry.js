@@ -138,8 +138,16 @@ export function buildRegistry(src) {
     else errors.push('summonFx：需要 steps（陣列）、base、rarity');
   }
 
+  const upgrades = collect(src.upgrades || [], 'upgrades', errors, (u) => {
+    if (!str(u.name, 30)) return '缺少 name';
+    if (!(Array.isArray(u.prices) && u.prices.length && u.prices.every((p) => Number.isInteger(p) && p > 0))) return 'prices 必須是正整數陣列';
+    if (u.step !== undefined && !(Number.isInteger(u.step) && u.step > 0)) return 'step 必須是正整數';
+    return null;
+  });
+
   return {
     errors,
+    upgrades: upgrades.list, upgradeById: upgrades.byId,
     goods, goodByItem, casino, summonFx,
     offerings: offerings.list, offeringById: offerings.byId,
     characters: characters.list, characterById: characters.byId,

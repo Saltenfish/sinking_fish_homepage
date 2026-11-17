@@ -12,7 +12,9 @@ export const CONFIG = Object.freeze({
   SNEAK_RATE: 0.4,               // 潛行（按住 Shift 或輕推搖桿）時的速度倍率
   PLAYER_HALF: 0.3,              // 玩家碰撞箱半徑（格）
   INTERACT_RANGE: 0.9,           // 互動距離（格）
-  FARM_PLOTS: 6,                 // 農田格數
+  FARM_PLOTS: 6,                 // 一開始有幾塊田
+  FARM_MAX_PLOTS: 18,            // 農田最多幾塊（地圖上預留的田數）
+  TONIC_RATE: 0.5,               // 生長藥水一次增加幾成的生長進度
   FARM_WET_MS: 10 * 60 * 1000,   // 澆一次水維持多久
   FARM_DRY_RATE: 0.5,            // 沒澆水時的生長速度倍率
   FISH_WAIT_MS: [1500, 5000],    // 釣魚等待咬鉤的時間範圍
@@ -31,7 +33,7 @@ export const CONFIG = Object.freeze({
   TANK_HAPPY_MS: 24 * 60 * 60 * 1000,  // 餵一次開心多久
   TANK_GIFT_CD_MS: 20 * 60 * 60 * 1000, // 魚缸禮物多久可以領一次
   TANK_GIFT_PER_FISH: 5,         // 每條開心的魚給幾枚金幣
-  SCENE_ANIM_MS: 220,            // 全螢幕畫面切入、切出的動畫長度
+  SCENE_ANIM_MS: 120,            // 全螢幕畫面切入、切出的動畫長度（只淡入淡出）
   RING_WINDOW: 5,                // 卡環正前方左右各畫幾張（總共 2n+1 張）
   RING_PER_RING: 30,             // 地圖上一圈最多幾張，超過就分圈
   ITEM_CAP: 999,                 // 單一物品持有上限

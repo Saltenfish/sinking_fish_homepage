@@ -40,7 +40,7 @@ export const town = {
     { id: 'tree', name: '許願樹', x: 20, y: 18.5 },
     { id: 'hall', name: '召喚卡殿', x: 20, y: 8.5 },
     { id: 'hut', name: '成就小屋', x: 6, y: 9.5 },
-    { id: 'farm', name: '農田', x: 6.5, y: 19.5 },
+    { id: 'farm', name: '農田', x: 6, y: 23.5 },
     { id: 'stream', name: '溪邊釣點', x: 30.5, y: 20.5 },
     { id: 'market', name: '商店與小賭場', x: 35.5, y: 6.6 },
     { id: 'pond', name: '魚魚的池塘', x: 34.5, y: 25.5, secret: 'fishFound' },
@@ -58,12 +58,8 @@ export const town = {
     { id: 'banner1', type: 'deco', sprite: 'ent.banner', x: 16, y: 2, flat: true, art: { x: 0, y: -1, w: 1, h: 2 } },
     { id: 'banner2', type: 'deco', sprite: 'ent.banner', x: 23, y: 2, flat: true, art: { x: 0, y: -1, w: 1, h: 2 } },
 
-    { id: 'plot0', type: 'plot', x: 5, y: 20, index: 0 },
-    { id: 'plot1', type: 'plot', x: 6, y: 20, index: 1 },
-    { id: 'plot2', type: 'plot', x: 7, y: 20, index: 2 },
-    { id: 'plot3', type: 'plot', x: 5, y: 21, index: 3 },
-    { id: 'plot4', type: 'plot', x: 6, y: 21, index: 4 },
-    { id: 'plot5', type: 'plot', x: 7, y: 21, index: 5 },
+    // 農田：6 × 3 共 18 塊，一開始只開放前 6 塊，其餘要在商店「擴建農地」才會出現
+    ...Array.from({ length: 18 }, (_, i) => ({ id: `plot${i}`, type: 'plot', x: 3 + (i % 6), y: 19 + Math.floor(i / 6), index: i })),
 
     { id: 'fishspot', type: 'fishspot', x: 30, y: 19 },
     { id: 'pond', type: 'pond', x: 34, y: 24 },

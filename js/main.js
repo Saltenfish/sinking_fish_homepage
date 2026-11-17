@@ -34,6 +34,8 @@ import { createWallet } from './systems/wallet.js';
 import { createMarket } from './systems/market.js';
 import { createCasino } from './systems/casino.js';
 import { createTank } from './systems/tank.js';
+import { createUpgrades } from './systems/upgrades.js';
+import { upgrades as upgradeData } from './data/upgrades.js';
 import { createFish } from './fish/index.js';
 
 import { createLoop } from './engine/loop.js';
@@ -67,7 +69,7 @@ function boot() {
   const canvas = document.getElementById('game');
 
   /* 1. 資料 */
-  const reg = buildRegistry({ characters, sites, items, crops, fish: fishTable, loot, achievements, offerings, goods, casino: casinoCfg, summonFx });
+  const reg = buildRegistry({ characters, sites, items, crops, fish: fishTable, loot, achievements, offerings, goods, casino: casinoCfg, summonFx, upgrades: upgradeData });
   if (reg.errors.length) console.warn(`[資料檢查] 有 ${reg.errors.length} 筆資料被略過：\n- ${reg.errors.join('\n- ')}`);
 
   /* 2. 存檔與素材 */
@@ -93,19 +95,27 @@ function boot() {
   const progress = createProgress({ save, bus });
   const inv = createInventory({ save, reg, bus, cap: CONFIG.ITEM_CAP });
   const cards = createCards({ save, reg, bus, progress, rng });
-  const farm = createFarm({ save, reg, bus, inv, progress, rng, plots: CONFIG.FARM_PLOTS, wetMs: CONFIG.FARM_WET_MS, dryRate: CONFIG.FARM_DRY_RATE, fertRate: CONFIG.FERTILIZER_RATE });
+  // 農田數與灑水器由「升級」決定；升級系統要用到錢包，所以用函式延後取值
+  let upgradesRef = null;
+  const plotStep = () => reg.upgradeById.get('farm_plots')?.step ?? 3;
+  const farm = createFarm({ save, reg, bus, inv, progress, rng, plots: CONFIG.FARM_PLOTS, maxPlots: CONFIG.FARM_MAX_PLOTS,
+    size: () => CONFIG.FARM_PLOTS + (upgradesRef ? upgradesRef.level('farm_plots') * plotStep() : 0),
+    sprinkler: () => (upgradesRef ? upgradesRef.level('sprinkler') > 0 : false),
+    wetMs: CONFIG.FARM_WET_MS, dryRate: CONFIG.FARM_DRY_RATE, fertRate: CONFIG.FERTILIZER_RATE, tonicRate: CONFIG.TONIC_RATE });
   const fishing = createFishing({ reg, inv, progress, clock, bus, rng, waitMs: CONFIG.FISH_WAIT_MS, biteMs: CONFIG.FISH_BITE_MS, baitRate: CONFIG.BAIT_WAIT_RATE });
   const ach = createAchievements({ save, reg, bus, inv, progress });
   const shop = createShop({ save, reg, inv, progress, bus });
   const wallet = createWallet({ save, bus, progress, cap: CONFIG.COIN_CAP });
   const market = createMarket({ reg, inv, wallet, progress, bus, cap: CONFIG.ITEM_CAP });
   const casino = reg.casino ? createCasino({ cfg: reg.casino, wallet, progress, bus, rng }) : null;   // 設定有問題時停用
+  const upgrades = createUpgrades({ save, reg, wallet, progress, bus });
+  upgradesRef = upgrades;
   const tank = createTank({ save, reg, inv, wallet, progress, bus, capacity: CONFIG.TANK_CAPACITY, happyMs: CONFIG.TANK_HAPPY_MS, giftCdMs: CONFIG.TANK_GIFT_CD_MS, giftPerFish: CONFIG.TANK_GIFT_PER_FISH });
   const fish = createFish({ save, reg, cards, farm, inv, clock, progress, bus, crossStorage: storage, rng });
 
   /* 4. 介面 */
   const ui = createUI({ root, bus, assets, animMs: CONFIG.SCENE_ANIM_MS });
-  const game = { bus, reg, save, storage, assets, rng, clock, progress, inv, cards, farm, fishing, ach, shop, wallet, market, casino, tank, fish, ui, world: null };
+  const game = { bus, reg, save, storage, assets, rng, clock, progress, inv, cards, farm, fishing, ach, shop, wallet, market, casino, tank, upgrades, fish, ui, world: null };
   ui.register('ring', () => ringView(game));
   ui.register('card', (args) => cardView(game, args));
   ui.register('plaques', () => plaquesView(game));
@@ -130,7 +140,7 @@ function boot() {
   bus.on('coins:changed', tickCoins);
   tickClock(); setInterval(tickClock, 5000);
   root.append(h('div', { class: 'hud' }, clockEl, coinEl,
-    h('button', { class: 'btn', type: 'button', text: '🎒 背包', title: '背包（B）', onclick: () => open('bag') }),
+    h('button', { class: 'btn', type: 'button', text: '🎒 背包', title: '背包（E）', onclick: () => open('bag') }),
     h('button', { class: 'btn', type: 'button', text: '🗺 地圖', title: '地圖（M）', onclick: () => open('map') }),
     h('button', { class: 'btn', type: 'button', text: '📋 目錄', title: '快速目錄（L）', onclick: () => open('list') }),
     h('button', { class: 'btn', type: 'button', text: '⚙ 選單', title: '選單（Esc）', onclick: () => open('menu') })));
@@ -172,6 +182,13 @@ function boot() {
     },
   });
   loop.start();
+
+  /* 8.5 背景預先載入：地圖畫好之後，趁空閒把各畫面的背景、卡背、許願樹大圖先下載好，
+     點右上角按鈕或進入畫面時就不用等圖片 */
+  const preload = () => {
+    for (const k of assets.keys()) if (/^(scene|card\.back|tree|fx)\./.test(k)) assets.image(k);
+  };
+  if ('requestIdleCallback' in window) requestIdleCallback(preload, { timeout: 1500 }); else setTimeout(preload, 600);
 
   /* 9. 離開頁面前把進度寫進去 */
   const persist = () => { world.savePosition(); save.flush(); };

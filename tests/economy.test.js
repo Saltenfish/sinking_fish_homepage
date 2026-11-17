@@ -26,7 +26,7 @@ test('時間設定：四個時段剛好涵蓋 24 小時；設定錯誤會被抓�
 test('資料：正式資料全數通過；商店套利與賭場穩賺的設定會被擋下', () => {
   const reg = buildRegistry(realData());
   assert.deepEqual(reg.errors, []);
-  assert.equal(reg.goods.length, 5); assert.ok(reg.casino); assert.ok(reg.summonFx);
+  assert.equal(reg.goods.length, 6); assert.ok(reg.casino); assert.ok(reg.summonFx);
   const d = realData();
   const bad = buildRegistry({ ...d, goods: [{ item: 'crop_turnip', price: 12 }, { item: 'nope', price: 5 }, { item: 'feed', price: 0 }, { item: 'feed', price: 15 }, { item: 'feed', price: 20 }],
     casino: { ...d.casino, dice: { side: 3, seven: 5 } }, summonFx: { steps: 'x' } });

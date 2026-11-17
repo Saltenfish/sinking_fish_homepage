@@ -42,5 +42,7 @@ export function bagView(game) {
     content.replaceChildren(tabs[name]());
   }
   select(names[0]);
-  return ui.panel({ title: '背包', body: h('div', null, h('div', { class: 'row' }, buttons), content), cls: 'wide', scene: 'bag' }).closed;
+  return ui.panel({
+    onKey: (e) => { if (e.code === 'KeyE' || e.code === 'KeyB') { if (!e.repeat) ui.closeTop(); return true; } return false; },   // 再按一次 E 收起背包
+    title: '背包', body: h('div', null, h('div', { class: 'row' }, buttons), content), cls: 'wide', scene: 'bag' }).closed;
 }

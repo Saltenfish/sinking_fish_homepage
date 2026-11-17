@@ -26,6 +26,6 @@ export function cardView(game, { id } = {}) {
 
   return game.ui.panel({
     title: '角色卡', body, scene: 'card',
-    onKey: (e) => { if (['KeyF', 'KeyE', 'Space'].includes(e.code)) { if (!e.repeat) flip(); return true; } return false; },
+    onKey: (e) => { if (['KeyF', 'Space'].includes(e.code)) { if (!e.repeat) flip(); return true; } return false; },
   }).closed;
 }
