@@ -4,6 +4,7 @@
    ・掛點位置在 systems/treeLayout.js；樹本身目前是佔位線稿，之後換成正式美術 */
 import { h, extLink } from './dom.js';
 import { safeUrl } from '../core/util.js';
+import { cssUrl } from './icon.js';
 import { TREE_W, TREE_H, PLAQUE_W, PLAQUE_H, plaqueSpot } from '../systems/treeLayout.js';
 
 const MAX_WISHES = 10, MAX_LEN = 30;
@@ -39,7 +40,7 @@ export function plaquesView(game) {
   const tree = bgUrl ? h('img', { class: 'tree-svg', src: bgUrl, alt: '', decoding: 'async' }) : buildTree();
   const stage = h('div', { class: 'tree-stage' }, tree, layer);
   const plaqueUrl = game.assets?.url('tree.plaque');
-  if (plaqueUrl) { stage.style.setProperty('--plaque-img', `url("${plaqueUrl}")`); stage.classList.add('has-plaque-img'); }
+  if (plaqueUrl) { stage.style.setProperty('--plaque-img', cssUrl(plaqueUrl)); stage.classList.add('has-plaque-img'); }
   const detail = h('div', { class: 'tree-detail', role: 'status', 'aria-live': 'polite' }, h('p', { class: 'hint', text: '點一下樹上的許願牌看看。' }));
   const input = h('input', { type: 'text', maxLength: MAX_LEN, placeholder: '寫下你的願望，掛到樹上…', 'aria-label': '願望' });
 

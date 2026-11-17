@@ -65,6 +65,26 @@ export const assets = {
   'ent.offering': 'assets/sprites/offering.png',
   'ent.bugspot': { src: 'assets/sprites/bug.png', frameW: 32, frameH: 32, frames: 4, fps: 5 },
 
+  /* ── 以下由 tools/make_pixel_scenes.py 產生 ── */
+  'card.back.default': 'assets/cards/back-default.png',
+  'card.back.sakura': 'assets/cards/back-sakura.png',
+  'card.back.tide': 'assets/cards/back-tide.png',
+  'card.back.star': 'assets/cards/back-star.png',
+  'tree.bg': 'assets/scenes/wish-tree.png',
+  'tree.plaque': 'assets/ui/plaque.png',
+  'scene.ring': 'assets/scenes/ring.png',
+  'scene.card': 'assets/scenes/card.png',
+  'scene.tree': 'assets/scenes/tree.png',
+  'scene.market': 'assets/scenes/market.png',
+  'scene.casino': 'assets/scenes/casino.png',
+  'scene.hut': 'assets/scenes/hut.png',
+  'scene.offerings': 'assets/scenes/offerings.png',
+  'scene.bag': 'assets/scenes/bag.png',
+  'scene.map': 'assets/scenes/map.png',
+  'scene.list': 'assets/scenes/list.png',
+  'scene.menu': 'assets/scenes/menu.png',
+  'scene.fishchat': 'assets/scenes/fishchat.png',
+
   // 範例（把前面的 // 拿掉並放入圖檔即可生效）：
   // 'tile.grass': 'assets/tiles/grass.png',
   // 'tile.water': { src: 'assets/tiles/water.png', frameW: 32, frameH: 32, frames: 4, fps: 4 },

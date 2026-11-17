@@ -100,7 +100,8 @@ js/ui/
   *View.js              各個畫面，一個檔一個畫面
 tests/                  node --test。helpers.js 的 makeGame() 可組出一套不需瀏覽器的系統
 docs/ASSETS.md          素材規格、免費素材來源、提供素材的方式
-tools/make_pixel_assets.py  產生暫用像素圖（Python + Pillow），輸出到 assets/
+tools/make_pixel_assets.py  產生暫用的地圖像素圖（Python + Pillow），輸出到 assets/
+tools/make_pixel_scenes.py  產生暫用的卡背、許願樹大圖、畫面背景
 ```
 
 ### `game` 物件
@@ -228,10 +229,12 @@ export function fooView(game) {
 背包、農田（含肥料）、釣魚場景（含魚餌）、捕蟲、供奉石、商店、小賭場、魚缸、成就小屋、傳送地圖、
 依現實時間的時段與天色、存檔匯出匯入、魚魚（含與 prompt_list 的連動讀取）、素材接入管線。
 
-地圖美術：圖塊、成就小屋外觀、所有地圖物件已有暫用的像素圖，由 `tools/make_pixel_assets.py` 用程式產生（固定種子，可重現）。
+暫用美術（固定種子，可重現）：圖塊、成就小屋外觀、所有地圖物件由 `tools/make_pixel_assets.py` 產生；卡背四款、許願樹大圖與許願牌、所有全螢幕畫面背景由 `tools/make_pixel_scenes.py` 產生。
+
+注意：把素材網址放進 CSS 變數時一定要用 `ui/icon.js` 的 `cssUrl()` 轉成絕對網址，否則會以 css 檔的位置解析而 404。
 
 待辦：
-- 其餘美術未做（玩家行走圖、許願樹大圖、卡背、卡面、全螢幕場景背景、召喚特效、物品圖示）。接法見 `docs/ASSETS.md`
+- 其餘美術未做（玩家行走圖、卡面、召喚特效、物品圖示）。接法見 `docs/ASSETS.md`
 - `data/characters.js` 目前是範例與測試假卡，待站主填入真實角色
 - `data/sites.js` 的說明文字待補、網址待站主確認
 - `prompt_list` 那一側的連動台詞（讀 `sfh_pond_found`）

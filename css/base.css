@@ -58,7 +58,7 @@ h4{margin:12px 0 4px}.list{margin:0;padding-left:1.2em}.list a{color:#9fc6ff}
 .card-art img{max-width:100%;max-height:100%}.card-name{font-weight:700;font-size:16px;margin-top:6px}.card-rarity{color:var(--rare)}
 /* 許願牌 */
 .tree-scroll{overflow-x:auto;border-radius:8px;background:linear-gradient(#dff1ff,#f7fbff 60%,#e9f5e1)}
-.tree-stage{position:relative;aspect-ratio:900/540;width:100%;min-width:620px;container-type:inline-size}
+.tree-stage{position:relative;aspect-ratio:900/540;width:min(100%,max(620px,calc((100dvh - 250px) * 5 / 3)));min-width:620px;margin:0 auto;container-type:inline-size}  /* 桌機上整棵樹與下方說明要同時放得進畫面 */
 .tree-svg{position:absolute;inset:0;width:100%;height:100%}
 .tree-hang{position:absolute;inset:0}
 .hang{position:absolute;display:flex;flex-direction:column;align-items:center;transform-origin:50% 0;animation:sway 3.6s ease-in-out infinite alternate}
@@ -142,6 +142,14 @@ h4{margin:12px 0 4px}.list{margin:0;padding-left:1.2em}.list a{color:#9fc6ff}
 .sfx[data-step=reveal] .sfx-card{transform:translate(-50%,-50%) rotateY(180deg) scale(calc(1 + sin(var(--p)*3.14rad)*.12));box-shadow:0 0 calc(40px*var(--p)) var(--c)}
 .sfx[data-step=reveal] .sfx-particles i{opacity:calc(1 - var(--p));transform:rotate(var(--a)) translateX(calc(var(--p)*46vmin*var(--d)))}
 /* 素材接上後的樣式 */
-.has-back-img .rcard:not(.face){background:var(--back-img) center/cover no-repeat;image-rendering:pixelated}
-.has-plaque-img .plaque{background:var(--plaque-img) center/100% 100% no-repeat;border-color:transparent;box-shadow:none;image-rendering:pixelated}
+.has-back-img .rcard:not(.face){background:var(--back-img) center/100% 100% no-repeat;image-rendering:pixelated;border-color:transparent;color:transparent}
+.has-back-img .rcard.owned:not(.face){box-shadow:0 0 0 2px var(--rare),0 0 14px 1px var(--rare)}
+.sfx-card-back{background-image:var(--back-img,none)!important;background-size:100% 100%!important;image-rendering:pixelated}
+.has-plaque-img .plaque{background:var(--plaque-img) center/100% 100% no-repeat;border:0;border-radius:0;box-shadow:0 3px 0 rgba(60,40,30,.25);image-rendering:pixelated;padding:30% 12% 10%;color:#4a3524}
+.has-plaque-img .plaque:hover,.has-plaque-img .plaque:focus-visible{background:var(--plaque-img) center/100% 100% no-repeat;filter:brightness(1.08);outline:2px solid var(--pc);outline-offset:2px}
+/* 有場景背景時，內容放在一個半透明的框裡，四周露出場景 */
+.panel.has-bg:not(.full) .panel-body{flex:0 1 auto;margin:auto;background:rgba(14,17,30,.82);border:2px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.45);backdrop-filter:blur(2px);max-height:calc(100% - 24px)}
+.panel.has-bg.scene-tree .panel-body{background:rgba(14,17,30,.55)}
+.panel.has-bg .panel-head{background:rgba(10,12,22,.7)}
+@media (max-width:560px){.panel.has-bg:not(.full) .panel-body{margin:8px;max-height:calc(100% - 16px)}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.hang,.panel,.panel.leaving{animation:none}}
