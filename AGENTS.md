@@ -44,6 +44,14 @@
 - 鍵盤：F／空白／Enter 互動與對話下一句；E（或 B）開關背包；M 地圖；L 目錄；Esc 選單；按住 Shift 潛行。
 - 互動提示在桌機顯示「F　…」，在觸控裝置顯示「👆 點這裡：…」。
 
+## 像素風介面
+
+- 字型：`assets/fonts/Cubic_11.woff2`（俐方體 11 號，SIL OFL 1.1，**不可修改後沿用原名**，所以放的是未修改的原檔；授權檔 `OFL.txt` 必須一起保留）。
+- `css/base.css` 最後的「像素風介面層」統一處理：沒有圓角、缺角的像素框（`--pf` 框色、`--pd` 下方陰影色）、實心硬陰影。新元素要像素框，把選擇器加進那一段的清單即可。
+- 介面圖示是 `assets/ui/` 的 16×16 像素圖，由 `tools/make_pixel_ui.py` 用字元畫產生；CSS 以相對路徑 `../assets/ui/名稱.png` 引用。
+  時段圖示看 `.hud-clock[data-phase]`，骰子看 `.die[data-v]`，拉霸看 `.reel[data-v]`（對應 `data/casino.js` 的 id）。
+- 不要再用 emoji 當圖示（不同裝置長得不一樣，也不像素）。
+
 ## 畫面的樣式（沒有灰色大框）
 
 有背景圖的全螢幕畫面（`ui.panel({ scene })`）不放半透明大框，內容本身做成場景裡的東西（價目牌、紙條、石板、賭桌…）。
@@ -116,6 +124,7 @@ tests/                  node --test。helpers.js 的 makeGame() 可組出一套�
 docs/ASSETS.md          素材規格、免費素材來源、提供素材的方式
 tools/make_pixel_assets.py  產生暫用的地圖像素圖（Python + Pillow），輸出到 assets/
 tools/make_pixel_scenes.py  產生暫用的卡背、許願樹大圖、畫面背景
+tools/make_pixel_ui.py      產生介面用的 16×16 像素圖示（HUD、金幣、時段、骰子、拉霸）
 ```
 
 ### `game` 物件

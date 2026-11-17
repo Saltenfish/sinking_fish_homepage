@@ -78,6 +78,10 @@ npm test                       # 跑邏輯測試（需要 Node 20 以上，沒�
 - **連動**：兩站在同一個 GitHub Pages 網域下，共用 localStorage。本站讀取 prompt_list 寫的 `pp_fish_visits`（魚魚會認出在那邊聊過的人）；訪客找到池塘後本站寫入 `sfh_pond_found = "1"`，prompt_list 之後可以讀它來加台詞。
 - 魚魚看得到遊戲狀態：卡片進度、田裡熟了幾格、背包有沒有魚、是不是半夜、幾天沒來。
 
+## 字型與授權
+
+介面字型是俐方體 11 號（Cubic 11，作者 ACh-K），以 SIL Open Font License 1.1 授權，原檔未經修改放在 `assets/fonts/`，授權全文見 `assets/fonts/OFL.txt`。
+
 ## 尚未製作
 
 - 正式美術（接法見 `docs/ASSETS.md`）

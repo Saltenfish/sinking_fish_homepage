@@ -63,7 +63,7 @@ export function createUI({ root, bus, assets = null, animMs = 220 }) {
 
     setPrompt(text) {
       if (stack.length || !text) { prompt.hidden = true; return; }
-      const s = touchUi ? `👆 點這裡：${text}` : `F　${text}`;   // 手機上不出現按鍵名稱，避免以為要按鍵盤
+      const s = touchUi ? `▶ 點這裡：${text}` : `F　${text}`;   // 手機上不出現按鍵名稱，避免以為要按鍵盤
       if (prompt.textContent !== s) prompt.textContent = s;
       prompt.hidden = false;
     },

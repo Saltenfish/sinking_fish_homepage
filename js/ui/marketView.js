@@ -20,7 +20,7 @@ export function marketView(game) {
     h('div', { class: 'shop-price', text: right }), h('div', { class: 'row' }, buttons));
 
   function render() {
-    coins.textContent = `🪙 ${wallet.coins()}`;
+    coins.textContent = String(wallet.coins());   // 金幣圖示由 css 的 .coins::before 畫
     for (const k of Object.keys(tabs)) tabs[k].classList.toggle('on', tab === k);
     if (tab === 'buy') {
       box.replaceChildren(...market.goods().map(({ item, price }) => row(item, `${price} 金幣　持有 ${inv.count(item.id)}`, [

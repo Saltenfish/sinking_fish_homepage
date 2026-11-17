@@ -17,7 +17,7 @@ export function bagView(game) {
     },
     物品() {
       const all = inv.list();
-      const purse = h('p', { class: 'coins', text: `🪙 ${wallet.coins()} 金幣` });
+      const purse = h('p', { class: 'coins', text: `${wallet.coins()} 金幣` });
       if (!all.length) return h('div', null, purse, h('p', { text: '包包是空的。到處走走看看吧。' }));
       return h('div', null, purse, Object.keys(CAT_NAMES).map((cat) => {
         const rows = all.filter((e) => e.item.cat === cat);

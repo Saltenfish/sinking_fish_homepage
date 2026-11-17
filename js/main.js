@@ -134,16 +134,16 @@ function boot() {
 
   const open = (name) => { if (!ui.isBlocking()) ui.show(name); };
   const clockEl = h('div', { class: 'hud-clock', title: '小鎮的時間跟你那邊的現實時間一樣' });
-  const tickClock = () => { const p = clock.phaseInfo(); const t = `${p.icon || ''} ${clock.label()}`; if (clockEl.textContent !== t) { clockEl.textContent = t; clockEl.title = `${p.name || p.id}・小鎮的時間跟你那邊的現實時間一樣`; } };
-  const coinEl = h('div', { class: 'hud-clock hud-coins', title: '金幣' });
-  const tickCoins = () => { coinEl.textContent = `🪙 ${wallet.coins()}`; };
+  const tickClock = () => { const p = clock.phaseInfo(); const t = clock.label(); clockEl.dataset.phase = p.id; if (clockEl.textContent !== t) { clockEl.textContent = t; clockEl.title = `${p.name || p.id}・小鎮的時間跟你那邊的現實時間一樣`; } };
+  const coinEl = h('div', { class: 'hud-clock hud-coins coins', title: '金幣' });
+  const tickCoins = () => { coinEl.textContent = String(wallet.coins()); };   // 圖示由 css 畫（時段圖示看 data-phase）
   bus.on('coins:changed', tickCoins);
   tickClock(); setInterval(tickClock, 5000);
   root.append(h('div', { class: 'hud' }, clockEl, coinEl,
-    h('button', { class: 'btn', type: 'button', text: '🎒 背包', title: '背包（E）', onclick: () => open('bag') }),
-    h('button', { class: 'btn', type: 'button', text: '🗺 地圖', title: '地圖（M）', onclick: () => open('map') }),
-    h('button', { class: 'btn', type: 'button', text: '📋 目錄', title: '快速目錄（L）', onclick: () => open('list') }),
-    h('button', { class: 'btn', type: 'button', text: '⚙ 選單', title: '選單（Esc）', onclick: () => open('menu') })));
+    h('button', { class: 'btn ico ico-bag', type: 'button', text: '背包', title: '背包（E）', onclick: () => open('bag') }),
+    h('button', { class: 'btn ico ico-map', type: 'button', text: '地圖', title: '地圖（M）', onclick: () => open('map') }),
+    h('button', { class: 'btn ico ico-list', type: 'button', text: '目錄', title: '快速目錄（L）', onclick: () => open('list') }),
+    h('button', { class: 'btn ico ico-gear', type: 'button', text: '選單', title: '選單（Esc）', onclick: () => open('menu') })));
 
   /* 5. 世界 */
   const camera = createCamera(CONFIG.VIEW_MIN_W, CONFIG.VIEW_MIN_H);

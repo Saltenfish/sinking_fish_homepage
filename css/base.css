@@ -204,3 +204,98 @@ h4{margin:12px 0 4px}.list{margin:0;padding-left:1.2em}.list a{color:#9fc6ff}
 .dialog-name{color:#8a4a12}.dialog .btn.choice{background:#f1e2bf;color:#2a2438;border:2px solid #8a6a42}
 .dialog .btn.choice:hover{background:#ffe6a8}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.hang,.panel,.panel.leaving{animation:none}}
+
+/* ═════════════════════════ 像素風介面層 ═════════════════════════
+   放在檔案最後，蓋過前面的圓角、漸層與一般字型：
+   ・字型：俐方體 11 號（Cubic 11，SIL OFL 1.1，檔案與授權在 assets/fonts/），字體載入前先用系統字型
+   ・沒有圓角；邊框是「缺角」的像素框（用 box-shadow 畫四條邊，四個角留空）
+   ・陰影一律是往下的實心色塊，不用模糊
+   ・圖示是 assets/ui/ 的 16×16 像素圖（tools/make_pixel_ui.py 產生） */
+@font-face{font-family:'PixelTC';src:url(../assets/fonts/Cubic_11.woff2) format('woff2');font-display:swap}
+html,body,button,input,textarea{font-family:'PixelTC',"Noto Sans TC",system-ui,sans-serif}
+body{-webkit-font-smoothing:none;-moz-osx-font-smoothing:grayscale;font-size:16px;letter-spacing:.02em}
+img,canvas{image-rendering:pixelated}
+*,*::before,*::after{border-radius:0!important}
+.stick,.stick-knob,.touch-act,.stamp-mark,.plaque::before,.sfx-particles i{border-radius:50%!important}
+
+/* 像素框：--pf 是框的顏色、--pd 是底下那道實心陰影的顏色 */
+.btn,.toast,.prompt,.dialog,.hud-clock,.cell,.item,.stamp,.shop-row,.stats>div,.tree-detail,.coins,.casino-game,
+.panel-head b,.panel.has-bg h4,input,textarea,.chat-bub,.rcard,.card-face,.plaque,.reel,.bar{
+  border:0!important;
+  box-shadow:0 -3px 0 0 var(--pf,#2a1d1a),0 3px 0 0 var(--pf,#2a1d1a),-3px 0 0 0 var(--pf,#2a1d1a),3px 0 0 0 var(--pf,#2a1d1a),
+    0 6px 0 0 var(--pd,rgba(0,0,0,.35))!important}
+.btn{--pf:#1b1530;--pd:#0c0a16;background:#3a3556;color:#f4ead6;padding:6px 12px;margin:3px;font-size:16px;text-shadow:none}
+.btn:hover{background:#4a4470;filter:none}
+.btn:active{transform:translateY(3px);box-shadow:0 -3px 0 0 var(--pf),0 3px 0 0 var(--pf),-3px 0 0 0 var(--pf),3px 0 0 0 var(--pf)!important}
+.btn:focus-visible{outline:3px dashed #f6c453;outline-offset:5px}
+.btn.on{background:#f6c453;color:#2a1d1a}
+
+/* 右上角 */
+.hud{gap:10px;top:calc(14px + env(safe-area-inset-top))}
+.hud-clock{--pf:#1b1530;background:#f4ead6;color:#2a1d1a;padding:5px 10px 5px 30px;margin:3px;position:relative;font-size:16px}
+.hud-clock::before,.ico::before,.coins::before{content:'';position:absolute;left:6px;top:50%;width:18px;height:18px;margin-top:-9px;background:center/contain no-repeat;image-rendering:pixelated}
+.hud-clock[data-phase=day]::before{background-image:url(../assets/ui/day.png)}
+.hud-clock[data-phase=night]::before{background-image:url(../assets/ui/night.png)}
+.hud-clock[data-phase=dawn]::before{background-image:url(../assets/ui/dawn.png)}
+.hud-clock[data-phase=dusk]::before{background-image:url(../assets/ui/dusk.png)}
+.coins{position:relative;padding-left:30px!important}
+.coins::before{background-image:url(../assets/ui/coin.png)}
+.hud .hud-coins{background:#fff0a8}
+.ico{position:relative;padding-left:32px}
+.ico-bag::before{background-image:url(../assets/ui/bag.png)}.ico-map::before{background-image:url(../assets/ui/map.png)}
+.ico-list::before{background-image:url(../assets/ui/list.png)}.ico-gear::before{background-image:url(../assets/ui/gear.png)}
+
+/* 地圖上的提示、通知、對話框 */
+.prompt{--pf:#2a1d1a;background:#fbf6ea;color:#2a1d1a;padding:8px 16px}
+.toast{--pf:#2a1d1a;--pd:transparent;background:#fbf6ea;color:#2a1d1a;margin:3px 3px 6px;padding:5px 12px;font-size:16px}
+.toasts{gap:10px}
+.dialog{--pf:#2a1d1a;background:#fbf6ea;padding:16px 18px;font-size:18px;line-height:1.7}
+.dialog .btn.choice{--pf:#8a6a42;--pd:transparent;background:#f1e2bf;color:#2a1d1a;font-size:17px;padding:6px 12px}
+.dialog .btn.choice:hover{background:#ffe6a8}
+.dialog-hint{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* 場景裡的小卡片：框色用場景的 --edge */
+.panel.has-bg .shop-row,.panel.has-bg .item,.panel.has-bg .stamp,.panel.has-bg .cell,.panel.has-bg .stats>div,.panel.has-bg .tree-detail,
+.panel.has-bg .coins,.panel.has-bg input,.panel.has-bg textarea{--pf:var(--edge);--pd:rgba(0,0,0,.3);margin-left:3px;margin-right:3px}
+.panel.has-bg .shop-row,.panel.has-bg .item{margin-bottom:12px}
+.panel.has-bg .btn{--pf:var(--btn-edge);--pd:rgba(0,0,0,.35);box-shadow:none}
+.panel.has-bg .panel-head b{--pf:var(--edge);--pd:rgba(0,0,0,.35);font-size:20px;margin:3px}
+.panel.has-bg h4{--pf:var(--edge);--pd:rgba(0,0,0,.3);margin:16px 3px 8px}
+.panel.has-bg .panel-head .btn{--pf:var(--edge)}
+.grid{gap:10px}.stamps{gap:12px}.stats{gap:10px}
+.bar{--pf:#2a1d1a;--pd:transparent;height:10px;background:#3a3556;margin:6px 3px 14px}
+.bar>div{background:repeating-linear-gradient(90deg,#f6c453 0 6px,#e0a93a 6px 8px)}
+.panel.has-bg.scene-casino .casino-game{--pf:#f6c453;--pd:#7a1e18;background:#1f6b45;
+  background-image:linear-gradient(45deg,rgba(255,255,255,.04) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.04) 75%),linear-gradient(45deg,rgba(255,255,255,.04) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.04) 75%);
+  background-size:8px 8px;background-position:0 0,4px 4px;margin:6px}
+.panel.has-bg .shop-row{flex-wrap:wrap}
+
+/* 賭場的骰子與拉霸：像素圖示 */
+.die{display:inline-block;width:64px;height:64px;font-size:0;background:center/contain no-repeat;image-rendering:pixelated}
+.die[data-v="1"]{background-image:url(../assets/ui/die-1.png)}.die[data-v="2"]{background-image:url(../assets/ui/die-2.png)}
+.die[data-v="3"]{background-image:url(../assets/ui/die-3.png)}.die[data-v="4"]{background-image:url(../assets/ui/die-4.png)}
+.die[data-v="5"]{background-image:url(../assets/ui/die-5.png)}.die[data-v="6"]{background-image:url(../assets/ui/die-6.png)}
+.reel{--pf:#2a1d1a;--pd:#7a1e18;font-size:0;background:#f4f1e8 center/48px 48px no-repeat;image-rendering:pixelated;margin:3px}
+.reel[data-v=fish]{background-image:url(../assets/ui/slot-fish.png)}.reel[data-v=clover]{background-image:url(../assets/ui/slot-clover.png)}
+.reel[data-v=star]{background-image:url(../assets/ui/slot-star.png)}.reel[data-v=bell]{background-image:url(../assets/ui/slot-bell.png)}
+.reel[data-v=seven]{background-image:url(../assets/ui/slot-seven.png)}
+.reel.spinning{filter:none;background-position:center 30%}
+
+/* 卡片、許願牌、魚魚的對話 */
+.rcard{--pf:var(--rare,#8a93a8);--pd:rgba(0,0,0,.4)}
+.has-back-img .rcard:not(.face){box-shadow:0 -2px 0 0 #1b1530,0 2px 0 0 #1b1530,-2px 0 0 0 #1b1530,2px 0 0 0 #1b1530,0 5px 0 0 rgba(0,0,0,.4)!important}
+.has-back-img .rcard.owned:not(.face){box-shadow:0 -3px 0 0 var(--rare),0 3px 0 0 var(--rare),-3px 0 0 0 var(--rare),3px 0 0 0 var(--rare),0 6px 0 0 rgba(0,0,0,.4)!important}
+.card-face{--pf:var(--rare,#8a93a8);margin:3px 3px 12px}
+.plaque{--pf:var(--pc);--pd:rgba(60,40,80,.18);outline:0!important;background-image:linear-gradient(var(--pc),var(--pc));background-size:calc(100% - 12px) 2px;background-position:6px calc(100% - 8px);background-repeat:no-repeat}
+.hang-string{width:2px;box-shadow:none}
+.chat-bub{--pf:#5aa9d6;--pd:transparent;margin:3px}
+.scene-fishchat .chat-row.me .chat-bub{--pf:#d1a93f}
+.chat-msgs{gap:12px}
+input,textarea{--pf:#4a5270;--pd:transparent;padding:7px 10px;margin:3px}
+
+/* 觸控按鈕也改成像素感：實心色塊與硬陰影 */
+.touch-act{border:3px solid #2a1d1a;box-shadow:0 5px 0 #2a1d1a;font-size:18px}
+.stick{border:3px solid rgba(255,255,255,.5)}
+.panel.has-bg .coins,.hud .hud-coins{background:#fff0a8;color:#5a3a0a}
+.casino .shop-head{margin-bottom:10px}
