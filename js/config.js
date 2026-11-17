@@ -5,6 +5,9 @@ export const CONFIG = Object.freeze({
   TILE: 32,                      // 一格的像素大小
   VIEW_MIN_W: 640, VIEW_MIN_H: 400, // 畫面至少要看得到這麼大的範圍（邏輯像素）；視窗越大自動放大倍率
   VIEW_SCALES: Object.freeze([4, 3, 2, 1.5, 1]), // 可用的放大倍率，由大到小挑第一個放得下的
+  VIEW_SMALL_SCREEN: 500,        // 視窗短邊小於這個值視為手機
+  VIEW_SMALL_MIN: 240,           // 手機上至少要看得到的範圍（邏輯像素）；比桌機小，讓東西放大、手指點得到
+  TAP_SLOP: 0.9,                 // 點擊物件的容許誤差（格）：點在物件旁邊這個距離內也算點到它
   PLAYER_SPEED: 4.5,             // 每秒走幾格
   SNEAK_RATE: 0.4,               // 潛行（按住 Shift 或輕推搖桿）時的速度倍率
   PLAYER_HALF: 0.3,              // 玩家碰撞箱半徑（格）

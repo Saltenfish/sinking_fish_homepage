@@ -66,9 +66,19 @@ export function createWorld({ game, maps, input, camera }) {
     if (!world.map) return;
     const tx = Math.floor((x + camera.x) / T), ty = Math.floor((y + camera.y) / T);
     const p = world.player;
-    tapTarget = world.entities.find((e) => tx >= e.x && tx < e.x + e.w && ty >= e.y && ty < e.y + e.h && e.prompt() !== null) || null;
+    // 找被點到的物件：手指不容易點準，所以點在物件旁邊一小段距離內也算（取最近的那個）
+    const fx = (x + camera.x) / T, fy = (y + camera.y) / T;
+    let best = null, bestD = CONFIG.TAP_SLOP;
+    for (const e of world.entities) {
+      const d = distToRect(fx, fy, e);
+      if (d <= bestD && e.prompt() !== null && (d < bestD || !best)) { best = e; bestD = d; }
+    }
+    tapTarget = best;
     if (tapTarget && distToRect(p.x, p.y, tapTarget) <= CONFIG.INTERACT_RANGE) { path = null; return; }   // 已經在旁邊：下一幀直接互動
-    const found = findPath(passable, world.map.w, world.map.h, Math.floor(p.x), Math.floor(p.y), tx, ty);
+    // 目的地：有點到物件就走向物件上離手指最近的那一格，否則走向點擊的那一格
+    const gx = tapTarget ? Math.min(tapTarget.x + tapTarget.w - 1, Math.max(tapTarget.x, tx)) : tx;
+    const gy = tapTarget ? Math.min(tapTarget.y + tapTarget.h - 1, Math.max(tapTarget.y, ty)) : ty;
+    const found = findPath(passable, world.map.w, world.map.h, Math.floor(p.x), Math.floor(p.y), gx, gy);
     // 先走回自己這格的中心再出發，避免從格子邊緣斜切時卡到牆角
     if (found) path = found.length ? [{ x: Math.floor(p.x), y: Math.floor(p.y) }, ...found] : [];
   });
@@ -90,7 +100,7 @@ export function createWorld({ game, maps, input, camera }) {
       else {
         const gx = path[0].x + 0.5, gy = path[0].y + 0.5;
         const ddx = gx - p.x, ddy = gy - p.y, dist = Math.hypot(ddx, ddy);
-        const stepLen = CONFIG.PLAYER_SPEED * dt;
+        const stepLen = CONFIG.PLAYER_SPEED * (tapTarget?.sneak ? CONFIG.SNEAK_RATE : 1) * dt;
         if (dist <= stepLen) { dx = ddx; dy = ddy; path.shift(); }
         else { dx = (ddx / dist) * stepLen; dy = (ddy / dist) * stepLen; }
       }

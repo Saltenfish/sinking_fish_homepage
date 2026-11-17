@@ -6,10 +6,22 @@ import { h } from './dom.js';
 export function createUI({ root, bus, assets = null, animMs = 220 }) {
   const layer = h('div', { class: 'ui-layer' });
   const toasts = h('div', { class: 'toasts', role: 'status', 'aria-live': 'polite' });
-  const prompt = h('div', { class: 'prompt', hidden: true });
+  // 互動提示本身也是按鈕：點它等於按互動鍵（手機上最直覺）
+  const prompt = h('button', { class: 'prompt', type: 'button', hidden: true, onclick: () => { if (!stack.length) bus.emit('input:action', { action: 'interact' }); } });
+  let touchUi = false;
+  window.addEventListener('touchstart', () => { touchUi = true; }, { once: true, passive: true });
   root.append(prompt, layer, toasts);
 
   const stack = [];          // 開著的視窗，最後一個在最上面
+
+  /* 防止「幽靈點擊」：手指點了地圖或互動鍵 → 視窗立刻出現在手指底下 → 同一次觸碰產生的 click 落在新視窗上，
+     對話框瞬間被關掉或按鈕被誤觸。做法：觸控時，視窗剛打開的短時間內，吞掉落在介面層上的 click。 */
+  const GHOST_MS = 350;
+  let lastOpenAt = -1e9, lastPointer = 'mouse';
+  window.addEventListener('pointerdown', (e) => { lastPointer = e.pointerType || 'mouse'; }, true);
+  layer.addEventListener('click', (e) => {
+    if (lastPointer === 'touch' && performance.now() - lastOpenAt < GHOST_MS) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
   const views = new Map();
 
   function close(modal) {
@@ -25,6 +37,7 @@ export function createUI({ root, bus, assets = null, animMs = 220 }) {
   }
   function open(modal) {
     stack.push(modal);
+    lastOpenAt = performance.now();
     layer.append(modal.el);
     prompt.hidden = true;
     bus.emit('ui:block', {});
@@ -46,7 +59,7 @@ export function createUI({ root, bus, assets = null, animMs = 220 }) {
 
     setPrompt(text) {
       if (stack.length || !text) { prompt.hidden = true; return; }
-      const s = `E　${text}`;
+      const s = touchUi ? `👆 ${text}` : `E　${text}`;
       if (prompt.textContent !== s) prompt.textContent = s;
       prompt.hidden = false;
     },

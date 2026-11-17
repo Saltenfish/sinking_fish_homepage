@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { makeGame, realData } from './helpers.js';
 import { buildRegistry } from '../js/core/registry.js';
 import { normalize } from '../js/core/save.js';
-import { pickScale } from '../js/engine/view.js';
+import { pickScale, viewLimits } from '../js/engine/view.js';
 import { stickToAxis } from '../js/engine/input.js';
 import { skyTint, createClock } from '../js/systems/clock.js';
 import { bugReaction } from '../js/systems/bugs.js';
@@ -23,6 +23,15 @@ test('畫面倍率：桌機放大、手機用最小倍率，任何尺寸都不�
   assert.equal(pickScale(390, 844, opts), 1);     // 手機直向
   assert.equal(pickScale(844, 390, opts), 1);     // 手機橫向
   for (const [w, h] of [[1, 1], [320, 480], [2560, 1080], [5120, 1440], [800, 600]]) assert.ok(CONFIG.VIEW_SCALES.includes(pickScale(w, h, opts)));
+});
+
+test('畫面倍率：手機會放大到 1.5 倍（一格 48px，手指點得到），桌機不受影響', () => {
+  const pick = (w, h) => pickScale(w, h, viewLimits(w, h, CONFIG));
+  assert.equal(pick(390, 844), 1.5); assert.equal(pick(844, 390), 1.5); assert.equal(pick(360, 640), 1.5); assert.equal(pick(430, 932), 1.5);
+  assert.equal(pick(320, 568), 1);                   // 很小的螢幕：維持 1 倍，至少看得到一些範圍
+  assert.equal(pick(768, 1024), 1);                  // 平板
+  assert.equal(pick(1920, 1080), 2); assert.equal(pick(1366, 768), 1.5);
+  for (const [w, h] of [[390, 844], [844, 390], [360, 640]]) { const s = pick(w, h); assert.ok(w / s >= CONFIG.VIEW_SMALL_MIN && h / s >= CONFIG.VIEW_SMALL_MIN); }
 });
 
 test('搖桿：死區內不動、輕推潛行、推到底正常走，方向是單位向量', () => {

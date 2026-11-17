@@ -222,6 +222,7 @@ register('bugspot', (def, game) => {
     && game.progress.cooldownLeft(caughtKey, CONFIG.BUG_CATCH_CD_MS) === 0
     && game.progress.cooldownLeft(fleeKey, CONFIG.BUG_FLEE_CD_MS) === 0;
   return {
+    sneak: true,          // 點擊牠時，玩家會自動用潛行速度走過去
     visible: active,
     glow: () => (active() ? 1.2 : 0),
     prompt: () => (active() ? '抓蟲' : null),
