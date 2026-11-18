@@ -1,6 +1,6 @@
 /* ============================================================
    可以走進去的房間（賭場、成就小屋…）
-   ・整個畫面是一張 480 × 270 的像素房間圖，等比例放大；房間裡的東西用同樣的座標擺上去
+   ・整個畫面是一張 480 × 270 的像素房間圖（show 可用 size 換成別的大小，例如手機直拿用的 270 × 480），等比例放大；房間裡的東西用同樣的座標擺上去
    ・可以點的東西（hotspot）：滑鼠移過去會微微發光並顯示名字，點下去做事（通常是切到另一個畫面）
    ・切畫面時整個房間淡出淡入，不會跳出任何對話框
    ・按 Esc：在子畫面時回上一層，在最外層時離開房間
@@ -12,9 +12,10 @@ import { h } from './dom.js';
 export const ROOM_W = 480, ROOM_H = 270;
 
 /* 純函式：房間要放大幾倍。直向手機上，房間至少放大到 minPortrait 倍，左右可以捲動 */
-export function roomScale(viewW, viewH, { minPortrait = 1.6 } = {}) {
-  const fit = Math.min(viewW / ROOM_W, viewH / ROOM_H);
-  if (viewH > viewW && fit * ROOM_W >= viewW - 1) return Math.max(fit, Math.min(viewH / ROOM_H, minPortrait));
+export function roomScale(viewW, viewH, { minPortrait = 1.6, w: RW = ROOM_W, h: RH = ROOM_H } = {}) {
+  const fit = Math.min(viewW / RW, viewH / RH);
+  if (RH > RW) return fit;                                    // 直式房間（手機直拿用）：整間放進畫面，不捲動
+  if (viewH > viewW && fit * RW >= viewW - 1) return Math.max(fit, Math.min(viewH / RH, minPortrait));
   return fit;
 }
 
@@ -36,11 +37,11 @@ export function openRoom(game, { title, scene = '', onClose, onKey } = {}) {
   function layout() {
     const vw = viewport.clientWidth, vh = viewport.clientHeight;
     if (!vw || !vh) return;
-    const s = roomScale(vw, vh);
+    const s = roomScale(vw, vh, { w: RW, h: RH });
     stage.style.transform = `scale(${s})`;
-    holder.style.width = `${Math.floor(ROOM_W * s)}px`;
-    holder.style.height = `${Math.floor(ROOM_H * s)}px`;
-    const over = Math.max(0, ROOM_W - vw / s);                 // 有多少房間像素露在畫面外（直向手機才會有）
+    holder.style.width = `${Math.floor(RW * s)}px`;
+    holder.style.height = `${Math.floor(RH * s)}px`;
+    const over = Math.max(0, RW - vw / s);                 // 有多少房間像素露在畫面外（直向手機才會有）
     stage.style.setProperty('--over', `${over}px`);
     scale = s;
     frame.classList.toggle('scrolls', holder.offsetWidth > vw + 1);
@@ -48,7 +49,7 @@ export function openRoom(game, { title, scene = '', onClose, onKey } = {}) {
     pin();
   }
   /* 「返回」和金幣一直貼在看得到的左上／右上角，不會被捲出畫面 */
-  let scale = 1, focusX = ROOM_W / 2;
+  let scale = 1, focusX = ROOM_W / 2, RW = ROOM_W, RH = ROOM_H;   // RW × RH：目前這個畫面的房間大小
   /* 直向手機：把畫面捲到這個畫面最重要的地方（預設房間中間） */
   function focusScroll() { const vw = viewport.clientWidth; if (holder.offsetWidth > vw) viewport.scrollLeft = Math.max(0, focusX * scale - vw / 2); }
   function pin() { stage.style.setProperty('--sx', `${viewport.scrollLeft / scale}px`); }
@@ -59,13 +60,16 @@ export function openRoom(game, { title, scene = '', onClose, onKey } = {}) {
     stage,
     get alive() { return alive; },
     /* 換畫面：清空房間、換背景、呼叫 build 擺東西。淡出淡入 */
-    show({ bg, back: b = null, build, focus = ROOM_W / 2 }) {
-      back = b; focusX = focus;
+    show({ bg, back: b = null, build, focus, size = null }) {
+      back = b;
+      const nw = size?.w || ROOM_W, nh = size?.h || ROOM_H;
+      focusX = focus ?? nw / 2;
       for (const fn of cleanup.splice(0)) { try { fn(); } catch (e) { console.error('[room] 清理出錯', e); } }
       stage.classList.add('fading');
       const swap = () => {
         if (!alive) return;
         stage.replaceChildren();
+        if (nw !== RW || nh !== RH) { RW = nw; RH = nh; stage.style.width = `${RW}px`; stage.style.height = `${RH}px`; layout(); }
         const url = bg ? assets?.url(bg) : null;
         stage.style.backgroundImage = url ? `url("${url}")` : '';
         if (b) stage.append(place(h('button', { class: 'btn room-back', type: 'button', text: '← 返回', onclick: () => b() }), 8, 8));

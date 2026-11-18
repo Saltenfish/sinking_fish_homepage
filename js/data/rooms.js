@@ -38,9 +38,24 @@ export const WHEEL = {
 /* 成就小屋：兩座書架（和 tools/make_pixel_rooms.py 的 CASES、SHELF_TOPS 一致） */
 export const HUT = {
   bg: 'room.hut',
-  cases: [{ x0: 18, y0: 26, x1: 206, y1: 252, title: '成就' }, { x0: 274, y0: 26, x1: 462, y1: 252, title: '收藏' }],
+  size: { w: 480, h: 270 },
+  // perShelf：每層放幾個（成就、收藏）
+  cases: [{ x0: 18, y0: 26, x1: 206, y1: 252, title: '成就', shelves: [80, 132, 184, 236], perShelf: 6 },
+    { x0: 274, y0: 26, x1: 462, y1: 252, title: '收藏', shelves: [80, 132, 184, 236], perShelf: 7 }],
   shelfTops: [80, 132, 184, 236],
   notebook: { x: 222, y: 182, w: 36, h: 18 },
+  noteBox: { w: 170, y: 96 },
   trophyKinds: ['cup', 'medal', 'star', 'scroll'],
   collectCats: ['treasure', 'fish', 'bug', 'crop'],
+};
+
+/* 手機直拿用的成就小屋：兩座書架上下疊，整間一頁看完（圖：assets/rooms/hut-room-tall.png） */
+export const HUT_TALL = {
+  ...HUT,
+  bg: 'room.hut.tall',
+  size: { w: 270, h: 480 },
+  cases: [{ x0: 14, y0: 30, x1: 256, y1: 216, title: '成就', shelves: [76, 122, 168, 210], perShelf: 7 },
+    { x0: 14, y0: 246, x1: 256, y1: 424, title: '收藏', shelves: [290, 334, 378, 418], perShelf: 8 }],
+  notebook: { x: 117, y: 434, w: 36, h: 18 },
+  noteBox: { w: 200, y: 150 },
 };

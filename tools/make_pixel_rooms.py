@@ -461,48 +461,58 @@ def suit(s):
 
 # ───────────────────────── 成就小屋 ─────────────────────────
 # 兩座書架的位置與層板高度（和 js/data/rooms.js 的 HUT 要一致）
-CASES = [(18, 26, 206, 252), (274, 26, 462, 252)]     # (x0, y0, x1, y1)
-SHELF_TOPS = [80, 132, 184, 236]                       # 每一層「放東西的面」的 y
+# 寬版（電腦、手機橫拿）：兩座書架左右並排；直版（手機直拿）：兩座書架上下疊，整間一頁看完。
+# 位置要和 js/data/rooms.js 的 HUT / HUT_TALL 一致。
+HUT_WIDE = {'size': (480, 270), 'floor': 212,
+            'cases': [((18, 26, 206, 252), [80, 132, 184, 236], '#f6c453'), ((274, 26, 462, 252), [80, 132, 184, 236], '#a8e0c0')],
+            'window': (214, 28, 266, 92), 'table': 240, 'table_y': 186}
+HUT_TALL = {'size': (270, 480), 'floor': 424,
+            'cases': [((14, 30, 256, 216), [76, 122, 168, 210], '#f6c453'), ((14, 246, 256, 424), [290, 334, 378, 418], '#a8e0c0')],
+            'window': None, 'table': 135, 'table_y': 438}
 
 
-def hut_room():
-    r = random.Random(21)
-    im = new(W, H)
-    planks(im, 0, 0, W - 1, 214, '#b5865a', '#8a5a30', '#cf9f70', horizontal=False, size=20, seed=11)
-    planks(im, 0, 215, W - 1, H - 1, '#8a5a30', '#6e4527', '#a8743f', horizontal=True, size=9, seed=12)
-    rect(im, 0, 212, W - 1, 216, '#4f321c')
-    rect(im, 214, 28, 266, 92, '#6e4527')                      # 中間的窗
-    bands(im, 218, 32, 262, 88, '#9fd6ff', '#e8f6ff', 5)
-    rect(im, 239, 32, 241, 88, '#6e4527')
-    rect(im, 218, 59, 262, 61, '#6e4527')
-    rect(im, 210, 92, 270, 96, '#a8743f')
-    ellipse(im, 240, 196, 22, 6, '#6e4527')                    # 中間的小桌與筆記本（紀錄）
-    rect(im, 222, 196, 258, 200, '#8a5a30')
-    rect(im, 236, 200, 244, 230, '#6e4527')
-    rect(im, 226, 186, 254, 196, '#f4ead6')
-    rect(im, 226, 186, 254, 187, '#d9c49a')
-    rect(im, 239, 186, 241, 196, '#c0392b')
-    for y in (189, 192):
-        rect(im, 229, y, 236, y, '#b9a888')
-        rect(im, 244, y, 251, y, '#b9a888')
-    for x0, y0, x1, y1 in CASES:                              # 兩座空書架
+def hut_room(L=HUT_WIDE):
+    w, h = L['size']
+    im = new(w, h)
+    fl = L['floor']
+    planks(im, 0, 0, w - 1, fl + 2, '#b5865a', '#8a5a30', '#cf9f70', horizontal=False, size=20, seed=11)
+    planks(im, 0, fl + 3, w - 1, h - 1, '#8a5a30', '#6e4527', '#a8743f', horizontal=True, size=9, seed=12)
+    rect(im, 0, fl, w - 1, fl + 4, '#4f321c')
+    if L['window']:
+        x0, y0, x1, y1 = L['window']                         # 中間的窗
+        rect(im, x0, y0, x1, y1, '#6e4527')
+        bands(im, x0 + 4, y0 + 4, x1 - 4, y1 - 4, '#9fd6ff', '#e8f6ff', 5)
+        rect(im, (x0 + x1) // 2 - 1, y0 + 4, (x0 + x1) // 2 + 1, y1 - 4, '#6e4527')
+        rect(im, x0 + 4, (y0 + y1) // 2 - 1, x1 - 4, (y0 + y1) // 2 + 1, '#6e4527')
+        rect(im, x0 - 4, y1, x1 + 4, y1 + 4, '#a8743f')
+    cx, ty = L['table'], L['table_y']                       # 小桌與筆記本（紀錄）
+    ellipse(im, cx, ty + 10, 22, 6, '#6e4527')
+    rect(im, cx - 18, ty + 10, cx + 18, ty + 14, '#8a5a30')
+    rect(im, cx - 4, ty + 14, cx + 4, min(h - 2, ty + 44), '#6e4527')
+    rect(im, cx - 14, ty, cx + 14, ty + 10, '#f4ead6')
+    rect(im, cx - 14, ty, cx + 14, ty + 1, '#d9c49a')
+    rect(im, cx - 1, ty, cx + 1, ty + 10, '#c0392b')
+    for y in (ty + 3, ty + 6):
+        rect(im, cx - 11, y, cx - 4, y, '#b9a888')
+        rect(im, cx + 4, y, cx + 11, y, '#b9a888')
+    for (x0, y0, x1, y1), tops, label_c in L['cases']:      # 空書架
         rect(im, x0, y0, x1, y1, '#4f321c')
-        rect(im, x0 + 6, y0 + 8, x1 - 6, y1 - 4, '#2e1d12')      # 書架裡面（陰影）
+        rect(im, x0 + 6, y0 + 8, x1 - 6, y1 - 4, '#2e1d12')
         for x in range(x0 + 6, x1 - 5, 2):
             px(im, x, y0 + 9, '#3a2618')
-        rect(im, x0, y0, x1, y0 + 7, '#7a4e2c')                  # 頂板
+        rect(im, x0, y0, x1, y0 + 7, '#7a4e2c')
         rect(im, x0, y0, x1, y0 + 1, '#a8743f')
-        rect(im, x0, y0, x0 + 5, y1, '#6e4527')                  # 側板
+        rect(im, x0, y0, x0 + 5, y1, '#6e4527')
         rect(im, x1 - 5, y0, x1, y1, '#5c3b22')
-        for top in SHELF_TOPS:                                  # 層板
+        for top in tops:
             rect(im, x0 + 6, top, x1 - 6, top + 4, '#8a5a30')
             rect(im, x0 + 6, top, x1 - 6, top, '#b5865a')
             rect(im, x0 + 6, top + 5, x1 - 6, top + 6, '#1e130c')
         rect(im, x0 - 2, y1, x1 + 2, y1 + 4, '#3a2618')
-    for x0, label_c in ((CASES[0][0] + 70, '#f6c453'), (CASES[1][0] + 70, '#a8e0c0')):   # 書架頂的小牌子
-        rect(im, x0, 14, x0 + 48, 24, '#f4ead6')
-        rect(im, x0, 14, x0 + 48, 14, label_c)
-        rect(im, x0 + 2, 24, x0 + 46, 25, '#b9a888')
+        lx = (x0 + x1) // 2 - 24                               # 書架頂的小牌子
+        rect(im, lx, y0 - 12, lx + 48, y0 - 2, '#f4ead6')
+        rect(im, lx, y0 - 12, lx + 48, y0 - 12, label_c)
+        rect(im, lx + 2, y0 - 2, lx + 46, y0 - 1, '#b9a888')
     return im
 
 
@@ -624,7 +634,8 @@ ITEMS = {
 def main():
     out = []
     for name, im in (('casino-hall', casino_hall()), ('slot-close', slot_close()), ('bj-close', bj_close()),
-                     ('dice-close', dice_close()), ('wheel-close', wheel_close()), ('hut-room', hut_room())):
+                     ('dice-close', dice_close()), ('wheel-close', wheel_close()), ('hut-room', hut_room()),
+                     ('hut-room-tall', hut_room(HUT_TALL))):
         out.append(save(im, 'rooms', f'{name}.png'))
     for name, im in (('slots', slots_sprite()), ('bj-table', bj_table_sprite()), ('dice-table', dice_table_sprite()),
                      ('wheel', wheel_sprite()), ('lever-up', lever(False)), ('lever-down', lever(True)),

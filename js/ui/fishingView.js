@@ -114,11 +114,23 @@ export function fishingView(game) {
       const k = ease(sinceP / CATCH_MS);
       const fx = rest.x + (W * 0.5 - rest.x) * k, fy = rest.y + (H * 0.3 - rest.y) * k - Math.sin(k * Math.PI) * H * 0.18;
       const size = H * (0.06 + 0.06 * k);
-      g.strokeStyle = 'rgba(255,255,255,0.75)'; g.beginPath(); g.moveTo(tip.x, tip.y); g.lineTo(fx, fy - size * 0.4); g.stroke();
       const key = assets?.has(`fish.${result.item.id}`) ? `fish.${result.item.id}` : `item.${result.item.id}`;
       const img = assets?.image(key);
-      if (img) g.drawImage(img, fx - size, fy - size, size * 2, size * 2);
-      else {
+      if (img && img.width) {
+        // 像素魚：用整數倍放大、關掉平滑，邊緣才會銳利；魚嘴勾在釣線上，身體左右甩動
+        const sc = Math.max(2, Math.round((size * 3.2) / img.width));
+        const w = img.width * sc, hh = img.height * sc;
+        g.strokeStyle = 'rgba(255,255,255,0.75)'; g.beginPath(); g.moveTo(tip.x, tip.y); g.lineTo(fx, fy - hh * 0.5); g.stroke();
+        g.save(); g.imageSmoothingEnabled = false;
+        g.translate(Math.round(fx), Math.round(fy - hh * 0.5));
+        g.rotate(-Math.PI / 2 + Math.sin(now / 80) * 0.22 * (1 - k * 0.5));      // 頭朝上被拉起來
+        g.drawImage(img, -w + Math.round(sc * 3), Math.round(-hh / 2), w, hh);
+        g.restore();
+      } else if (img) {
+        g.strokeStyle = 'rgba(255,255,255,0.75)'; g.beginPath(); g.moveTo(tip.x, tip.y); g.lineTo(fx, fy - size * 0.4); g.stroke();
+        g.save(); g.imageSmoothingEnabled = false; g.drawImage(img, fx - size, fy - size, size * 2, size * 2); g.restore();
+      }
+      if (!img) {
         g.save(); g.translate(fx, fy); g.rotate(Math.sin(now / 90) * 0.25 * (1 - k * 0.6));
         g.fillStyle = '#ffb36b'; g.beginPath(); g.ellipse(0, 0, size, size * 0.5, 0, 0, Math.PI * 2); g.fill();
         g.beginPath(); g.moveTo(-size * 0.9, 0); g.lineTo(-size * 1.5, -size * 0.45); g.lineTo(-size * 1.5, size * 0.45); g.closePath(); g.fill();

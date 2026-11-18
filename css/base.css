@@ -412,7 +412,7 @@ input,textarea{--pf:#4a5270;--pd:transparent;padding:7px 10px;margin:3px}
 .spin-btn{font-size:11px!important}
 /* 成就小屋 */
 .case-title{font-size:8px;text-align:center;color:#4a3524;line-height:11px}
-.shelf-count{font-size:8px;text-align:right;color:#f4ead6;text-shadow:0 1px 0 #000;pointer-events:none}
+.shelf-count{font-size:8px;text-align:right;color:#4a3524;line-height:11px;pointer-events:none}
 .shelf-item.dark img{filter:brightness(0) opacity(.45)}
 .shelf-item.dark:hover img{filter:brightness(0) opacity(.6) drop-shadow(0 0 2px #fff0a8)}
 .shelf-item.lit img{animation:litGlow 2.6s ease-in-out infinite}
@@ -515,3 +515,8 @@ input,textarea{--pf:#4a5270;--pd:transparent;padding:7px 10px;margin:3px}
   .vp-narrow .hud .btn.ico{font-size:0;width:38px;height:34px;padding:0}
   .vp-narrow .hud .btn.ico::before{left:50%;margin-left:-9px;width:18px;height:18px;margin-top:-9px}
 }
+/* 許願樹：手機直拿不左右滑動，整棵樹縮進畫面寬度 */
+.vp-narrow .tree-scroll{width:100%!important;overflow:hidden}
+.vp-narrow .tree-stage{min-width:0}
+.vp-narrow .tree-scroll::after{display:none!important}
+.vp-narrow .plaque{font-size:clamp(7px,1.9cqw,13px);padding:2% 2%}
