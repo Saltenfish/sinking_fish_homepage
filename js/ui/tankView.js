@@ -61,7 +61,12 @@ export function tankView(game) {
       const key = assets?.has(`fish.${f.id}`) ? `fish.${f.id}` : `item.${f.id}`;
       const img = assets?.image(key);
       g.save(); g.translate(px, py); g.scale(f.dir, 1);
-      if (img) g.drawImage(img, -size, -size, size * 2, size * 2);
+      if (img && img.width > img.height) {                  // 像素魚（36×18）：整數倍放大、不平滑
+        const sc = Math.max(2, Math.round((size * 2.6) / img.width)), w = img.width * sc, hh = img.height * sc;
+        g.imageSmoothingEnabled = false;
+        g.rotate(Math.sin(t * (f.happy ? 6 : 3) + f.phase) * 0.05);
+        g.drawImage(img, Math.round(-w / 2), Math.round(-hh / 2), w, hh);
+      } else if (img) { g.imageSmoothingEnabled = false; g.drawImage(img, -size, -size, size * 2, size * 2); }
       else {
         g.fillStyle = f.color; g.beginPath(); g.ellipse(0, 0, size, size * 0.5, 0, 0, Math.PI * 2); g.fill();
         const wag = Math.sin(t * (f.happy ? 9 : 4) + f.phase) * size * 0.25;

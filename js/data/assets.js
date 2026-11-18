@@ -38,7 +38,7 @@ export const assets = {
   'tile.wall': { src: 'assets/tiles/forest.png', frameW: 32, frameH: 32, frames: 3, variants: true },
   'tile.stone': { src: 'assets/tiles/stone.png', frameW: 32, frameH: 32, frames: 3, variants: true },
   'tile.hallwall': { src: 'assets/tiles/hallwall.png', frameW: 32, frameH: 32, frames: 2, variants: true },
-  'tile.water': { src: 'assets/tiles/water.png', frameW: 32, frameH: 32, frames: 4, fps: 3 },
+  'tile.water': { src: 'assets/tiles/water.png', frameW: 32, frameH: 32, frames: 8, fps: 6 },   // 由上往下流
   'tile.bridge': 'assets/tiles/bridge.png',
   'tile.reed': { src: 'assets/tiles/reed.png', frameW: 32, frameH: 32, frames: 2, variants: true },
   'tile.hut': 'assets/tiles/roof.png',
@@ -103,6 +103,11 @@ export const assets = {
   'room.wheel.disc': 'assets/rooms/wheel-disc.png',
   'room.wheel.pointer': 'assets/rooms/wheel-pointer.png',
   'room.hut': 'assets/rooms/hut-room.png',
+  'room.hut.tall': 'assets/rooms/hut-room-tall.png',
+  // 釣魚畫面與魚缸裡的魚（36×18，側面頭朝右；tools/make_pixel_fish.py）
+  'fish.fish_small': 'assets/fish/fish_small.png',
+  'fish.fish_koi': 'assets/fish/fish_koi.png',
+  'fish.fish_odd': 'assets/fish/fish_odd.png',
   'trophy.cup': 'assets/rooms/trophy-cup.png',
   'trophy.medal': 'assets/rooms/trophy-medal.png',
   'trophy.star': 'assets/rooms/trophy-star.png',
@@ -129,7 +134,7 @@ export const assets = {
 
   // 範例（把前面的 // 拿掉並放入圖檔即可生效）：
   // 'tile.grass': 'assets/tiles/grass.png',
-  // 'tile.water': { src: 'assets/tiles/water.png', frameW: 32, frameH: 32, frames: 4, fps: 4 },
+  // 'tile.water': { src: 'assets/tiles/water.png', frameW: 32, frameH: 32, frames: 8, fps: 6 },
   // 'player': { src: 'assets/sprites/player.png', frameW: 32, frameH: 32, frames: 4, fps: 8 },
   // 'tree.bg': 'assets/scenes/wish-tree.png',
   // 'card.back.default': 'assets/cards/back-default.png',

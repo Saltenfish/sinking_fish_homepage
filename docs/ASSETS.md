@@ -59,7 +59,7 @@ assets/scenes/    全螢幕畫面背景    assets/fx/        召喚特效
 | `tile.wall` | 外圍的樹牆 | 擋路 |
 | `tile.hallwall` | 召喚卡殿的石牆 | 擋路 |
 | `tile.stone` | 召喚卡殿的石地板 | |
-| `tile.water` | 溪水、池塘 | 建議做 4 格動畫 |
+| `tile.water` | 溪水、池塘 | 目前是 8 格動畫，水紋由上往下流（溪是直的）；自己做時方向也要一樣 |
 | `tile.bridge` | 橋面 | |
 | `tile.reed` | 蘆葦叢 | **要看起來像走不過去**（其實是隱藏入口） |
 | `tile.hut` | 成就小屋的牆與屋頂 | |
@@ -117,6 +117,8 @@ assets/scenes/    全螢幕畫面背景    assets/fx/        召喚特效
 ### 暫用的像素圖
 
 `tools/make_pixel_assets.py` 會用程式畫出目前所有地圖圖塊、成就小屋、地圖物件；`tools/make_pixel_scenes.py` 畫出四種卡背（漩渦中浮出一隻鴨子）、許願樹大圖（中間一整根實心的樹幹，往上分成粗枝向外擴散，葉子在枝條末端，背景透明）、各個全螢幕畫面的背景。兩支都輸出到 `assets/`，並已填進 `js/data/assets.js`。
+
+`tools/make_pixel_fish.py` 畫出釣魚畫面與魚缸裡的魚（`assets/fish/<物品id>.png`，36×18，頭朝右），自己畫魚時用同樣的比例、頭朝右即可。
 
 `tools/make_pixel_rooms.py` 畫出賭場大廳、拉霸機／21 點牌桌（看不清臉的荷官）／骰子桌／轉盤四個遊戲畫面、成就小屋的兩座空書架，以及獎盃、撲克花色和所有道具的圖示（`assets/rooms/`、`assets/items/`）。換成自己的房間圖時，記得照圖上的位置改 `js/data/rooms.js`。
 

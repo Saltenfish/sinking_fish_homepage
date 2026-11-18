@@ -191,24 +191,25 @@ def tile_hallwall(seed):
 
 
 def tiles_water():
-    """水：四格動畫，亮色的波紋往右飄"""
+    """水：八格動畫，亮色的水紋由上往下流（地圖上的溪是直的，從上流到下）。
+    每格往下移 4px，八格剛好移完一整格 32px，所以上下相鄰的水格會接成連續的水流"""
     r = random.Random(11)
-    waves = [(r.randrange(T), y, r.choice([4, 5, 6])) for y in (3, 8, 13, 18, 23, 28)]
+    streaks = [(x, r.randrange(T), r.choice([4, 5, 6, 7])) for x in (3, 9, 14, 20, 25, 29)]
     specks = [(r.randrange(T), r.randrange(T)) for _ in range(18)]
     frames = []
-    for f in range(4):
+    for f in range(8):
         im = new(T, T, '#3d82bb')
         for x, y in specks:
-            px(im, x, y, '#3677ae')
-            px(im, x + 1, y, '#3677ae', True)
-        for x, y, ln in waves:
-            xs = x + f * 8 // 4 * 1 + f                  # 每格往右移一點
+            px(im, x, (y + f * 4) % T, '#3677ae', True)
+            px(im, x, (y + f * 4 + 1) % T, '#3677ae', True)
+        for x, y, ln in streaks:
+            ys = y + f * 4                                 # 每格往下移 4px
             for k in range(ln):
-                px(im, xs + k, y, '#62a8da', True)
-            px(im, xs + 1, y, '#bfe3f5', True)
-            px(im, xs + 2, y, '#bfe3f5', True)
+                px(im, x, ys + k, '#62a8da', True)
+            px(im, x, ys + ln - 2, '#bfe3f5', True)        # 水紋前端（下方）比較亮
+            px(im, x, ys + ln - 1, '#bfe3f5', True)
             for k in range(ln - 2):
-                px(im, xs + k + 2, y + 1, '#3070a8', True)
+                px(im, x + 1, ys + k, '#3070a8', True)
         frames.append(im)
     return strip(frames)
 
@@ -570,62 +571,73 @@ def ents_bug():
 
 
 def ent_tree():
-    """地圖上的許願樹：圖是 3×3 格（96×96），比它佔的 2×2 格大，樹冠會往上、往左右伸出去。
+    """地圖上的許願樹：圖是 6×6 格（192×192），佔地仍是樹幹附近的 2×2 格，樹冠往上、往左右伸出去。
     四種顏色的葉團交錯成一個樹冠，枝條下掛著小小的許願牌"""
     r = random.Random(42)
-    S = 96
+    S = 192
     im = new(S, S)
-    # 樹幹、兩根往上分岔的粗枝、樹根
-    rect(im, 42, 52, 53, 88, '#7a5236')
-    rect(im, 42, 52, 44, 88, '#946a47')
-    rect(im, 52, 52, 53, 88, '#553622')
-    for k in range(6):
-        rect(im, 41 - k, 83 + k // 1, 42, 83 + k, '#7a5236')
-        rect(im, 53, 83 + k, 55 + k, 83 + k, '#553622')
-    for y in (62, 70, 78):
-        rect(im, 46, y, 49, y, '#553622')
-    for k in range(12):
-        rect(im, 42 - k, 54 - k, 45 - k, 55 - k, '#7a5236')
-        rect(im, 50 + k, 54 - k, 53 + k, 55 - k, '#6a4630')
-    # 樹冠：很多小葉團由後往前疊。每團一種顏色、各自有明暗與參差的葉緣；
-    # 相鄰兩團的交界撒上彼此的顏色，四色自然混在一起，整體仍是一棵樹的輪廓
+    cx = 96
+    # 樹幹（有明暗與樹皮紋）、往上分岔的粗枝、樹根
+    rect(im, cx - 12, 104, cx + 11, 178, '#7a5236')
+    rect(im, cx - 12, 104, cx - 7, 178, '#946a47')
+    rect(im, cx + 6, 104, cx + 11, 178, '#553622')
+    for y in range(110, 176, 9):
+        rect(im, cx - 4 + (y // 9) % 3, y, cx + 1 + (y // 9) % 3, y + 1, '#553622')
+    for k in range(14):                                   # 樹根往兩邊攤開
+        rect(im, cx - 13 - k, 166 + k // 1, cx - 12, 166 + k, '#7a5236')
+        rect(im, cx + 11, 166 + k, cx + 13 + k, 166 + k, '#553622')
+    for k in range(26):                                   # 兩根往上分岔的粗枝
+        rect(im, cx - 12 - k, 108 - k, cx - 5 - k, 110 - k, '#7a5236')
+        rect(im, cx - 12 - k, 108 - k, cx - 11 - k, 110 - k, '#946a47')
+        rect(im, cx + 4 + k, 108 - k, cx + 11 + k, 110 - k, '#6a4630')
+    for k in range(18):
+        rect(im, cx - 2, 104 - k * 2, cx + 3, 105 - k * 2, '#6a4630')
+    # 樹冠
     sets = [('#c9648f', '#ee93b8', '#fbc0d8', '#ffe1ec'), ('#7a5fb8', '#a487dc', '#c9b5ef', '#e6dcf9'),
             ('#379482', '#5fc0aa', '#97dfcd', '#cff3ea'), ('#c79c34', '#ecc85c', '#f7e196', '#fff4c8')]
     lumps = []
-    for i in range(44):                                   # 葉團落在一個略扁的大圓裡
+    for i in range(120):
         a = r.random() * math.tau
         d = math.sqrt(r.random())
-        lumps.append((48 + math.cos(a) * d * 34, 33 + math.sin(a) * d * 22, r.choice([6, 7, 8, 9, 10]), i % 4))
-    lumps.append((48, 30, 12, 0))
+        lumps.append((cx + math.cos(a) * d * 70, 64 + math.sin(a) * d * 44, r.choice([10, 12, 13, 14, 16, 18]), i % 4))
+    lumps.append((cx, 60, 22, 0))
     owner = {}
-    for cx, cy, rad, k in sorted(lumps, key=lambda q: q[1]):
-        jag = [rad + r.choice([-1, 0, 0, 0, 1]) for _ in range(20)]       # 參差的葉緣
+    for lx, ly, rad, k in sorted(lumps, key=lambda q: q[1]):
+        jag = [rad + r.choice([-2, -1, 0, 0, 0, 1]) for _ in range(28)]
         d_, m_, l_, h_ = sets[k]
-        for y in range(int(cy - rad) - 2, int(cy + rad) + 3):
-            for x in range(int(cx - rad) - 2, int(cx + rad) + 3):
-                dx, dy = x - cx, y - cy
+        for y in range(int(ly - rad) - 3, int(ly + rad) + 4):
+            for x in range(int(lx - rad) - 3, int(lx + rad) + 4):
+                dx, dy = x - lx, y - ly
                 dist = math.hypot(dx, dy)
-                lim = jag[int((math.atan2(dy, dx) + math.pi) / math.tau * 20) % 20]
+                lim = jag[int((math.atan2(dy, dx) + math.pi) / math.tau * 28) % 28]
                 if dist > lim or not (0 <= x < S and 0 <= y < S):
                     continue
-                t = (dx + dy * 1.2) / lim + (r.random() - 0.5) * 0.5
+                t = (dx + dy * 1.2) / lim + (r.random() - 0.5) * 0.4
                 c = h_ if t < -1.0 else l_ if t < -0.45 else m_ if t < 0.55 else d_
-                if dist > lim - 1 and t > -0.2:
+                if dist > lim - 1.5 and t > -0.2:
                     c = d_
                 px(im, x, y, c)
                 owner[(x, y)] = k
     for (x, y), k in list(owner.items()):                 # 交界處的混色
         for nx, ny in ((x + 1, y), (x, y + 1)):
             k2 = owner.get((nx, ny))
-            if k2 is not None and k2 != k and r.random() < 0.55:
+            if k2 is not None and k2 != k and r.random() < 0.5:
                 px(im, x, y, sets[k2][1])
-    for x, ln, c in ((20, 5, '#fff6e0'), (31, 9, '#ffe3ee'), (64, 7, '#e8defa'), (75, 4, '#d0f5ec'), (57, 10, '#fff6d0'), (40, 6, '#e8defa')):   # 許願牌
-        top = max(y for (xx, y) in owner if xx == x) + 1     # 繩子從樹冠下緣垂下來
+    for (x, y), k in list(owner.items()):                 # 葉團上的小亮點
+        if r.random() < 0.012:
+            px(im, x, y, '#ffffff')
+    plaques = ((36, 8, '#fff6e0'), (52, 14, '#ffe3ee'), (70, 10, '#d0f5ec'), (118, 12, '#e8defa'), (134, 8, '#fff6d0'),
+               (150, 16, '#ffe3ee'), (84, 18, '#e8defa'), (104, 6, '#fff6e0'))
+    for x, ln, c in plaques:                              # 許願牌：繩子從樹冠下緣垂下來
+        top = max(y for (xx, y) in owner if xx == x) + 1
         rect(im, x, top, x, top + ln - 1, '#b9a888')
-        rect(im, x - 2, top + ln, x + 2, top + ln + 5, c)
-        rect(im, x - 2, top + ln + 5, x + 2, top + ln + 5, '#c9b48f')
+        rect(im, x - 4, top + ln, x + 4, top + ln + 10, '#8a7458')
+        rect(im, x - 3, top + ln + 1, x + 3, top + ln + 9, c)
+        rect(im, x - 3, top + ln + 9, x + 3, top + ln + 9, '#c9b48f')
+        for yy in (top + ln + 4, top + ln + 6):
+            rect(im, x - 2, yy, x + 1, yy, '#b9a8c8')
         px(im, x, top + ln, '#b9a888')
-    shadow(im, 48, 89, 24, 5)
+    shadow(im, cx, 180, 48, 9)
     return im
 
 

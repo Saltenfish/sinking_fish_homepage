@@ -48,7 +48,7 @@ export const town = {
   objects: [
     { id: 'board', type: 'board', x: 22, y: 23, solid: true,
       lines: ['【公告欄】', '歡迎來到沉魚的小鎮。', '北邊是召喚卡殿，中間是許願樹，西邊有田，西北有成就小屋。', '溪邊可以釣魚。聽說許願樹搖一搖會掉東西。', '天黑之後草地上會有蟲。要慢慢靠近才抓得到（鍵盤按住 Shift，手機輕推搖桿）。', '過了橋往北有商店和小賭場；小屋旁邊有魚缸。', '右上角的「地圖」可以直接傳送。'] },
-    { id: 'tree', type: 'tree', x: 19, y: 16, w: 2, h: 2, solid: true, art: { x: -0.5, y: -1, w: 3, h: 3 } },   // 圖是 3×3 格，樹冠往上伸出去
+    { id: 'tree', type: 'tree', x: 19, y: 16, w: 2, h: 2, solid: true, art: { x: -2, y: -4, w: 6, h: 6 } },   // 圖是 6×6 格，樹冠往上、往兩邊伸出去
     { id: 'altar', type: 'altar', x: 19, y: 5, w: 2, h: 2, solid: true },
     // 卡殿裡的裝飾：石柱（佔 1 格、圖往上高 1 格）與牆上的掛旗
     { id: 'pillar1', type: 'deco', sprite: 'ent.pillar', x: 13, y: 4, solid: true, art: { x: 0, y: -1, w: 1, h: 2 } },
@@ -85,8 +85,8 @@ export const town = {
     { id: 'casino', type: 'casino', x: 36, y: 4, w: 2, h: 2, solid: true },
     { id: 'tank', type: 'tank', x: 9, y: 7, w: 2, h: 1, solid: true },
 
-    { id: 'lantern1', type: 'lantern', x: 17, y: 13, solid: true },
-    { id: 'lantern2', type: 'lantern', x: 22, y: 13, solid: true },
+    { id: 'lantern1', type: 'lantern', x: 15, y: 14, solid: true },
+    { id: 'lantern2', type: 'lantern', x: 24, y: 12, solid: true },
     { id: 'lantern3', type: 'lantern', x: 12, y: 19, solid: true },
     { id: 'lantern4', type: 'lantern', x: 28, y: 19, solid: true },
   ],

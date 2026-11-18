@@ -186,7 +186,7 @@ function boot() {
   /* 8.5 背景預先載入：地圖畫好之後，趁空閒把各畫面的背景、卡背、許願樹大圖先下載好，
      點右上角按鈕或進入畫面時就不用等圖片 */
   const preload = () => {
-    for (const k of assets.keys()) if (/^(scene|card\.back|tree|fx|room|trophy|item)\./.test(k)) assets.image(k);
+    for (const k of assets.keys()) if (/^(scene|card\.back|tree|fx|room|trophy|item|fish)\./.test(k)) assets.image(k);
   };
   if ('requestIdleCallback' in window) requestIdleCallback(preload, { timeout: 1500 }); else setTimeout(preload, 600);
 
