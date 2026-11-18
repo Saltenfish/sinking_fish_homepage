@@ -15,6 +15,27 @@ export function createUI({ root, bus, assets = null, animMs = 220 }) {
   window.addEventListener('touchstart', setTouch, { once: true, passive: true });
   root.append(prompt, layer, toasts);
 
+  /* 手機直式／橫式：依「現在看得到的畫面大小」在 <html> 加上類別，CSS 用它排版。
+     轉手機（自動旋轉）、網址列縮放、分割畫面時都會重新判斷，並送出 view:resize 讓畫面自己重新量大小。 */
+  const html = document.documentElement;
+  function fitViewport() {
+    const vv = window.visualViewport;
+    const w = Math.round(vv?.width || window.innerWidth), hgt = Math.round(vv?.height || window.innerHeight);
+    const portrait = hgt > w;
+    html.classList.toggle('vp-portrait', portrait);
+    html.classList.toggle('vp-landscape', !portrait);
+    html.classList.toggle('vp-short', hgt <= 520);       // 橫拿的手機：高度很小，要排成左右兩欄
+    html.classList.toggle('vp-narrow', w <= 560);        // 直拿的手機：寬度很小
+    html.style.setProperty('--app-h', `${hgt}px`);
+    bus.emit('view:resize', { w, h: hgt, portrait });
+  }
+  let fitTimer = 0;
+  const refit = () => { fitViewport(); clearTimeout(fitTimer); fitTimer = setTimeout(fitViewport, 250); };   // 旋轉動畫結束後再量一次
+  window.addEventListener('resize', refit);
+  window.addEventListener('orientationchange', refit);
+  window.visualViewport?.addEventListener('resize', refit);
+  fitViewport();
+
   const stack = [];          // 開著的視窗，最後一個在最上面
 
   /* 防止「幽靈點擊」：手指點了地圖或互動鍵 → 視窗立刻出現在手指底下 → 同一次觸碰產生的 click 落在新視窗上，
@@ -63,7 +84,7 @@ export function createUI({ root, bus, assets = null, animMs = 220 }) {
 
     setPrompt(text) {
       if (stack.length || !text) { prompt.hidden = true; return; }
-      const s = touchUi ? `▶ 點這裡：${text}` : `F　${text}`;   // 手機上不出現按鍵名稱，避免以為要按鍵盤
+      const s = touchUi ? text : `F　${text}`;   // 電腦版顯示按鍵 F；手機只顯示要做的事（提示本身就能點）
       if (prompt.textContent !== s) prompt.textContent = s;
       prompt.hidden = false;
     },
