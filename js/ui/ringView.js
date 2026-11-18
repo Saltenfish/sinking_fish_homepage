@@ -125,7 +125,7 @@ export function ringView(game) {
     onKey: (e) => {
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') { model.nudge(-1); return true; }
       if (e.code === 'ArrowRight' || e.code === 'KeyD') { model.nudge(1); return true; }
-      if (['Enter', 'KeyE', 'Space'].includes(e.code)) { if (!e.repeat) summonFront(); return true; }
+      if (['Enter', 'KeyF', 'Space'].includes(e.code)) { if (!e.repeat) summonFront(); return true; }
       if (e.code === 'KeyR') { if (!e.repeat) randomSpin(); return true; }
       return false;
     },

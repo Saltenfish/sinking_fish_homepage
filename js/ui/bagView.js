@@ -17,7 +17,7 @@ export function bagView(game) {
     },
     物品() {
       const all = inv.list();
-      const purse = h('p', { class: 'coins', text: `🪙 ${wallet.coins()} 金幣` });
+      const purse = h('p', { class: 'coins', text: `${wallet.coins()} 金幣` });
       if (!all.length) return h('div', null, purse, h('p', { text: '包包是空的。到處走走看看吧。' }));
       return h('div', null, purse, Object.keys(CAT_NAMES).map((cat) => {
         const rows = all.filter((e) => e.item.cat === cat);
@@ -42,5 +42,7 @@ export function bagView(game) {
     content.replaceChildren(tabs[name]());
   }
   select(names[0]);
-  return ui.panel({ title: '背包', body: h('div', null, h('div', { class: 'row' }, buttons), content), cls: 'wide', scene: 'bag' }).closed;
+  return ui.panel({
+    onKey: (e) => { if (e.code === 'KeyE' || e.code === 'KeyB') { if (!e.repeat) ui.closeTop(); return true; } return false; },   // 再按一次 E 收起背包
+    title: '背包', body: h('div', null, h('div', { class: 'row' }, buttons), content), cls: 'wide', scene: 'bag' }).closed;
 }

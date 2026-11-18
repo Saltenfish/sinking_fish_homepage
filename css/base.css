@@ -27,12 +27,12 @@ input,textarea{font:inherit;color:inherit;background:#161a26;border:1px solid #4
 .warn{color:#ffb4a2}
 /* 全螢幕畫面：整個視窗都是這個場景，有切入與切出動畫 */
 .panel{inset:0;display:flex;flex-direction:column;background:radial-gradient(ellipse at 50% 0%,#2a3152 0%,#161a2b 55%,#0c0f1a 100%);background-size:cover;background-position:center;
-  animation:sceneIn var(--scene-ms,220ms) ease-out both}
+  animation:sceneIn var(--scene-ms,120ms) ease-out both}
 .panel.has-bg{image-rendering:pixelated}
-.panel.leaving{animation:sceneOut var(--scene-ms,220ms) ease-in both;pointer-events:none}
-@keyframes sceneIn{from{opacity:0;transform:scale(1.06)}to{opacity:1;transform:none}}
-@keyframes sceneOut{from{opacity:1;transform:none}to{opacity:0;transform:scale(.97)}}
-.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));background:rgba(12,15,26,.55);backdrop-filter:blur(4px);font-size:16px;flex:0 0 auto}
+.panel.leaving{animation:sceneOut var(--scene-ms,120ms) ease-in both;pointer-events:none}
+@keyframes sceneIn{from{opacity:0}to{opacity:1}}
+@keyframes sceneOut{from{opacity:1}to{opacity:0}}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));background:rgba(12,15,26,.55);font-size:16px;flex:0 0 auto}
 .panel-body{flex:1 1 auto;min-height:0;overflow:auto;width:100%;max-width:640px;margin:0 auto;padding:16px calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
 .panel.wide .panel-body{max-width:980px}.panel.xl .panel-body{max-width:1360px}
 .panel.full .panel-body{max-width:none;padding:0;overflow:hidden;display:flex}
@@ -151,9 +151,280 @@ h4{margin:12px 0 4px}.list{margin:0;padding-left:1.2em}.list a{color:#9fc6ff}
 .sfx-card-back{background-image:var(--back-img,none)!important;background-size:100% 100%!important;image-rendering:pixelated}
 .has-plaque-img .plaque{background:var(--plaque-img) center/100% 100% no-repeat;border:0;border-radius:0;box-shadow:0 3px 0 rgba(60,40,30,.25);image-rendering:pixelated;padding:30% 12% 10%;color:#4a3524}
 .has-plaque-img .plaque:hover,.has-plaque-img .plaque:focus-visible{background:var(--plaque-img) center/100% 100% no-repeat;filter:brightness(1.08);outline:2px solid var(--pc);outline-offset:2px}
-/* 有場景背景時，內容放在一個半透明的框裡，四周露出場景 */
-.panel.has-bg:not(.full) .panel-body{flex:0 1 auto;margin:auto;background:rgba(14,17,30,.82);border:2px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.45);backdrop-filter:blur(2px);max-height:calc(100% - 24px)}
-.panel.has-bg.scene-tree .panel-body{background:rgba(14,17,30,.55)}
-.panel.has-bg .panel-head{background:rgba(10,12,22,.7)}
-@media (max-width:560px){.panel.has-bg:not(.full) .panel-body{margin:8px;max-height:calc(100% - 16px)}}
+/* ───────── 有場景背景的畫面：沒有灰色大框，內容本身做成場景裡的東西 ─────────
+   每個場景只換幾個變數：
+     --ink        直接寫在背景上的字的顏色         --ink-shadow  那些字的陰影（讓字從背景浮出來）
+     --surf       小卡片（價目牌、紙條、石板…）的底色  --surf-ink    小卡片上的字    --edge   小卡片的邊框
+     --btn / --btn-ink / --btn-edge   按鈕
+     --sign / --sign-ink              標題招牌 */
+.panel.has-bg{--ink:#fff8ec;--ink-shadow:0 1px 0 #000,0 0 6px rgba(0,0,0,.7);--surf:#f4ead6;--surf-ink:#3b2a1a;--edge:#6e4527;
+  --btn:#7a4e2c;--btn-ink:#fff4dc;--btn-edge:#4f321c;--sign:#7a4e2c;--sign-ink:#fff4dc;color:var(--ink)}
+.panel.has-bg .panel-head{background:none;padding-top:calc(14px + env(safe-area-inset-top))}
+.panel.has-bg .panel-head b{background:var(--sign);color:var(--sign-ink);border:3px solid var(--edge);box-shadow:0 4px 0 rgba(0,0,0,.35);padding:6px 18px;font-size:18px;letter-spacing:.1em}
+.panel.has-bg:not(.full) .panel-body{flex:0 1 auto;margin:auto;max-height:calc(100% - 16px)}
+.panel.has-bg .panel-body > p,.panel.has-bg .panel-body > div > p,.panel.has-bg .note,.panel.has-bg .hint,.panel.has-bg .ring-count,.panel.has-bg .ring-title,
+.panel.has-bg .casino-msg,.panel.has-bg .chat-sub{color:var(--ink);text-shadow:var(--ink-shadow);opacity:1}
+.panel.has-bg h4{display:inline-block;margin:14px 0 6px;background:var(--sign);color:var(--sign-ink);border:2px solid var(--edge);padding:2px 12px;box-shadow:0 3px 0 rgba(0,0,0,.3)}
+.panel.has-bg .btn{background:var(--btn);color:var(--btn-ink);border:2px solid var(--btn-edge);border-radius:4px;box-shadow:0 3px 0 var(--btn-edge);text-shadow:none}
+.panel.has-bg .btn:hover{filter:brightness(1.12)}.panel.has-bg .btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--btn-edge)}
+.panel.has-bg .btn.on{background:var(--sign-ink);color:var(--btn);border-color:var(--btn)}
+.panel.has-bg .btn:disabled{filter:grayscale(.6) brightness(.85)}
+.panel.has-bg .panel-head .btn{background:var(--surf);color:var(--surf-ink);border-color:var(--edge);box-shadow:0 3px 0 var(--edge)}
+/* 小卡片：清單裡的每一項、成就章、格子、統計、說明欄 */
+.panel.has-bg .shop-row,.panel.has-bg .item,.panel.has-bg .stamp,.panel.has-bg .cell,.panel.has-bg .stats > div,.panel.has-bg .tree-detail,.panel.has-bg .coins{
+  background:var(--surf);color:var(--surf-ink);border:2px solid var(--edge);border-radius:4px;box-shadow:0 3px 0 rgba(0,0,0,.28);text-shadow:none}
+.panel.has-bg .shop-row,.panel.has-bg .item{padding:8px 12px;margin:0 0 8px}
+.panel.has-bg .item.locked,.panel.has-bg .stamp.locked,.panel.has-bg .cell.unknown{opacity:.6}
+.panel.has-bg .stats > div{padding:4px 10px}
+.panel.has-bg .coins{display:inline-block;padding:3px 12px;color:#8a5a12}
+.panel.has-bg .shop-row .note,.panel.has-bg .item span,.panel.has-bg .stamp span,.panel.has-bg .tree-detail .note{color:var(--surf-ink);text-shadow:none;opacity:.8}
+.panel.has-bg .shop-price{color:#9a4a12;font-weight:700}
+.panel.has-bg input,.panel.has-bg textarea{background:var(--surf);color:var(--surf-ink);border:2px solid var(--edge);border-radius:4px}
+.panel.has-bg .list a{color:#7a2f20}
+/* 各場景的配色 */
+.panel.has-bg.scene-market{--surf:#f3dfb4;--edge:#7a4e2c}                                                         /* 木頭價目牌 */
+.panel.has-bg.scene-casino{--ink:#fff3c4;--surf:#1f6b45;--surf-ink:#fff7e0;--edge:#f6c453;--btn:#c0392b;--btn-ink:#fff7e0;--btn-edge:#7a1e18;--sign:#c0392b;--sign-ink:#fff3c4}   /* 綠色賭桌、紅色按鈕 */
+.panel.has-bg.scene-casino .casino-game{background:radial-gradient(ellipse at 50% 30%,#2a8a5a,#1a5a3a);border:4px solid #f6c453;border-radius:18px;box-shadow:0 0 0 3px #7a1e18,0 8px 0 rgba(0,0,0,.35)}
+.panel.has-bg.scene-casino .casino-game h4{background:#7a1e18}
+.panel.has-bg.scene-hut{--surf:#fbf1d6;--edge:#b98a55;--sign:#6e4527}                                              /* 釘在木牆上的紙 */
+.panel.has-bg.scene-hut .stamp{transform:rotate(var(--tilt,0deg))}.scene-hut .stamp:nth-child(3n){--tilt:-1.2deg}.scene-hut .stamp:nth-child(3n+1){--tilt:.8deg}
+.panel.has-bg.scene-offerings{--surf:#77748a;--surf-ink:#f6f2ff;--edge:#b3b1c0;--btn:#6c5ce7;--btn-ink:#fff;--btn-edge:#3d2f9e;--sign:#4f4c63;--sign-ink:#e8e0ff}   /* 石板 */
+.panel.has-bg.scene-offerings .shop-price,.panel.has-bg.scene-offerings .note{color:#e8e0ff}
+.panel.has-bg.scene-ring,.panel.has-bg.scene-card{--btn:#2d2560;--btn-ink:#e8e0ff;--btn-edge:#9d8cff;--sign:#2d2560;--sign-ink:#e8e0ff;--edge:#9d8cff;--surf:#efeaff}   /* 發光的符文鈕 */
+.panel.has-bg.scene-ring .btn,.panel.has-bg.scene-card .btn{box-shadow:0 0 10px rgba(157,140,255,.6),0 3px 0 #1a1440}
+.panel.has-bg.scene-tree{--surf:#fdf8ef;--surf-ink:#4a4160;--edge:#d9c49a;--btn:#b98ac9;--btn-ink:#fff;--btn-edge:#7d5a8f;--sign:#fdf8ef;--sign-ink:#4a4160}
+.panel.has-bg.scene-bag{--surf:#efe0bb;--edge:#5a4a37;--btn:#5a4a37;--btn-ink:#f4e8cc;--btn-edge:#3a2e22;--sign:#8a6f4f}   /* 掛在背包上的吊牌 */
+.panel.has-bg.scene-map,.panel.has-bg.scene-list,.panel.has-bg.scene-menu{--ink:#4a3524;--ink-shadow:none;--surf:rgba(255,248,230,.6);--surf-ink:#4a3524;--edge:#8a6a42;--btn:#f1e2bf;--btn-ink:#4a3524;--btn-edge:#8a6a42;--sign:#7a5a34;--sign-ink:#fbf1d6}   /* 羊皮紙上的墨水字 */
+.panel.has-bg.scene-fishchat{--surf:#e8fbff;--surf-ink:#12324a;--edge:#5aa9d6;--btn:#1d6a92;--btn-ink:#e8fbff;--btn-edge:#0e3a55;--sign:#1d6a92;--sign-ink:#e8fbff}
+.panel.has-bg.scene-fishchat .chat-msgs{background:none}
+.panel.has-bg.scene-fishchat .chat-bub{background:#e8fbff;color:#12324a;border:2px solid #5aa9d6;border-radius:14px 14px 14px 4px}
+.panel.has-bg.scene-fishchat .chat-row.me .chat-bub{background:#ffe6a8;color:#3b2616;border-color:#d1a93f;border-radius:14px 14px 4px 14px}
+/* 對話框：像素 RPG 的文字框 */
+.dialog{background:#fbf6ea;color:#2a2438;border:3px solid #3a2a4a;border-radius:6px;box-shadow:inset 0 0 0 3px #fbf6ea,inset 0 0 0 5px #c9b48f,0 6px 0 rgba(0,0,0,.35)}
+.dialog-name{color:#8a4a12}.dialog .btn.choice{background:#f1e2bf;color:#2a2438;border:2px solid #8a6a42}
+.dialog .btn.choice:hover{background:#ffe6a8}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.hang,.panel,.panel.leaving{animation:none}}
+
+/* ═════════════════════════ 像素風介面層 ═════════════════════════
+   放在檔案最後，蓋過前面的圓角、漸層與一般字型：
+   ・字型：俐方體 11 號（Cubic 11，SIL OFL 1.1，檔案與授權在 assets/fonts/），字體載入前先用系統字型
+   ・沒有圓角；邊框是「缺角」的像素框（用 box-shadow 畫四條邊，四個角留空）
+   ・陰影一律是往下的實心色塊，不用模糊
+   ・圖示是 assets/ui/ 的 16×16 像素圖（tools/make_pixel_ui.py 產生） */
+@font-face{font-family:'PixelTC';src:url(../assets/fonts/Cubic_11.woff2) format('woff2');font-display:swap}
+html,body,button,input,textarea{font-family:'PixelTC',"Noto Sans TC",system-ui,sans-serif}
+body{-webkit-font-smoothing:none;-moz-osx-font-smoothing:grayscale;font-size:16px;letter-spacing:.02em}
+img,canvas{image-rendering:pixelated}
+*,*::before,*::after{border-radius:0!important}
+.stick,.stick-knob,.touch-act,.stamp-mark,.plaque::before,.sfx-particles i{border-radius:50%!important}
+
+/* 像素框：--pf 是框的顏色、--pd 是底下那道實心陰影的顏色 */
+.btn,.toast,.prompt,.dialog,.hud-clock,.cell,.item,.stamp,.shop-row,.stats>div,.tree-detail,.coins,.casino-game,
+.panel-head b,.panel.has-bg h4,input,textarea,.chat-bub,.rcard,.card-face,.plaque,.reel,.bar{
+  border:0!important;
+  box-shadow:0 -3px 0 0 var(--pf,#2a1d1a),0 3px 0 0 var(--pf,#2a1d1a),-3px 0 0 0 var(--pf,#2a1d1a),3px 0 0 0 var(--pf,#2a1d1a),
+    0 6px 0 0 var(--pd,rgba(0,0,0,.35))!important}
+.btn{--pf:#1b1530;--pd:#0c0a16;background:#3a3556;color:#f4ead6;padding:6px 12px;margin:3px;font-size:16px;text-shadow:none}
+.btn:hover{background:#4a4470;filter:none}
+.btn:active{transform:translateY(3px);box-shadow:0 -3px 0 0 var(--pf),0 3px 0 0 var(--pf),-3px 0 0 0 var(--pf),3px 0 0 0 var(--pf)!important}
+.btn:focus-visible{outline:3px dashed #f6c453;outline-offset:5px}
+.btn.on{background:#f6c453;color:#2a1d1a}
+
+/* 右上角 */
+.hud{gap:10px;top:calc(14px + env(safe-area-inset-top))}
+.hud-clock{--pf:#1b1530;background:#f4ead6;color:#2a1d1a;padding:5px 10px 5px 30px;margin:3px;position:relative;font-size:16px}
+.hud-clock::before,.ico::before,.coins::before{content:'';position:absolute;left:6px;top:50%;width:18px;height:18px;margin-top:-9px;background:center/contain no-repeat;image-rendering:pixelated}
+.hud-clock[data-phase=day]::before{background-image:url(../assets/ui/day.png)}
+.hud-clock[data-phase=night]::before{background-image:url(../assets/ui/night.png)}
+.hud-clock[data-phase=dawn]::before{background-image:url(../assets/ui/dawn.png)}
+.hud-clock[data-phase=dusk]::before{background-image:url(../assets/ui/dusk.png)}
+.coins{position:relative;padding-left:30px!important}
+.coins::before{background-image:url(../assets/ui/coin.png)}
+.hud .hud-coins{background:#fff0a8}
+.ico{position:relative;padding-left:32px}
+.ico-bag::before{background-image:url(../assets/ui/bag.png)}.ico-map::before{background-image:url(../assets/ui/map.png)}
+.ico-list::before{background-image:url(../assets/ui/list.png)}.ico-gear::before{background-image:url(../assets/ui/gear.png)}
+
+/* 地圖上的提示、通知、對話框 */
+.prompt{--pf:#2a1d1a;background:#fbf6ea;color:#2a1d1a;padding:8px 16px}
+.toast{--pf:#2a1d1a;--pd:transparent;background:#fbf6ea;color:#2a1d1a;margin:3px 3px 6px;padding:5px 12px;font-size:16px}
+.toasts{gap:10px}
+.dialog{--pf:#2a1d1a;background:#fbf6ea;padding:16px 18px;font-size:18px;line-height:1.7}
+.dialog .btn.choice{--pf:#8a6a42;--pd:transparent;background:#f1e2bf;color:#2a1d1a;font-size:17px;padding:6px 12px}
+.dialog .btn.choice:hover{background:#ffe6a8}
+.dialog-hint{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* 場景裡的小卡片：框色用場景的 --edge */
+.panel.has-bg .shop-row,.panel.has-bg .item,.panel.has-bg .stamp,.panel.has-bg .cell,.panel.has-bg .stats>div,.panel.has-bg .tree-detail,
+.panel.has-bg .coins,.panel.has-bg input,.panel.has-bg textarea{--pf:var(--edge);--pd:rgba(0,0,0,.3);margin-left:3px;margin-right:3px}
+.panel.has-bg .shop-row,.panel.has-bg .item{margin-bottom:12px}
+.panel.has-bg .btn{--pf:var(--btn-edge);--pd:rgba(0,0,0,.35);box-shadow:none}
+.panel.has-bg .panel-head b{--pf:var(--edge);--pd:rgba(0,0,0,.35);font-size:20px;margin:3px}
+.panel.has-bg h4{--pf:var(--edge);--pd:rgba(0,0,0,.3);margin:16px 3px 8px}
+.panel.has-bg .panel-head .btn{--pf:var(--edge)}
+.grid{gap:10px}.stamps{gap:12px}.stats{gap:10px}
+.bar{--pf:#2a1d1a;--pd:transparent;height:10px;background:#3a3556;margin:6px 3px 14px}
+.bar>div{background:repeating-linear-gradient(90deg,#f6c453 0 6px,#e0a93a 6px 8px)}
+.panel.has-bg.scene-casino .casino-game{--pf:#f6c453;--pd:#7a1e18;background:#1f6b45;
+  background-image:linear-gradient(45deg,rgba(255,255,255,.04) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.04) 75%),linear-gradient(45deg,rgba(255,255,255,.04) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.04) 75%);
+  background-size:8px 8px;background-position:0 0,4px 4px;margin:6px}
+.panel.has-bg .shop-row{flex-wrap:wrap}
+
+/* 賭場的骰子與拉霸：像素圖示 */
+.die{display:inline-block;width:64px;height:64px;font-size:0;background:center/contain no-repeat;image-rendering:pixelated}
+.die[data-v="1"]{background-image:url(../assets/ui/die-1.png)}.die[data-v="2"]{background-image:url(../assets/ui/die-2.png)}
+.die[data-v="3"]{background-image:url(../assets/ui/die-3.png)}.die[data-v="4"]{background-image:url(../assets/ui/die-4.png)}
+.die[data-v="5"]{background-image:url(../assets/ui/die-5.png)}.die[data-v="6"]{background-image:url(../assets/ui/die-6.png)}
+.reel{--pf:#2a1d1a;--pd:#7a1e18;font-size:0;background:#f4f1e8 center/48px 48px no-repeat;image-rendering:pixelated;margin:3px}
+.reel[data-v=fish]{background-image:url(../assets/ui/slot-fish.png)}.reel[data-v=clover]{background-image:url(../assets/ui/slot-clover.png)}
+.reel[data-v=star]{background-image:url(../assets/ui/slot-star.png)}.reel[data-v=bell]{background-image:url(../assets/ui/slot-bell.png)}
+.reel[data-v=seven]{background-image:url(../assets/ui/slot-seven.png)}
+.reel.spinning{filter:none;background-position:center 30%}
+
+/* 卡片、許願牌、魚魚的對話 */
+.rcard{--pf:var(--rare,#8a93a8);--pd:rgba(0,0,0,.4)}
+.has-back-img .rcard:not(.face){box-shadow:0 -2px 0 0 #1b1530,0 2px 0 0 #1b1530,-2px 0 0 0 #1b1530,2px 0 0 0 #1b1530,0 5px 0 0 rgba(0,0,0,.4)!important}
+.has-back-img .rcard.owned:not(.face){box-shadow:0 -3px 0 0 var(--rare),0 3px 0 0 var(--rare),-3px 0 0 0 var(--rare),3px 0 0 0 var(--rare),0 6px 0 0 rgba(0,0,0,.4)!important}
+.card-face{--pf:var(--rare,#8a93a8);margin:3px 3px 12px}
+.plaque{--pf:var(--pc);--pd:rgba(60,40,80,.18);outline:0!important;background-image:linear-gradient(var(--pc),var(--pc));background-size:calc(100% - 12px) 2px;background-position:6px calc(100% - 8px);background-repeat:no-repeat}
+.hang-string{width:2px;box-shadow:none}
+.chat-bub{--pf:#5aa9d6;--pd:transparent;margin:3px}
+.scene-fishchat .chat-row.me .chat-bub{--pf:#d1a93f}
+.chat-msgs{gap:12px}
+input,textarea{--pf:#4a5270;--pd:transparent;padding:7px 10px;margin:3px}
+
+/* 觸控按鈕也改成像素感：實心色塊與硬陰影 */
+.touch-act{border:3px solid #2a1d1a;box-shadow:0 5px 0 #2a1d1a;font-size:18px}
+.stick{border:3px solid rgba(255,255,255,.5)}
+.panel.has-bg .coins,.hud .hud-coins{background:#fff0a8;color:#5a3a0a}
+.casino .shop-head{margin-bottom:10px}
+
+/* ═════════════════ 可以走進去的房間（js/ui/room.js） ═════════════════
+   房間裡的座標與尺寸都是「房間像素」（480 × 270），整個 .room-stage 再用 transform 放大 */
+.panel.room{background:#0c0a14}
+.panel.room .panel-head{background:#0c0a14;padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:8px}
+.panel.room .panel-head b{background:#3a1f5c;color:#fff0a8;padding:4px 14px;margin:3px;--pf:#f6c453;font-size:18px}
+.panel.room .panel-body{max-width:none}
+.room-viewport{flex:1;min-height:0;overflow:auto;display:flex;background:#0c0a14;-webkit-overflow-scrolling:touch}
+.room-holder{position:relative;margin:auto;flex:none}
+.room-stage{position:absolute;left:0;top:0;width:480px;height:270px;transform-origin:0 0;background:#1a1222 center/100% 100% no-repeat;
+  image-rendering:pixelated;transition:opacity .11s;font-size:9px;line-height:1.3;overflow:hidden;user-select:none;-webkit-user-select:none}
+.room-stage.fading{opacity:0}
+.room-stage>*{position:absolute}
+.room-stage img{image-rendering:pixelated;-webkit-user-drag:none}
+/* 房間裡的按鈕：框線改細，才不會放大後變得很粗 */
+.room-stage .btn{font-size:9px;padding:2px 6px;margin:0;--pf:#1b1530;--pd:rgba(0,0,0,.45);
+  box-shadow:0 -1px 0 0 var(--pf),0 1px 0 0 var(--pf),-1px 0 0 0 var(--pf),1px 0 0 0 var(--pf),0 2px 0 0 var(--pd)!important}
+.room-stage .btn:active{transform:translateY(1px)}
+.room-back{background:#fbf6ea!important;color:#2a1d1a!important;z-index:20}
+.room-coins{z-index:20;font-size:9px;padding:2px 6px 2px 16px!important;box-shadow:0 -1px 0 0 #2a1d1a,0 1px 0 0 #2a1d1a,-1px 0 0 0 #2a1d1a,1px 0 0 0 #2a1d1a!important;text-align:right}
+.room-coins::before{left:3px;width:10px;height:10px;margin-top:-5px}
+/* 可以點的東西：滑鼠移過去微微發光、顯示名字 */
+.hot{background:none;border:0;padding:0;margin:0;cursor:pointer;box-shadow:none!important}
+.hot img{display:block;width:100%;height:100%;pointer-events:none;transition:filter .12s}
+.hot:hover img,.hot:focus-visible img{filter:drop-shadow(0 0 1px #fff7c2) drop-shadow(0 0 3px #f6c453) brightness(1.1)}
+.hot:focus-visible{outline:1px dashed #f6c453;outline-offset:2px}
+.hot-label{display:none;position:absolute;left:50%;bottom:100%;margin-bottom:3px;transform:translateX(-50%);white-space:nowrap;font-size:8px;
+  background:#fbf6ea;color:#2a1d1a;padding:1px 5px;box-shadow:0 -1px 0 0 #2a1d1a,0 1px 0 0 #2a1d1a,-1px 0 0 0 #2a1d1a,1px 0 0 0 #2a1d1a;z-index:10;pointer-events:none}
+.hot:hover .hot-label,.hot:focus-visible .hot-label{display:block}
+.touch-ui .hot:not(.shelf-item):not(.zone) .hot-label{display:block}                      /* 手機沒有滑鼠，名字一直顯示 */
+.touch-ui .hot:not(.shelf-item):not(.zone):not(.cup) img{animation:hotPulse 2.4s ease-in-out infinite}
+@keyframes hotPulse{50%{filter:drop-shadow(0 0 2px #f6c453) brightness(1.06)}}
+.room-sign{font-size:8px;text-align:center;padding:2px 4px;color:#fff0a8;text-shadow:0 1px 0 #000}
+.hint-sign{background:rgba(12,10,20,.65);box-shadow:0 -1px 0 0 #f6c453,0 1px 0 0 #f6c453,-1px 0 0 0 #f6c453,1px 0 0 0 #f6c453}
+.felt-sign{color:#fff7e0}
+.marquee{color:#fff0a8;font-size:10px;line-height:26px;padding:0;white-space:nowrap;overflow:hidden;text-shadow:0 0 4px #e5484d}
+/* 籌碼 */
+.chip{border-radius:50%!important;border:2px dashed rgba(255,255,255,.85)!important;font:inherit;font-size:8px;font-weight:700;color:#fff;cursor:pointer;
+  box-shadow:0 2px 0 rgba(0,0,0,.45)!important;padding:0;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+.chip-0{background:#c0392b}.chip-1{background:#2f6f9e}.chip-2{background:#3f2a6e}
+.chip.on{transform:translateY(-3px);box-shadow:0 0 0 2px #fff0a8,0 5px 0 rgba(0,0,0,.45)!important}
+.chip:disabled{opacity:.45;cursor:default}
+.chip.placed{background:#c0392b;pointer-events:none;transform:none}
+/* 出幣口與金幣 */
+.tray{background:#120a14;border:0;padding:0;cursor:pointer;box-shadow:0 -1px 0 0 #b8862b,0 1px 0 0 #b8862b,-1px 0 0 0 #b8862b,1px 0 0 0 #b8862b!important}
+.tray.has-coins{animation:trayGlow 1s steps(2) infinite}
+@keyframes trayGlow{50%{box-shadow:0 -1px 0 0 #fff0a8,0 1px 0 0 #fff0a8,-1px 0 0 0 #fff0a8,1px 0 0 0 #fff0a8,0 0 6px #f6c453!important}}
+.tray-label{position:absolute;left:0;right:0;top:2px;text-align:center;font-size:7px;color:#f6c453;pointer-events:none}
+.tray-coin{pointer-events:none;transition:transform .35s,opacity .35s}
+.tray-coin.picked{transform:translateY(-30px);opacity:0}
+.falling-coin{pointer-events:none;animation:coinFall .7s cubic-bezier(.5,0,1,.6) both}
+@keyframes coinFall{0%{transform:translate(0,-6px) rotate(0)}85%{transform:translate(var(--dx),var(--dy)) rotate(360deg)}92%{transform:translate(var(--dx),calc(var(--dy) - 4px))}100%{transform:translate(var(--dx),var(--dy))}}
+/* 中獎特效 */
+.win-flash{background:#fff7c2;pointer-events:none;animation:winFlash .5s ease-out both;z-index:30}
+.win-flash.big{animation:winFlash .35s ease-out 3 both}
+@keyframes winFlash{0%{opacity:.75}100%{opacity:0}}
+.win-banner{text-align:center;font-size:18px;color:#fff0a8;pointer-events:none;z-index:31;
+  text-shadow:1px 0 0 #7a1e18,-1px 0 0 #7a1e18,0 1px 0 #7a1e18,0 -1px 0 #7a1e18,0 3px 0 #3a0f0c;animation:winPop 1.4s ease-out both}
+.win-banner.big{font-size:26px;animation-duration:2.1s}
+@keyframes winPop{0%{transform:scale(.2);opacity:0}15%{transform:scale(1.25);opacity:1}25%{transform:scale(1)}80%{opacity:1}100%{transform:translateY(-14px);opacity:0}}
+.win-star{background:#fff0a8;pointer-events:none;z-index:31;animation:winStar 1s ease-out both;box-shadow:0 0 0 1px #f6c453}
+@keyframes winStar{0%{transform:rotate(var(--a)) translateX(0);opacity:1}100%{transform:rotate(var(--a)) translateX(var(--d));opacity:0}}
+/* 拉霸機 */
+.reel-window{overflow:hidden;background:#f4f1e8;box-shadow:inset 0 3px 0 rgba(0,0,0,.25),inset 0 -3px 0 rgba(0,0,0,.25)}
+.reel-window.stopped{animation:reelThud .2s}
+@keyframes reelThud{50%{transform:translateY(2px)}}
+.reel-strip{transition:transform .25s cubic-bezier(.3,1.5,.6,1)}
+.reel-strip.spinning{transition:none;animation:reelSpin .28s linear infinite;filter:blur(.4px)}
+@keyframes reelSpin{from{transform:translateY(0)}to{transform:translateY(var(--loop))}}
+.reel-cell{height:var(--cell,66px);background:center/36px 36px no-repeat;image-rendering:pixelated}
+.reel-cell[data-v=fish]{background-image:url(../assets/ui/slot-fish.png)}.reel-cell[data-v=clover]{background-image:url(../assets/ui/slot-clover.png)}
+.reel-cell[data-v=star]{background-image:url(../assets/ui/slot-star.png)}.reel-cell[data-v=bell]{background-image:url(../assets/ui/slot-bell.png)}
+.reel-cell[data-v=seven]{background-image:url(../assets/ui/slot-seven.png)}
+.machine-btn{background:transparent;border:0;padding:0;font:inherit;font-size:7px;color:#1a1222;cursor:pointer;box-shadow:none!important}
+.machine-btn.on,.machine-btn:hover{box-shadow:0 0 0 1px #fff0a8,0 0 5px #fff0a8!important}
+.machine-btn.go{color:#fff;font-size:8px}
+.lever{background:none;border:0;padding:0;cursor:grab;box-shadow:none!important;touch-action:none}
+.lever img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.lever .lever-down{opacity:0}.lever.pulled .lever-up{opacity:0}.lever.pulled .lever-down{opacity:1}
+.lever:hover .lever-up{filter:drop-shadow(0 0 3px #f6c453)}
+.lever-hint{font-size:8px;color:#2a1d1a;background:#fff0a8;padding:1px 4px;animation:hintBob .8s ease-in-out infinite;pointer-events:none;
+  box-shadow:0 -1px 0 0 #2a1d1a,0 1px 0 0 #2a1d1a,-1px 0 0 0 #2a1d1a,1px 0 0 0 #2a1d1a}
+.lever-hint::before{content:'▲ ';color:#c0392b}
+@keyframes hintBob{50%{transform:translateY(-3px)}}
+/* 21 點 */
+.pcard{background:#fbf8f0;box-shadow:0 -1px 0 0 #2a1d1a,0 1px 0 0 #2a1d1a,-1px 0 0 0 #2a1d1a,1px 0 0 0 #2a1d1a,1px 2px 0 0 rgba(0,0,0,.35)!important;
+  transition:left .35s ease-out,top .35s ease-out;color:#2a1d1a;background-size:100% 100%;image-rendering:pixelated}
+.pcard.red{color:#c0392b}
+.pcard .rank{position:absolute;left:3px;top:2px;font-size:10px;line-height:1}
+.pcard .suit{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-5px 0 0 -7px;background:center/contain no-repeat;image-rendering:pixelated}
+.suit-S{background-image:url(../assets/ui/suit-S.png)}.suit-H{background-image:url(../assets/ui/suit-H.png)}
+.suit-D{background-image:url(../assets/ui/suit-D.png)}.suit-C{background-image:url(../assets/ui/suit-C.png)}
+.pcard.back{background-color:#2a2550}
+.speech{background:#fbf6ea;color:#2a1d1a;font-size:8px;padding:4px 6px;box-shadow:0 -1px 0 0 #2a1d1a,0 1px 0 0 #2a1d1a,-1px 0 0 0 #2a1d1a,1px 0 0 0 #2a1d1a}
+.speech::before{content:'';position:absolute;left:-5px;top:8px;border:3px solid transparent;border-right-color:#2a1d1a}
+.table-btn{background:#7a1e18!important;color:#fff0a8!important;--pf:#f6c453}
+/* 骰子 */
+.zone{background:transparent;border:0;cursor:pointer;color:#fff7e0;box-shadow:none!important}
+.zone:hover,.zone.picked{box-shadow:0 0 0 1px #fff0a8,0 0 8px #f6c453!important}
+.zone-text{position:absolute;left:0;right:0;top:8px;text-align:center;font-size:11px;text-shadow:0 1px 0 #000}
+.zone-odds{position:absolute;left:0;right:0;top:26px;text-align:center;font-size:8px;opacity:.85}
+.room-stage .die{width:30px;height:30px}
+.cup{transition:transform .35s ease-out}
+.cup.shaking{animation:cupShake .12s linear infinite}
+@keyframes cupShake{0%{transform:translate(-3px,0) rotate(-4deg)}50%{transform:translate(3px,-2px) rotate(4deg)}100%{transform:translate(-3px,0) rotate(-4deg)}}
+.cup.lifted{transform:translateY(-52px) scale(.9);opacity:.8}
+/* 轉盤 */
+.wheel-disc{transition:transform 3.2s cubic-bezier(.12,.62,.1,1);transform-origin:50% 50%}
+.wheel-disc.clickable{cursor:pointer}
+.wheel-pointer{pointer-events:none;z-index:5;filter:drop-shadow(0 2px 0 rgba(0,0,0,.4))}
+.spin-btn{font-size:11px!important}
+/* 成就小屋 */
+.case-title{font-size:8px;text-align:center;color:#4a3524;line-height:11px}
+.shelf-count{font-size:8px;text-align:right;color:#f4ead6;text-shadow:0 1px 0 #000;pointer-events:none}
+.shelf-item.dark img{filter:brightness(0) opacity(.45)}
+.shelf-item.dark:hover img{filter:brightness(0) opacity(.6) drop-shadow(0 0 2px #fff0a8)}
+.shelf-item.lit img{animation:litGlow 2.6s ease-in-out infinite}
+@keyframes litGlow{50%{filter:drop-shadow(0 0 2px #fff0a8) brightness(1.08)}}
+.notebook .hot-label{display:block}
+.room-note{background:#fbf6ea;color:#2a1d1a;padding:6px 8px;font-size:8px;z-index:25;cursor:pointer;transform:rotate(-1deg);
+  box-shadow:0 -1px 0 0 #8a6a42,0 1px 0 0 #8a6a42,-1px 0 0 0 #8a6a42,1px 0 0 0 #8a6a42,2px 3px 0 0 rgba(0,0,0,.35)}
+.room-note b{display:block;font-size:10px;margin-bottom:3px;color:#8a4a12}.room-note p{margin:1px 0}
+@media (prefers-reduced-motion:reduce){.reel-strip.spinning{animation-duration:1s}.cup.shaking{animation:none}.wheel-disc{transition-duration:.8s}.win-flash{display:none}}
+.room-back{transform:translateX(var(--sx,0px))}
+.room-coins{transform:translateX(calc(var(--sx,0px) - var(--over,0px)))}
+/* 牌面花色：只改圖片，不要用 background 簡寫蓋掉 .suit-X 的圖 */
+.pcard .suit{background:none;background-position:center;background-size:contain;background-repeat:no-repeat}
+.pcard .suit.suit-S{background-image:url(../assets/ui/suit-S.png)}.pcard .suit.suit-H{background-image:url(../assets/ui/suit-H.png)}
+.pcard .suit.suit-D{background-image:url(../assets/ui/suit-D.png)}.pcard .suit.suit-C{background-image:url(../assets/ui/suit-C.png)}

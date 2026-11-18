@@ -25,11 +25,16 @@ export function register(name, factory) {
 }
 
 /* 依地圖資料建立物件；資料有問題時回傳 null 並印出原因 */
+/* 可以互動的小型地面物件，圖畫成兩倍大（2×2 格），底部對齊原本那一格；佔地與碰撞仍是 1 格 */
+const BIG = new Set(['board', 'bush', 'dig', 'lantern', 'fishspot', 'pond', 'offering', 'bugspot']);
+export const BIG_ART = Object.freeze({ x: -0.5, y: -1, w: 2, h: 2 });
+
 export function createEntity(def, game) {
   const factory = types.get(def?.type);
   if (!factory) { console.warn(`[world] 未知的物件類型，已略過：`, def); return null; }
   if (typeof def.id !== 'string' || !Number.isFinite(def.x) || !Number.isFinite(def.y)) { console.warn('[world] 物件缺少 id / x / y，已略過：', def); return null; }
-  const art = def.art && [def.art.x, def.art.y, def.art.w, def.art.h].every(Number.isFinite) && def.art.w > 0 && def.art.h > 0 ? { ...def.art } : null;
+  let art = def.art && [def.art.x, def.art.y, def.art.w, def.art.h].every(Number.isFinite) && def.art.w > 0 && def.art.h > 0 ? { ...def.art } : null;
+  if (!art && BIG.has(def.type) && !(def.w > 1) && !(def.h > 1)) art = { ...BIG_ART };
   const base = {
     id: def.id, type: def.type, x: def.x, y: def.y, w: def.w || 1, h: def.h || 1, solid: def.solid === true, art,
     prompt: () => null, interact: () => {}, color: () => '#888', label: () => '',
@@ -102,12 +107,14 @@ register('altar', (def, game) => ({
 /* ---------- 農田 ---------- */
 register('plot', (def, game) => {
   const i = def.index;
-  if (!Number.isInteger(i) || i < 0 || i >= game.farm.size) throw new Error(`農田 index 不合法：${i}`);
+  if (!Number.isInteger(i) || i < 0 || i >= game.farm.maxSize) throw new Error(`農田 index 不合法：${i}`);
   const st = () => game.farm.status(i);
+  const open = () => i < game.farm.size;               // 還沒擴建到這一塊：不顯示、不能互動
   return {
+    visible: open,
     color() { const s = st(); return s.state === 'empty' ? '#6d4c41' : s.state === 'ripe' ? '#f4a261' : s.wet ? '#4e6b3a' : '#7a6a3a'; },
     label() { const s = st(); return s.state === 'empty' ? '' : s.state === 'ripe' ? '熟' : `${Math.floor(s.pct * 100)}%`; },
-    prompt() { const s = st(); return s.state === 'empty' ? '播種' : s.state === 'ripe' ? `收成${s.crop.name}` : s.wet ? `照顧${s.crop.name}` : '澆水'; },
+    prompt() { if (!open()) return null; const s = st(); return s.state === 'empty' ? '播種' : s.state === 'ripe' ? `收成${s.crop.name}` : s.wet ? `照顧${s.crop.name}` : '澆水'; },
     flat: true,
     /* 素材鍵依狀態切換：ent.plot.empty / ent.plot.growing / ent.plot.ripe */
     sprite() { return `ent.plot.${st().state}`; },
@@ -116,13 +123,15 @@ register('plot', (def, game) => {
       if (s.state === 'ripe') { game.farm.harvest(i); return; }
       if (s.state === 'growing') {
         const canFert = !s.fertilized && game.inv.has('fertilizer');
-        if (!s.wet && !canFert) { game.farm.water(i); game.ui.toast('澆水了'); return; }
-        if (!canFert) { await game.ui.say([`${s.crop.name}正在長大（${Math.floor(s.pct * 100)}%）。土還是濕的。`]); return; }
-        const opts = [...(s.wet ? [] : ['澆水']), '施肥'];
+        const canTonic = game.inv.has('growth_tonic');
+        if (!s.wet && !canFert && !canTonic) { game.farm.water(i); game.ui.toast('澆水了'); return; }
+        if (!canFert && !canTonic) { await game.ui.say([`${s.crop.name}正在長大（${Math.floor(s.pct * 100)}%）。土還是濕的。`, '商店有賣肥料和生長藥水，可以讓它長快一點。']); return; }
+        const opts = [...(s.wet ? [] : ['澆水']), ...(canFert ? ['施肥（每株一次）'] : []), ...(canTonic ? [`生長藥水（剩 ${game.inv.count('growth_tonic')}）`] : [])];
         const idx = await game.ui.choose(`${s.crop.name}（${Math.floor(s.pct * 100)}%）`, opts);
         if (idx < 0) return;
         if (opts[idx] === '澆水') { game.farm.water(i); game.ui.toast('澆水了'); }
-        else if (game.farm.fertilize(i).ok) game.ui.toast('施肥了，長大了一截');
+        else if (opts[idx].startsWith('施肥')) { if (game.farm.fertilize(i).ok) game.ui.toast('施肥了，長大了一截'); }
+        else if (game.farm.tonic(i).ok) game.ui.toast('喝了藥水，一下子長大了一半');
         return;
       }
       const seeds = game.farm.plantable();

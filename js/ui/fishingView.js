@@ -144,7 +144,7 @@ export function fishingView(game) {
     title: '釣魚', scene: 'fishing', cls: 'full',
     body: h('div', { class: 'fishing' }, cv, h('div', { class: 'fishing-ui' }, status, h('div', { class: 'row' }, pullBtn, againBtn))),
     onClose: () => { alive = false; if (raf !== null) cancelAnimationFrame(raf); fishing.cancel(); },
-    onKey: (e) => { if (['KeyE', 'Space', 'Enter'].includes(e.code)) { if (!e.repeat) pull(); return true; } return false; },
+    onKey: (e) => { if (['KeyF', 'Space', 'Enter'].includes(e.code)) { if (!e.repeat) pull(); return true; } return false; },
   });
   begin();
   raf = requestAnimationFrame(frame);

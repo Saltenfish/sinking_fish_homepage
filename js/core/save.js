@@ -22,8 +22,10 @@ export function blankSave(now) {
     fish: { visits: 0, feeds: 0, msgs: 0, lastAt: 0 },
     wishes: [],                   // 訪客自己掛的願望
     coins: 0,                     // 金幣
+    casinoTray: 0,                // 賭場出幣口裡還沒收的金幣
     tank: [],                     // 魚缸裡的魚 [{item, at, fedAt}]
     settings: { cardBack: 'default' },   // 外觀設定
+    upgrades: {},                 // 永久升級 {升級id: 等級}
   };
 }
 
@@ -91,10 +93,12 @@ export function normalize(raw, now) {
     for (const k of ['visits', 'feeds', 'msgs', 'lastAt']) if (nonNeg(raw.fish[k])) out.fish[k] = raw.fish[k];
   }
   if (Number.isInteger(raw.coins) && raw.coins >= 0) out.coins = Math.min(raw.coins, 999999);
+  if (Number.isInteger(raw.casinoTray) && raw.casinoTray >= 0) out.casinoTray = Math.min(raw.casinoTray, 999999);
   if (Array.isArray(raw.tank)) {
     out.tank = raw.tank.filter((f) => isObj(f) && safeKey(f.item) && nonNeg(f.at)).slice(0, 64)
       .map((f) => ({ item: f.item, at: f.at, fedAt: nonNeg(f.fedAt) ? f.fedAt : 0 }));
   }
+  out.upgrades = numMap(raw.upgrades, (v) => Number.isInteger(v) && v >= 0 && v <= 99);
   if (isObj(raw.settings) && safeKey(raw.settings.cardBack)) out.settings.cardBack = raw.settings.cardBack;
   if (Array.isArray(raw.wishes)) {
     out.wishes = raw.wishes.filter((w) => typeof w === 'string' && w.trim()).slice(0, 10).map((w) => w.trim().slice(0, 30));

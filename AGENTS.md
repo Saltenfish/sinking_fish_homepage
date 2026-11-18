@@ -39,6 +39,34 @@
 11. **每次修改都要：** 跑 `npm test` 全數通過 → 開分支 → 推上去 → 開 Pull Request。不要直接推 `main`。
     新增或修改規則時，同一個 PR 內要有對應的測試。
 
+## 操作按鍵
+
+- 鍵盤：F／空白／Enter 互動與對話下一句；E（或 B）開關背包；M 地圖；L 目錄；Esc 選單；按住 Shift 潛行。
+- 互動提示在桌機顯示「F　…」，在觸控裝置顯示「👆 點這裡：…」。
+
+## 像素風介面
+
+- 字型：`assets/fonts/Cubic_11.woff2`（俐方體 11 號，SIL OFL 1.1，**不可修改後沿用原名**，所以放的是未修改的原檔；授權檔 `OFL.txt` 必須一起保留）。
+- `css/base.css` 最後的「像素風介面層」統一處理：沒有圓角、缺角的像素框（`--pf` 框色、`--pd` 下方陰影色）、實心硬陰影。新元素要像素框，把選擇器加進那一段的清單即可。
+- 介面圖示是 `assets/ui/` 的 16×16 像素圖，由 `tools/make_pixel_ui.py` 用字元畫產生；CSS 以相對路徑 `../assets/ui/名稱.png` 引用。
+  時段圖示看 `.hud-clock[data-phase]`，骰子看 `.die[data-v]`，拉霸看 `.reel[data-v]`（對應 `data/casino.js` 的 id）。
+- **走進去的房間**（`js/ui/room.js`）：賭場和成就小屋不是彈窗，是一個 480×270 的房間舞台，整個用 transform 放大填滿螢幕。
+  - 房間裡的座標一律是「房間像素」，和背景圖（`assets/rooms/*.png`）一一對應；版位寫在 `js/data/rooms.js`，要和 `tools/make_pixel_rooms.py` 畫的位置一致。
+  - `openRoom()` 給 `room.show({bg, back, build, focus})` 換畫面、`room.hotspot()` 放可以點的東西（滑鼠移過去發光、顯示名字）、`coinTray()` 出幣口、`winBurst()` 中獎特效。
+  - 直向手機時房間至少放大 1.6 倍、左右可捲；`focus` 是一開始捲到的位置，「返回」和金幣會自動貼在看得到的角落。
+  - 賭場四種遊戲：拉霸、21 點、骰子、幸運轉盤。贏的錢先放進 `save.data.casinoTray`（出幣口），點一下才收進錢包；離開房間時自動收走，不會不見。
+  - 成就小屋：左邊書架放成就獎盃、右邊放收藏過的道具；沒拿到的是黑影，拿到才點亮。
+- 不要再用 emoji 當圖示（不同裝置長得不一樣，也不像素）。
+
+## 畫面的樣式（沒有灰色大框）
+
+有背景圖的全螢幕畫面（`ui.panel({ scene })`）不放半透明大框，內容本身做成場景裡的東西（價目牌、紙條、石板、賭桌…）。
+樣式全部由 `css/base.css` 的幾個變數決定：`--ink`、`--ink-shadow`（直接寫在背景上的字）、`--surf`、`--surf-ink`、`--edge`（小卡片）、
+`--btn`、`--btn-ink`、`--btn-edge`（按鈕）、`--sign`、`--sign-ink`（標題招牌）。新畫面只要加一行 `.panel.has-bg.scene-名稱{…}` 設定這些變數。
+選擇器一定要寫成 `.panel.has-bg.scene-名稱`，寫成 `.scene-名稱` 優先權不夠，會被預設值蓋掉。
+
+各畫面背景、卡背、許願樹大圖在開機後趁空閒預先下載（`main.js` 的 preload），所以打開畫面不會等圖片。
+
 ## 手機操作的注意事項
 
 - 手機上的互動有三條路，三條都要保持可用：右下角「互動」鍵、畫面下方的互動提示（本身是按鈕）、直接點地圖上的物件（會自己走過去並互動）。
@@ -102,6 +130,8 @@ tests/                  node --test。helpers.js 的 makeGame() 可組出一套�
 docs/ASSETS.md          素材規格、免費素材來源、提供素材的方式
 tools/make_pixel_assets.py  產生暫用的地圖像素圖（Python + Pillow），輸出到 assets/
 tools/make_pixel_scenes.py  產生暫用的卡背、許願樹大圖、畫面背景
+tools/make_pixel_ui.py      產生介面用的 16×16 像素圖示（HUD、金幣、時段、骰子、拉霸）
+tools/make_pixel_rooms.py   產生「走進去的房間」：賭場大廳與四個遊戲畫面、成就小屋書架、獎盃、撲克花色、所有道具圖示
 ```
 
 ### `game` 物件
@@ -109,7 +139,7 @@ tools/make_pixel_scenes.py  產生暫用的卡背、許願樹大圖、畫面背�
 `main.js` 把所有系統放進一個物件，畫面與地圖物件都從這裡取用：
 
 `bus` `reg` `save` `storage` `assets` `rng` `clock` `progress` `inv` `cards` `farm` `fishing` `ach`
-`shop`（供奉石）`wallet` `market`（商店）`casino`（設定有誤時為 `null`）`tank` `fish` `ui` `world` `view`
+`shop`（供奉石）`wallet` `market`（商店）`upgrades`（永久升級）`casino`（設定有誤時為 `null`）`tank` `fish` `ui` `world` `view`
 
 ### 事件一覽
 
@@ -151,6 +181,7 @@ stats       {統計: 數值}              例：cardsSummoned、harvests、catch
 achievements {成就id: 解鎖時間}
 fish        {visits, feeds, msgs, lastAt}
 wishes      [文字]                    settings {cardBack}
+upgrades    {升級id: 等級}
 ```
 
 localStorage 鍵：本站存檔 `sfh_save`；與 `prompt_list` 連動用 `pp_fish_visits`（只讀）與 `sfh_pond_found`（本站寫入）。
@@ -166,6 +197,7 @@ localStorage 鍵：本站存檔 `sfh_save`；與 `prompt_list` 連動用 `pp_fis
 | 調整掉落 | `data/loot.js`。`phases` 用 `data/time.js` 的時段 id |
 | 新增成就 | `data/achievements.js`。條件三種：`{stat, gte}`、`{flag}`、`{seenAll}`。新的統計項用 `progress.inc('名稱')` 累加即可 |
 | 商店上架 | `data/market.js`（買價要高於賣價） |
+| 永久升級 | `data/upgrades.js`；等級存在 `save.data.upgrades`。農田數 = `CONFIG.FARM_PLOTS` + 擴建等級 × step，最多 `CONFIG.FARM_MAX_PLOTS`（地圖上預留的田數要一樣多） |
 | 改賭場賠率 | `data/casino.js`（期望值要小於 1） |
 | 改時段、天色 | `data/time.js`。四個時段要剛好涵蓋 24 小時 |
 | 改召喚特效節奏 | `data/summonFx.js`；視覺在 `css/base.css` 的 `.sfx[data-step=…]` |
@@ -217,7 +249,7 @@ export function fooView(game) {
 
 ## 測試
 
-- `npm test`：全部是純邏輯測試，不需要瀏覽器。目前 64 項。
+- `npm test`：全部是純邏輯測試，不需要瀏覽器。目前 70 項。
 - 重要的保護：存檔 normalize 與匯出匯入、資料檢查、地圖可達性（每個物件與傳送點都走得到、隱藏池塘只能穿過蘆葦）、
   卡環一定停在整數張、魚魚的語氣比例、商店不可套利、賭場期望值、時段涵蓋 24 小時、素材路徑安全性。
 - 畫面的實測目前是用 Playwright 在外部跑的（不在 repo 裡）。改到畫面時，至少手動確認：

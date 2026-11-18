@@ -4,6 +4,7 @@ export const goods = [
   { item: 'seed_turnip', price: 10 },
   { item: 'seed_star', price: 120 },
   { item: 'fertilizer', price: 40 },
+  { item: 'growth_tonic', price: 90 },
   { item: 'feed', price: 15 },
   { item: 'bait', price: 20 },
 ];

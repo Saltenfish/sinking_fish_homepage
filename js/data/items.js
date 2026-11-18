@@ -7,6 +7,7 @@ export const items = [
   { id: 'feed', name: '魚飼料', cat: 'misc', desc: '聞起來不怎麼樣。也許哪裡的水邊有誰會喜歡。' },
 
   { id: 'fertilizer', name: '肥料', cat: 'misc', desc: '對成長中的作物用，直接長大一截。每株限用一次。' },
+  { id: 'growth_tonic', name: '生長藥水', cat: 'misc', desc: '對成長中的作物用，直接長大一半。可以重複使用。' },
   { id: 'bait', name: '魚餌', cat: 'misc', desc: '釣魚時自動使用，魚會比較快上鉤。' },
 
   { id: 'seed_turnip', name: '蕪菁種子', cat: 'seed', desc: '長得快，適合新手。' },

@@ -1,12 +1,13 @@
 /* 輸入：鍵盤、點擊、觸控搖桿。
    ・有視窗開著時（ui.isBlocking()），按鍵全部交給視窗處理，不會同時觸發地圖上的動作
    ・在文字輸入框裡打字時，只有 Esc 會被處理
+   ・F／空白／Enter 互動，E（或 B）開背包
    ・axis() 回傳 {x, y, mag}：x, y 是方向（單位向量），mag 是速度倍率（1 正常、SNEAK 潛行、0 沒動） */
 const MOVE = {
   ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1],
   ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0],
 };
-const ACTIONS = { KeyE: 'interact', Space: 'interact', Enter: 'interact', KeyB: 'bag', KeyL: 'list', KeyM: 'map', Escape: 'menu' };
+const ACTIONS = { KeyF: 'interact', Space: 'interact', Enter: 'interact', KeyE: 'bag', KeyB: 'bag', KeyL: 'list', KeyM: 'map', Escape: 'menu' };
 const DEADZONE = 0.22, STICK_RUN = 0.62;
 
 /* 純函式：搖桿向量 → {x, y, mag} */
