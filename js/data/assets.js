@@ -38,7 +38,6 @@ export const assets = {
   'tile.wall': { src: 'assets/tiles/forest.png', frameW: 32, frameH: 32, frames: 3, variants: true },
   'tile.stone': { src: 'assets/tiles/stone.png', frameW: 32, frameH: 32, frames: 3, variants: true },
   'tile.hallwall': { src: 'assets/tiles/hallwall.png', frameW: 32, frameH: 32, frames: 2, variants: true },
-  'tile.marble': { src: 'assets/tiles/marble.png', frameW: 32, frameH: 32, frames: 3, variants: true },   // 召喚神殿的大理石地板
   'tile.water': { src: 'assets/tiles/water.png', frameW: 32, frameH: 32, frames: 8, fps: 6 },   // 由上往下流
   'tile.bridge': 'assets/tiles/bridge.png',
   'tile.reed': { src: 'assets/tiles/reed.png', frameW: 32, frameH: 32, frames: 2, variants: true },

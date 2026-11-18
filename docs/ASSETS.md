@@ -118,7 +118,7 @@ assets/scenes/    全螢幕畫面背景    assets/fx/        召喚特效
 
 `tools/make_pixel_assets.py` 會用程式畫出目前所有地圖圖塊、成就小屋、地圖物件；`tools/make_pixel_scenes.py` 畫出四種卡背（漩渦中浮出一隻鴨子）、許願樹大圖（中間一整根實心的樹幹，往上分成粗枝向外擴散，葉子在枝條末端，背景透明）、各個全螢幕畫面的背景。兩支都輸出到 `assets/`，並已填進 `js/data/assets.js`。
 
-`tools/make_pixel_temple.py` 畫出召喚神殿：整座神殿的地板與弧形外牆是一張 704×448 的佈景圖（`decor.temple`，蓋在地圖 (9, 0)），加上大理石柱、斷柱、中央召喚台。換成自己的神殿圖時，牆的位置要對齊 `js/data/maps/town.js` 的 `TEMPLE` 形狀。
+`tools/make_pixel_temple.py` 畫出召喚神殿遺跡：零散的大理石地板與斷牆是一張 704×448 的佈景圖（`decor.temple`，蓋在地圖 (9, 0)），加上大理石柱、斷柱、中央召喚台。換成自己的遺跡圖時，地板和斷牆的位置要對齊 `js/data/maps/town.js` 的 `RUINS` 表。
 
 `tools/make_pixel_fish.py` 畫出釣魚畫面與魚缸裡的魚（`assets/fish/<物品id>.png`，36×18，頭朝右），自己畫魚時用同樣的比例、頭朝右即可。
 

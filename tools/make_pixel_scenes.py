@@ -112,7 +112,7 @@ def stamp(im, pattern, x0, y0, colors, flip=False):
 
 BACKS = {
     #           邊框暗,     邊框,      金線,      漩渦暗,     漩渦中,     漩渦亮,     中心光
-    'default': ('#1a1030', '#3b2468', '#d9c2ff', '#0f0820', '#4b2a8a', '#a77cf0', '#f3e8ff'),   # 紫色魔法卡
+    'default': ('#1d1430', '#3a2752', '#e0b45a', '#120c1f', '#4a2a7a', '#e08a3c', '#ffe6a8'),
     'sakura':  ('#3a1426', '#7a2f52', '#f6d28a', '#1f0a16', '#8a2f5f', '#f59ac0', '#fff0f6'),
     'tide':    ('#0c2230', '#1d4a63', '#bfe3f0', '#06141d', '#165a7a', '#5fd0e0', '#e8fbff'),
     'star':    ('#0a0a14', '#22223a', '#f3e6b0', '#05050c', '#25285a', '#8fa0ff', '#ffffff'),

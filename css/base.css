@@ -527,8 +527,6 @@ input,textarea{--pf:#4a5270;--pd:transparent;padding:7px 10px;margin:3px}
 .panel.has-bg.scene-ring .panel-head b{--pf:#d4ae5a}
 .panel.has-bg.scene-ring .btn{box-shadow:0 0 10px rgba(167,124,240,.55),0 3px 0 #2f1a66}
 .panel.has-bg.scene-ring .panel-head .btn{background:#fbfaff;color:#4b2a8a;--pf:#d4ae5a}
-.scene-ring .rcard{box-shadow:0 0 14px rgba(139,92,240,.45)}
-.scene-ring .has-back-img .rcard:not(.face){filter:drop-shadow(0 0 6px rgba(139,92,240,.55))}
 .scene-ring .ring-title{font-size:18px}
 /* 大螢幕：卡片放大一點 */
 @media (min-width:700px) and (min-height:600px){

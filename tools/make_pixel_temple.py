@@ -4,38 +4,44 @@
 用法：  python3 tools/make_pixel_temple.py        （需要 Pillow）
 
 輸出：
-  assets/decor/temple.png        整座神殿的地板與弧形外牆（22×14 格 = 704×448），蓋在地圖 (9, 0) 的位置
-  assets/tiles/marble.png        大理石地板圖塊（三款變化；佈景圖沒載入時才看得到）
+  assets/decor/temple.png        神殿遺跡：零散的大理石地板與斷牆（22×14 格 = 704×448），蓋在地圖 (9, 0) 的位置
   assets/sprites/column.png      白色大理石柱（1×3 格），柱頭上浮著紫色水晶
   assets/sprites/column-broken.png  斷掉的柱子
   assets/sprites/altar.png       中央的召喚台（3×3 格）：兩層大理石圓台，台面是發光的紫色法陣
 
-神殿的形狀由 templeK() 決定，必須和 js/data/maps/town.js 的 templeK() / TEMPLE 一模一樣：
-地板、外牆的位置（碰撞）是 town.js 算的，這裡只負責把它畫得好看。
+神殿遺跡的地板與斷牆位置，直接讀 js/data/maps/town.js 裡的 RUINS 表（RUINS-BEGIN 到 RUINS-END）：
+碰撞是地圖用那張表算的，這裡只負責把它畫成崩落、破碎的樣子。改遺跡就改那張表，再重跑這支程式。
 """
 import math
 import os
 import random
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from make_pixel_assets import new, px, rect, ellipse, rgb, save, strip  # noqa: E402
 
 T = 32
-TEMPLE = {'cx': 20, 'cy': 6.6, 'rx': 8.4, 'ry': 5.2, 'floor': 0.86, 'gate': (19, 20)}
 ORIGIN = (9, 0)                      # 佈景圖左上角在地圖上的格子座標
 DW, DH = 22, 14                      # 佈景圖大小（格）
 
 MARBLE, MARBLE_L, MARBLE_D, SEAM = '#f1eef5', '#fbfaff', '#ddd7e6', '#d3cce0'
 GOLD, GOLD_L, GOLD_D = '#e0b45a', '#f8e2a0', '#a9832f'
 VIOLET, VIOLET_L, VIOLET_D, VIOLET_G = '#8b5cf0', '#c9a8ff', '#4b2a8a', '#efe2ff'
+ALTAR_C = (20, 6)                    # 召喚台中心（格）
 
 
-def temple_k(x, y):
-    dx, dy = (x - TEMPLE['cx']) / TEMPLE['rx'], (y - TEMPLE['cy']) / TEMPLE['ry']
-    a = math.atan2(dy, dx)
-    m = 1 + 0.11 * math.sin(a + 0.6) + 0.08 * math.sin(2 * a + 1.9) + 0.045 * math.cos(3 * a - 0.4)
-    return math.hypot(dx, dy) / m, a
+def read_ruins():
+    """讀 js/data/maps/town.js 裡 RUINS-BEGIN 到 RUINS-END 之間的表（和地圖碰撞用的是同一張）"""
+    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'js', 'data', 'maps', 'town.js'), encoding='utf8').read()
+    body = src.split('// RUINS-BEGIN')[1].split('// RUINS-END')[0]
+    rows = re.findall(r"'([^']*)'", body)
+    ox, oy = map(int, re.search(r'RUINS_ORIGIN = \[(\d+), (\d+)\]', src).groups())
+    grid = {}
+    for dy, row in enumerate(rows):
+        for dx, c in enumerate(row):
+            grid[(ox + dx, oy + dy)] = c
+    return grid
 
 
 def C(c):
@@ -48,149 +54,154 @@ def mix(c1, c2, t):
 
 
 def decor_temple():
-    r = random.Random(77)
+    """神殿遺跡：殘缺的大理石地板（邊緣崩落、有裂縫）、幾段斷牆、地上殘留半圈金色與紫色的鑲嵌、散落的碎石"""
+    grid = read_ruins()
     W, H = DW * T, DH * T
     im = new(W, H)
-    K = [[None] * W for _ in range(H)]
-    for y in range(H):
-        for x in range(W):
-            K[y][x] = temple_k(ORIGIN[0] + (x + 0.5) / T, ORIGIN[1] + (y + 0.5) / T)
-    F0, R1 = 0.875, 0.995                 # 地板到這裡、外牆到這裡
-    FACE = 12                              # 南側外牆露出的牆面高度（像素）
+    rnd = lambda *k: random.Random(hash_k(*k)).random()   # noqa: E731
 
-    def in_gate(x, y):
-        gx = ORIGIN[0] + x / T
-        return TEMPLE['gate'][0] - 0.05 < gx < TEMPLE['gate'][1] + 1.05 and ORIGIN[1] + y / T > TEMPLE['cy']
+    def cell(gx, gy):
+        return grid.get((gx, gy), '.')
 
-    def broken(a):                         # 東北邊有一段坍塌的外牆
-        return -1.05 < a < -0.55
+    def noise1(key, t):
+        """平滑的一維雜訊（0～1）：每 8 像素一個隨機值，中間線性內插"""
+        i, f = int(t // 8), (t % 8) / 8
+        return rnd(key, i) * (1 - f) + rnd(key, i + 1) * f
 
-    # 大理石紋：幾條淡淡的灰紫色紋路（隨機漫步）
+    def altar_d(gx, gy, lx, ly):
+        return math.hypot(gx + (lx + 0.5) / T - ALTAR_C[0], (gy + (ly + 0.5) / T - ALTAR_C[1]) * 1.25)
+
+    def eaten(gx, gy, lx, ly):
+        """這個像素是不是已經崩落：靠草地的邊緣用平滑雜訊咬掉 2～12 像素；
+        邊緣的石板（16×16）有些整塊不見；中間偶爾也破一個洞（召喚台附近保持完整）"""
+        qx, qy = lx // 16, ly // 16
+        near_altar = altar_d(gx, gy, lx, ly) < 2.5
+        exposed = False
+        for (nx, ny), dist, t in (((gx - 1, gy), lx, gy * T + ly), ((gx + 1, gy), T - 1 - lx, gy * T + ly),
+                                  ((gx, gy - 1), ly, gx * T + lx), ((gx, gy + 1), T - 1 - ly, gx * T + lx)):
+            if cell(nx, ny) != 'm':
+                exposed = exposed or dist < 16
+                if dist < 2 + int(10 * noise1(('e', nx, ny, gx, gy), t)):
+                    return True
+        for (nx, ny), cx, cy in (((gx - 1, gy - 1), 0, 0), ((gx + 1, gy - 1), T - 1, 0), ((gx - 1, gy + 1), 0, T - 1), ((gx + 1, gy + 1), T - 1, T - 1)):
+            if cell(nx, ny) != 'm' and abs(lx - cx) + abs(ly - cy) < 6 + int(8 * rnd(gx, gy, cx, cy)):
+                return True
+        if not near_altar and exposed and rnd('q', gx, gy, qx, qy) < 0.32:
+            return True
+        if not near_altar and rnd('hole', gx, gy, qx, qy) < 0.05:
+            return True
+        return False
+
     veins = set()
-    for _ in range(46):
+    r = random.Random(77)
+    for _ in range(40):
         x, y = r.randrange(W), r.randrange(H)
         ang = r.random() * math.tau
-        for _ in range(r.randrange(20, 70)):
+        for _ in range(r.randrange(20, 60)):
             veins.add((int(x), int(y)))
             ang += (r.random() - 0.5) * 0.7
             x += math.cos(ang)
             y += math.sin(ang) * 0.7
-
-    rim = [[False] * W for _ in range(H)]
+    floor = [[False] * W for _ in range(H)]
     for y in range(H):
         for x in range(W):
-            k, a = K[y][x]
-            if k < F0 or (in_gate(x, y) and k < 1.0):
-                # ── 地板：同心圓的大理石板，越外圈分得越細；金色與紫色的鑲嵌環 ──
-                ring = int(k / 0.11)
-                sectors = 6 + ring * 4
-                sec = int(((a + math.pi + ring * 0.37) / math.tau) * sectors)
-                k2, a2 = K[y][min(W - 1, x + 1)]
-                k3, a3 = K[min(H - 1, y + 1)][x]
-                seam = int(k2 / 0.11) != ring or int(k3 / 0.11) != ring
-                s2 = int(((a2 + math.pi + ring * 0.37) / math.tau) * sectors)
-                s3 = int(((a3 + math.pi + ring * 0.37) / math.tau) * sectors)
-                seam = seam or ((s2 != sec or s3 != sec) and k > 0.2)
-                c = mix(MARBLE_L, MARBLE, min(1, k * 1.1))
-                if (sec + ring) % 2:
-                    c = mix(c, MARBLE_D, 0.25)
-                if (x, y) in veins:
-                    c = mix(c, '#c7bfd6', 0.55)
-                if seam:
-                    c = rgb(SEAM)
-                if 0.62 <= k < 0.645:                             # 金色鑲嵌環
-                    c = rgb(GOLD_L if k < 0.632 else GOLD)
-                if 0.43 <= k < 0.452:                             # 紫色符文環（點狀，會發光）
-                    c = rgb(VIOLET if (x // 3 + y // 3) % 2 else VIOLET_L)
-                if 0.39 < k < 0.43 or 0.452 <= k < 0.49:
-                    c = mix(c, VIOLET_G, 0.55)
-                if in_gate(x, y) and k >= F0:                    # 入口：往外延伸的台階
-                    step = int((k - F0) / 0.035)
-                    c = rgb(MARBLE_L if step % 2 == 0 else '#d8d1e3')
-                px(im, x, y, c)
-            elif k < R1 and not in_gate(x, y):
-                rim[y][x] = True
-                # ── 外牆頂：白色大理石，內側一圈金邊 ──
-                t = (k - F0) / (R1 - F0)
-                c = rgb(GOLD) if t < 0.12 else rgb(GOLD_L) if t < 0.2 else mix(MARBLE_L, '#e6e1ee', t)
-                if t > 0.9:
-                    c = rgb('#cfc8dc')
-                if broken(a):                                     # 坍塌的那段：一塊一塊缺角、裂縫
-                    blk = random.Random((x // 5) * 131 + (y // 4) * 17).random()
-                    if blk < 0.3:
-                        c = rgb('#b3abc2') if (x + y) % 5 else rgb('#8f88a0')
-                    elif blk < 0.42:
-                        c = rgb('#d9d3e3')
-                    if (x * 3 + y * 7) % 23 == 0:
-                        c = rgb('#7d7690')
-                px(im, x, y, c)
-    # 南側的牆面：外牆往下露出一段，有直條的溝紋；底下一道陰影
-    for y in range(H):
-        for x in range(W):
-            if rim[y][x] or im.getpixel((x, y))[3]:
+            gx, gy = ORIGIN[0] + x // T, ORIGIN[1] + y // T
+            if cell(gx, gy) != 'm' or eaten(gx, gy, x % T, y % T):
                 continue
-            for d in range(1, FACE + 1):
-                if y - d >= 0 and rim[y - d][x]:
-                    k, a = K[y - d][x]
-                    if math.sin(a) < -0.15:                       # 北側的牆面被牆頂擋住，看不到
-                        break
-                    hgt = FACE - (6 if broken(a) else 0)
-                    if d > hgt:
-                        break
-                    c = mix('#ece8f2', '#bdb5cb', d / FACE)
-                    if x % 7 == 0:
-                        c = mix(c, '#a99fbc', 0.5)
-                    if d == 1:
-                        c = rgb(GOLD_D)
-                    px(im, x, y, c)
-                    break
+            floor[y][x] = True
+            # 大理石板：像砌磚一樣錯開排，石板之間的縫很淡
+            lx, ly = x % T, y % T
+            row = y // 16
+            sx = (x + (8 if row % 2 else 0)) // 16
+            c = mix(MARBLE_L, MARBLE, 0.15 + 0.35 * rnd('s', sx, row))
+            if (x, y) in veins:
+                c = mix(c, '#c7bfd6', 0.5)
+            if y % 16 == 15 or (x + (8 if row % 2 else 0)) % 16 == 15:
+                c = mix(c, '#cfc7dc', 0.6)
+            # 殘留的鑲嵌：以召喚台為中心的金色環與紫色符文環，斷斷續續，只畫在還留著的地板上
+            d = altar_d(gx, gy, lx, ly)
+            ang = math.atan2((gy + (ly + 0.5) / T - ALTAR_C[1]) * 1.25, gx + (lx + 0.5) / T - ALTAR_C[0])
+            seg = int((ang + math.pi) / math.tau * 14)
+            if 2.95 < d < 3.08 and rnd('gold', seg) > 0.35:
+                c = C(GOLD_L if d < 3.01 else GOLD)
+            if 2.15 < d < 2.24 and rnd('vio', seg) > 0.25:
+                c = C(VIOLET if (x // 3 + y // 3) % 2 else VIOLET_L)
+            elif 2.05 < d < 2.34 and rnd('vio', seg) > 0.25:
+                c = mix(c, VIOLET_G, 0.45)
+            px(im, x, y, c)
+    # 裂縫：幾條細細的折線
+    for _ in range(26):
+        x, y = r.randrange(W), r.randrange(H)
+        for _ in range(r.randrange(6, 18)):
+            if 0 <= x < W and 0 <= y < H and floor[y][x]:
+                px(im, x, y, '#b9b0c9')
+            x += r.choice((-1, 1, 1))
+            y += r.choice((0, 1))
+    # 地板塊的南緣露出一點厚度（看起來是鋪在草地上的石板）
     for y in range(H - 1, 0, -1):
         for x in range(W):
-            if not im.getpixel((x, y))[3] and im.getpixel((x, y - 1))[3] and not rim[y - 1][x]:
-                k, a = K[y - 1][x]
-                if k >= R1:
-                    for d in range(3):
-                        if y + d < H and not im.getpixel((x, y + d))[3]:
-                            px(im, x, y + d, (40, 50, 30, 70 - d * 20))
-    # 坍塌處掉在外面草地上的碎石
-    for _ in range(9):
-        a = r.uniform(-1.0, -0.6)
-        k = r.uniform(1.03, 1.18)
-        m = 1 + 0.11 * math.sin(a + 0.6) + 0.08 * math.sin(2 * a + 1.9) + 0.045 * math.cos(3 * a - 0.4)
-        gx = TEMPLE['cx'] + math.cos(a) * k * m * TEMPLE['rx']
-        gy = TEMPLE['cy'] + math.sin(a) * k * m * TEMPLE['ry']
-        x, y = int((gx - ORIGIN[0]) * T), int((gy - ORIGIN[1]) * T)
-        w, h = r.randrange(5, 11), r.randrange(4, 7)
+            if floor[y - 1][x] and not floor[y][x] and not im.getpixel((x, y))[3]:
+                px(im, x, y, '#cbc3d8')
+                if y + 1 < H and not floor[y + 1][x]:
+                    px(im, x, y + 1, '#a99fbc')
+                if y + 2 < H and not im.getpixel((x, y + 2))[3]:
+                    px(im, x, y + 2, (40, 50, 30, 60))
+    # 斷牆：白色大理石塊疊成的矮牆，頂端高低不平，比佔地那格往上高出一截
+    for (gx, gy), c in sorted(grid.items(), key=lambda kv: kv[0][1]):
+        if c != 'R':
+            continue
+        x0, y0 = (gx - ORIGIN[0]) * T, (gy - ORIGIN[1]) * T
+        for x in range(x0, x0 + T):
+            col = (x - x0) // 8                                            # 頂端以 8px 為一階，高低不平
+            top = y0 - 18 + int(14 * rnd(gx, gy, col))
+            if cell(gx - 1, gy) != 'R' and col == 0:
+                top += 6
+            if cell(gx + 1, gy) != 'R' and col == 3:
+                top += 6
+            bottom = y0 + T - 4
+            for y in range(max(0, top), bottom):
+                if y < top + 3:
+                    cc = mix(MARBLE_L, '#ffffff', 0.5)                    # 牆頂
+                    if (x - x0) % 8 == 7:
+                        cc = mix(cc, '#cfc7dc', 0.5)
+                else:
+                    t = (y - top) / max(1, bottom - top)
+                    cc = mix('#f1edf6', '#c3bad3', t)
+                    rowb = (y - y0 + 20) // 9
+                    if (y - y0 + 20) % 9 == 0 or (x - x0 + (5 if rowb % 2 else 0)) % 12 == 0:
+                        cc = mix(cc, '#b3a9c6', 0.45)                       # 石塊之間的縫
+                if y == top + 3 and rnd(gx, gy, col, 'g') < 0.5:
+                    cc = C(GOLD)                                           # 殘留的金色飾帶
+                px(im, x, y, cc)
+    # 碎石：散在斷牆與地板塊旁邊的草地上
+    spots = [k for k, c in grid.items() if c in 'mR']
+    for i in range(34):
+        gx, gy = spots[int(rnd('rub', i) * len(spots))]
+        x = (gx - ORIGIN[0]) * T + int(rnd('rx', i) * 44) - 6
+        y = (gy - ORIGIN[1]) * T + int(rnd('ry', i) * 44) - 6
+        if not (0 <= x < W - 12 and 0 <= y < H - 8) or floor[min(H - 1, y + 3)][min(W - 1, x + 3)]:
+            continue
+        w, h = 3 + int(rnd('rw', i) * 7), 2 + int(rnd('rh', i) * 4)
         rect(im, x, y, x + w, y + h, '#e9e4f0')
-        rect(im, x, y + h - 1, x + w, y + h, '#b8b0c6')
+        rect(im, x, y + h, x + w, y + h, '#b8b0c6')
         rect(im, x, y, x + w, y, '#fbfaff')
-    # 地板上散落的紫色光點
-    for _ in range(40):
-        x, y = r.randrange(W), r.randrange(H)
-        k, _ = K[y][x]
-        if k < 0.8:
-            px(im, x, y, VIOLET_L if r.random() < 0.6 else VIOLET_G)
     return im
 
 
-def tiles_marble():
-    frames = []
-    for v in range(3):
-        r = random.Random(300 + v)
-        im = new(T, T, MARBLE)
-        for y in range(T):
-            for x in range(T):
-                if (x // 16 + y // 16 + v) % 2:
-                    px(im, x, y, mix(MARBLE, MARBLE_D, 0.2))
-        rect(im, 0, 0, T - 1, 0, SEAM)
-        rect(im, 0, 0, 0, T - 1, SEAM)
-        x, y = r.randrange(T), r.randrange(T)
-        for _ in range(26):
-            px(im, int(x) % T, int(y) % T, '#cfc7dc')
-            x += r.choice((-1, 0, 1, 1))
-            y += r.choice((0, 1))
-        frames.append(im)
-    return strip(frames)
+def hash_k(*k):
+    h = 2166136261
+    for ch in repr(k):
+        h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
+    return h
+
+
+def blend_px(im, x, y, c):
+    br, bg_, bb, ba = im.getpixel((x, y))
+    k = c[3] / 255
+    if ba == 0:
+        im.putpixel((x, y), c)
+    else:
+        im.putpixel((x, y), (round(br + (c[0] - br) * k), round(bg_ + (c[1] - bg_) * k), round(bb + (c[2] - bb) * k), 255))
 
 
 def column(broken=False):
@@ -279,8 +290,7 @@ def altar():
 
 
 def main():
-    out = [save(decor_temple(), 'decor', 'temple.png'), save(tiles_marble(), 'tiles', 'marble.png'),
-           save(column(), 'sprites', 'column.png'), save(column(True), 'sprites', 'column-broken.png'),
+    out = [save(decor_temple(), 'decor', 'temple.png'), save(column(), 'sprites', 'column.png'), save(column(True), 'sprites', 'column-broken.png'),
            save(altar(), 'sprites', 'altar.png')]
     print(f'輸出 {len(out)} 張圖')
 
