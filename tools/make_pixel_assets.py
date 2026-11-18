@@ -860,7 +860,7 @@ def main():
     out['ent.offering'] = save(ent_offering(), 'sprites', 'offering.png')
     out['ent.bugspot'] = save(ents_bug(), 'sprites', 'bug.png')
     out['ent.tree'] = save(ent_tree(), 'sprites', 'wish-tree.png')
-    out['ent.altar'] = save(ent_altar(), 'sprites', 'altar.png')
+    # ent.altar 改由 tools/make_pixel_temple.py 產生（白色大理石召喚台）
     out['ent.pillar'] = save(ent_pillar(), 'sprites', 'pillar.png')
     out['ent.banner'] = save(ent_banner(), 'sprites', 'banner.png')
     out['ent.market'] = save(ent_market(), 'sprites', 'market.png')

@@ -16,7 +16,7 @@ from make_pixel_assets import rgb, new, px, rect, ellipse, save  # noqa: E402
 
 
 def lerp(a, b, t):
-    a, b = rgb(a), rgb(b)
+    a, b = (rgb(a) if isinstance(a, str) else a), (rgb(b) if isinstance(b, str) else b)
     return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(4))
 
 
@@ -112,7 +112,7 @@ def stamp(im, pattern, x0, y0, colors, flip=False):
 
 BACKS = {
     #           邊框暗,     邊框,      金線,      漩渦暗,     漩渦中,     漩渦亮,     中心光
-    'default': ('#1d1430', '#3a2752', '#e0b45a', '#120c1f', '#4a2a7a', '#e08a3c', '#ffe6a8'),
+    'default': ('#1a1030', '#3b2468', '#d9c2ff', '#0f0820', '#4b2a8a', '#a77cf0', '#f3e8ff'),   # 紫色魔法卡
     'sakura':  ('#3a1426', '#7a2f52', '#f6d28a', '#1f0a16', '#8a2f5f', '#f59ac0', '#fff0f6'),
     'tide':    ('#0c2230', '#1d4a63', '#bfe3f0', '#06141d', '#165a7a', '#5fd0e0', '#e8fbff'),
     'star':    ('#0a0a14', '#22223a', '#f3e6b0', '#05050c', '#25285a', '#8fa0ff', '#ffffff'),
@@ -542,31 +542,89 @@ def scene_offerings():
 
 
 def scene_ring():
-    """召喚卡殿：夜色的大廳、柱子、地上的大法陣"""
+    """召喚神殿裡面：白色大理石的神話神殿。淡紫色的天空、一排白柱與金色柱頭、
+    後方半圓形的神龕，地上是發光的紫色大法陣（卡片本身是紫色的魔法卡）"""
+    r = random.Random(44)
     im = new(SW, SH)
-    bands(im, 0, 0, SW - 1, 170, '#0f0b22', '#2a2150', 8)
-    sparkles(im, 90, ['#ffffff', '#d6ccff', '#9d8cff'], 31, (0, 0, SW - 1, 120))
-    bands(im, 0, 171, SW - 1, SH - 1, '#3a3456', '#1a1630', 5)
-    for x0 in (30, 110, SW - 140, SW - 60):                   # 柱子
-        rect(im, x0, 20, x0 + 29, 200, '#6f6c80')
-        rect(im, x0, 20, x0 + 5, 200, '#8f8d9e')
-        rect(im, x0 + 24, 20, x0 + 29, 200, '#4f4c63')
-        rect(im, x0 - 4, 14, x0 + 33, 22, '#8f8d9e')
-        rect(im, x0 - 4, 196, x0 + 33, 204, '#8f8d9e')
-        rect(im, x0, 100, x0 + 29, 104, '#6c5ce7')
-    for a in range(0, 360, 1):                                # 地上的法陣（橢圓透視）
-        for rr, c in ((150, '#6c5ce7'), (138, '#4a3fae'), (90, '#6c5ce7')):
-            x = round(SW / 2 + math.cos(math.radians(a)) * rr)
-            y = round(232 + math.sin(math.radians(a)) * rr * 0.22)
+    bands(im, 0, 0, SW - 1, 150, '#e9e0fb', '#fbf8ff', 8)                 # 天空：上淡紫、下近白
+    for _ in range(16):                                                   # 幾朵淡雲
+        cx, cy, w = r.randrange(SW), r.randrange(10, 90), r.randrange(18, 46)
+        for k in range(w):
+            for j in range(-2, 3):
+                if r.random() < 0.8 - abs(j) * 0.2:
+                    blend(im, cx + k, cy + j + int(math.sin(k / 6) * 2), (255, 255, 255, 120))
+    sparkles(im, 40, ['#c9a8ff', '#efe2ff', '#ffffff'], 31, (0, 0, SW - 1, 120))
+    # 後方的半圓神龕：白色拱頂與一圈金邊，裡面透出紫光
+    ax, ay, ar = SW // 2, 150, 92
+    for y in range(ay - ar, ay + 1):
+        for x in range(ax - ar, ax + ar + 1):
+            d = math.hypot(x - ax, (y - ay) * 1.0)
+            if d <= ar:
+                if d > ar - 10:
+                    c = '#f6f3fa' if d > ar - 8 else '#e0b45a'
+                    if d > ar - 2:
+                        c = '#cfc8dc'
+                else:
+                    t = d / (ar - 10)
+                    c = lerp('#efe2ff', '#c9a8ff', t ** 1.6)
+                px(im, x, y, c)
+    for a in range(200, 341, 10):                                        # 拱頂上的楔石
+        ra = math.radians(a)
+        x, y = round(ax + math.cos(ra) * (ar - 5)), round(ay + math.sin(ra) * (ar - 5))
+        rect(im, x - 1, y - 1, x + 1, y + 1, '#ffffff')
+    # 地板：白色大理石，往遠處漸淡，有一道一道的石板縫
+    bands(im, 0, 151, SW - 1, SH - 1, '#f1edf6', '#d9d2e6', 6)
+    for y in range(156, SH, 9 + (0)):
+        for x in range(SW):
+            px(im, x, y, '#cfc7dc')
+    for i in range(-12, 13):                                              # 透視的直縫
+        x0 = SW / 2 + i * 22
+        for y in range(152, SH):
+            t = (y - 150) / (SH - 150)
+            px(im, round(SW / 2 + (x0 - SW / 2) * (0.35 + t * 1.6)), y, '#d6cfe2')
+    # 柱子：白色大理石、金色柱頭與柱礎，柱頭上一顆紫色水晶
+    for x0, top, w in ((14, 6, 34), (92, 26, 28), (SW - 120, 26, 28), (SW - 48, 6, 34)):
+        bot = 214 if w == 34 else 196
+        for y in range(top + 14, bot):
+            for x in range(x0, x0 + w):
+                c = lerp('#ffffff', '#c9c1d8', (x - x0) / w)
+                if (x - x0) % 7 == 3:
+                    c = lerp(c, '#b5abc8', 0.5)
+                px(im, x, y, c)
+        rect(im, x0 - 6, top + 6, x0 + w + 5, top + 13, '#f6f3fa')        # 柱頭
+        rect(im, x0 - 6, top + 6, x0 + w + 5, top + 6, '#ffffff')
+        rect(im, x0 - 3, top + 12, x0 + w + 2, top + 13, '#e0b45a')
+        rect(im, x0 - 8, top, x0 + w + 7, top + 5, '#ffffff')
+        rect(im, x0 - 8, top + 5, x0 + w + 7, top + 5, '#cfc8dc')
+        rect(im, x0 - 6, bot, x0 + w + 5, bot + 7, '#f6f3fa')             # 柱礎
+        rect(im, x0 - 6, bot, x0 + w + 5, bot, '#e0b45a')
+        rect(im, x0 - 6, bot + 7, x0 + w + 5, bot + 8, '#b5abc8')
+        gx = x0 + w // 2                                                   # 紫水晶
+        for dy, hw in ((0, 1), (1, 2), (2, 3), (3, 3), (4, 2), (5, 1)):
+            rect(im, gx - hw, top - 10 + dy, gx + hw - 1, top - 10 + dy, '#8b5cf0' if dy > 2 else '#c9a8ff')
+        px(im, gx - 1, top - 9, '#ffffff')
+    # 地上的大法陣（橢圓透視）：紫色雙環、八芒星、外圈符文點
+    for a in range(0, 360, 1):
+        ra = math.radians(a)
+        for rr, c in ((156, '#8b5cf0'), (150, '#c9a8ff'), (96, '#8b5cf0')):
+            x = round(SW / 2 + math.cos(ra) * rr)
+            y = round(232 + math.sin(ra) * rr * 0.22)
             px(im, x, y, c)
+        if a % 12 < 4:
+            px(im, round(SW / 2 + math.cos(ra) * 142), round(232 + math.sin(ra) * 142 * 0.22), '#8b5cf0')
     for i in range(8):
         a1 = math.radians(i * 45)
         a2 = math.radians(i * 45 + 135)
-        p1 = (SW / 2 + math.cos(a1) * 138, 232 + math.sin(a1) * 138 * 0.22)
-        p2 = (SW / 2 + math.cos(a2) * 138, 232 + math.sin(a2) * 138 * 0.22)
-        n = 120
+        p1 = (SW / 2 + math.cos(a1) * 150, 232 + math.sin(a1) * 150 * 0.22)
+        p2 = (SW / 2 + math.cos(a2) * 150, 232 + math.sin(a2) * 150 * 0.22)
+        n = 140
         for k in range(n + 1):
-            px(im, round(p1[0] + (p2[0] - p1[0]) * k / n), round(p1[1] + (p2[1] - p1[1]) * k / n), '#5a4ccf')
+            px(im, round(p1[0] + (p2[0] - p1[0]) * k / n), round(p1[1] + (p2[1] - p1[1]) * k / n), '#a77cf0')
+    for y in range(206, 260):                                             # 法陣中央往上透的紫光
+        for x in range(SW // 2 - 60, SW // 2 + 61):
+            d = math.hypot((x - SW / 2) / 60, (y - 232) / 26)
+            if d < 1 and r.random() < (1 - d) * 0.35:
+                blend(im, x, y, (201, 168, 255, 110))
     return im
 
 

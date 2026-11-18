@@ -53,6 +53,10 @@
 - **手機直式／橫式**：`ui.js` 依目前畫面大小在 `<html>` 加上 `vp-portrait`／`vp-landscape`、`vp-narrow`（寬 ≤ 560，直拿）、`vp-short`（高 ≤ 520，橫拿），並設定 `--app-h`；手機自動旋轉、網址列縮放時會重新判斷，並送出 `view:resize`。
   - 手機版面的規則都寫在 `css/base.css` 最後「手機版面」那一段：橫拿時標題列變薄、地圖／許願樹／角色卡改成左右兩欄；直拿時狀態列排成一行（很窄時只留圖示）。
   - 互動提示：電腦版顯示「F　進入小屋」，手機只顯示「進入小屋」（提示本身可以點）。
+- **召喚神殿（地圖上抽卡的地方）**：白色大理石的圓形神殿，外圍是不對稱的弧形矮牆，南邊有入口；卡片是紫色的魔法卡。
+  - 形狀由 `js/data/maps/town.js` 的 `TEMPLE` 與 `templeK()` 決定：地板格子、外牆格子（擋路）都是它算出來的。
+  - 外觀是一整張佈景圖 `decor.temple`（`tools/make_pixel_temple.py`，同一個公式）。**改形狀要兩邊一起改**，否則牆畫的位置和擋路的位置會對不上。
+  - 地圖上繞著召喚台公轉的卡片畫在 `world/types.js` 的 `altar.drawOver`；召喚畫面的卡片大小與間距在 CSS（`--ring-gap`）。
 - **走進去的房間**（`js/ui/room.js`）：賭場和成就小屋不是彈窗，是一個 480×270 的房間舞台，整個用 transform 放大填滿螢幕。
   - 房間裡的座標一律是「房間像素」，和背景圖（`assets/rooms/*.png`）一一對應；版位寫在 `js/data/rooms.js`，要和 `tools/make_pixel_rooms.py` 畫的位置一致。
   - `openRoom()` 給 `room.show({bg, back, build, focus})` 換畫面、`room.hotspot()` 放可以點的東西（滑鼠移過去發光、顯示名字）、`coinTray()` 出幣口、`winBurst()` 中獎特效。
@@ -137,6 +141,7 @@ tools/make_pixel_scenes.py  產生暫用的卡背、許願樹大圖、畫面背�
 tools/make_pixel_ui.py      產生介面用的 16×16 像素圖示（HUD、金幣、時段、骰子、拉霸）
 tools/make_pixel_rooms.py   產生「走進去的房間」：賭場大廳與四個遊戲畫面、成就小屋書架、獎盃、撲克花色、所有道具圖示
 tools/make_pixel_fish.py    產生釣魚畫面與魚缸裡的魚（36×18，assets/fish/），畫面上用整數倍放大、關掉平滑
+tools/make_pixel_temple.py  產生召喚神殿：整座神殿的佈景圖（decor.temple）、大理石地板、白色大理石柱、中央召喚台
 ```
 
 ### `game` 物件

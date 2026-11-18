@@ -38,16 +38,20 @@ export const assets = {
   'tile.wall': { src: 'assets/tiles/forest.png', frameW: 32, frameH: 32, frames: 3, variants: true },
   'tile.stone': { src: 'assets/tiles/stone.png', frameW: 32, frameH: 32, frames: 3, variants: true },
   'tile.hallwall': { src: 'assets/tiles/hallwall.png', frameW: 32, frameH: 32, frames: 2, variants: true },
+  'tile.marble': { src: 'assets/tiles/marble.png', frameW: 32, frameH: 32, frames: 3, variants: true },   // 召喚神殿的大理石地板
   'tile.water': { src: 'assets/tiles/water.png', frameW: 32, frameH: 32, frames: 8, fps: 6 },   // 由上往下流
   'tile.bridge': 'assets/tiles/bridge.png',
   'tile.reed': { src: 'assets/tiles/reed.png', frameW: 32, frameH: 32, frames: 2, variants: true },
   'tile.hut': 'assets/tiles/roof.png',
   'tile.door': 'assets/tiles/door.png',
   'decor.hut': 'assets/decor/hut.png',
+  'decor.temple': 'assets/decor/temple.png',   // 召喚神殿（tools/make_pixel_temple.py）
   'ent.hut': 'assets/sprites/hut-door.png',
   'ent.tree': 'assets/sprites/wish-tree.png',
   'ent.altar': 'assets/sprites/altar.png',
   'ent.pillar': 'assets/sprites/pillar.png',
+  'ent.column': 'assets/sprites/column.png',
+  'ent.column.broken': 'assets/sprites/column-broken.png',
   'ent.banner': 'assets/sprites/banner.png',
   'ent.market': 'assets/sprites/market.png',
   'ent.casino': 'assets/sprites/casino.png',
