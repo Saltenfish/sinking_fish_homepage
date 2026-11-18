@@ -29,6 +29,8 @@ export function openRoom(game, { title, scene = '', onClose, onKey } = {}) {
   const stage = h('div', { class: 'room-stage' });
   const holder = h('div', { class: 'room-holder' }, stage);
   const viewport = h('div', { class: 'room-viewport' }, holder);
+  // 直拿手機時房間比畫面寬：下面空出來的地方放「左右滑動」的提示
+  const frame = h('div', { class: 'room-frame' }, viewport, h('div', { class: 'room-swipe', 'aria-hidden': 'true', text: '← 左右滑動看看房間 →' }));
   let back = null, alive = true, cleanup = [];
 
   function layout() {
@@ -41,6 +43,7 @@ export function openRoom(game, { title, scene = '', onClose, onKey } = {}) {
     const over = Math.max(0, ROOM_W - vw / s);                 // 有多少房間像素露在畫面外（直向手機才會有）
     stage.style.setProperty('--over', `${over}px`);
     scale = s;
+    frame.classList.toggle('scrolls', holder.offsetWidth > vw + 1);
     focusScroll();
     pin();
   }
@@ -96,7 +99,7 @@ export function openRoom(game, { title, scene = '', onClose, onKey } = {}) {
   };
 
   const panel = ui.panel({
-    title, scene, cls: 'full room', body: viewport,
+    title, scene, cls: 'full room', body: frame,
     onKey: (e) => {
       if (onKey?.(e) === true) return true;
       if (e.code === 'Escape' && back) { back(); return true; }

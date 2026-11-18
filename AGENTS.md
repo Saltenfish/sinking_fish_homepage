@@ -50,6 +50,9 @@
 - `css/base.css` 最後的「像素風介面層」統一處理：沒有圓角、缺角的像素框（`--pf` 框色、`--pd` 下方陰影色）、實心硬陰影。新元素要像素框，把選擇器加進那一段的清單即可。
 - 介面圖示是 `assets/ui/` 的 16×16 像素圖，由 `tools/make_pixel_ui.py` 用字元畫產生；CSS 以相對路徑 `../assets/ui/名稱.png` 引用。
   時段圖示看 `.hud-clock[data-phase]`，骰子看 `.die[data-v]`，拉霸看 `.reel[data-v]`（對應 `data/casino.js` 的 id）。
+- **手機直式／橫式**：`ui.js` 依目前畫面大小在 `<html>` 加上 `vp-portrait`／`vp-landscape`、`vp-narrow`（寬 ≤ 560，直拿）、`vp-short`（高 ≤ 520，橫拿），並設定 `--app-h`；手機自動旋轉、網址列縮放時會重新判斷，並送出 `view:resize`。
+  - 手機版面的規則都寫在 `css/base.css` 最後「手機版面」那一段：橫拿時標題列變薄、地圖／許願樹／角色卡改成左右兩欄；直拿時狀態列排成一行（很窄時只留圖示）。
+  - 互動提示：電腦版顯示「F　進入小屋」，手機只顯示「進入小屋」（提示本身可以點）。
 - **走進去的房間**（`js/ui/room.js`）：賭場和成就小屋不是彈窗，是一個 480×270 的房間舞台，整個用 transform 放大填滿螢幕。
   - 房間裡的座標一律是「房間像素」，和背景圖（`assets/rooms/*.png`）一一對應；版位寫在 `js/data/rooms.js`，要和 `tools/make_pixel_rooms.py` 畫的位置一致。
   - `openRoom()` 給 `room.show({bg, back, build, focus})` 換畫面、`room.hotspot()` 放可以點的東西（滑鼠移過去發光、顯示名字）、`coinTray()` 出幣口、`winBurst()` 中獎特效。
