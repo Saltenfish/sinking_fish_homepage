@@ -50,6 +50,12 @@
 - `css/base.css` 最後的「像素風介面層」統一處理：沒有圓角、缺角的像素框（`--pf` 框色、`--pd` 下方陰影色）、實心硬陰影。新元素要像素框，把選擇器加進那一段的清單即可。
 - 介面圖示是 `assets/ui/` 的 16×16 像素圖，由 `tools/make_pixel_ui.py` 用字元畫產生；CSS 以相對路徑 `../assets/ui/名稱.png` 引用。
   時段圖示看 `.hud-clock[data-phase]`，骰子看 `.die[data-v]`，拉霸看 `.reel[data-v]`（對應 `data/casino.js` 的 id）。
+- **走進去的房間**（`js/ui/room.js`）：賭場和成就小屋不是彈窗，是一個 480×270 的房間舞台，整個用 transform 放大填滿螢幕。
+  - 房間裡的座標一律是「房間像素」，和背景圖（`assets/rooms/*.png`）一一對應；版位寫在 `js/data/rooms.js`，要和 `tools/make_pixel_rooms.py` 畫的位置一致。
+  - `openRoom()` 給 `room.show({bg, back, build, focus})` 換畫面、`room.hotspot()` 放可以點的東西（滑鼠移過去發光、顯示名字）、`coinTray()` 出幣口、`winBurst()` 中獎特效。
+  - 直向手機時房間至少放大 1.6 倍、左右可捲；`focus` 是一開始捲到的位置，「返回」和金幣會自動貼在看得到的角落。
+  - 賭場四種遊戲：拉霸、21 點、骰子、幸運轉盤。贏的錢先放進 `save.data.casinoTray`（出幣口），點一下才收進錢包；離開房間時自動收走，不會不見。
+  - 成就小屋：左邊書架放成就獎盃、右邊放收藏過的道具；沒拿到的是黑影，拿到才點亮。
 - 不要再用 emoji 當圖示（不同裝置長得不一樣，也不像素）。
 
 ## 畫面的樣式（沒有灰色大框）
@@ -125,6 +131,7 @@ docs/ASSETS.md          素材規格、免費素材來源、提供素材的方�
 tools/make_pixel_assets.py  產生暫用的地圖像素圖（Python + Pillow），輸出到 assets/
 tools/make_pixel_scenes.py  產生暫用的卡背、許願樹大圖、畫面背景
 tools/make_pixel_ui.py      產生介面用的 16×16 像素圖示（HUD、金幣、時段、骰子、拉霸）
+tools/make_pixel_rooms.py   產生「走進去的房間」：賭場大廳與四個遊戲畫面、成就小屋書架、獎盃、撲克花色、所有道具圖示
 ```
 
 ### `game` 物件

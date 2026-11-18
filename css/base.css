@@ -299,3 +299,132 @@ input,textarea{--pf:#4a5270;--pd:transparent;padding:7px 10px;margin:3px}
 .stick{border:3px solid rgba(255,255,255,.5)}
 .panel.has-bg .coins,.hud .hud-coins{background:#fff0a8;color:#5a3a0a}
 .casino .shop-head{margin-bottom:10px}
+
+/* ═════════════════ 可以走進去的房間（js/ui/room.js） ═════════════════
+   房間裡的座標與尺寸都是「房間像素」（480 × 270），整個 .room-stage 再用 transform 放大 */
+.panel.room{background:#0c0a14}
+.panel.room .panel-head{background:#0c0a14;padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:8px}
+.panel.room .panel-head b{background:#3a1f5c;color:#fff0a8;padding:4px 14px;margin:3px;--pf:#f6c453;font-size:18px}
+.panel.room .panel-body{max-width:none}
+.room-viewport{flex:1;min-height:0;overflow:auto;display:flex;background:#0c0a14;-webkit-overflow-scrolling:touch}
+.room-holder{position:relative;margin:auto;flex:none}
+.room-stage{position:absolute;left:0;top:0;width:480px;height:270px;transform-origin:0 0;background:#1a1222 center/100% 100% no-repeat;
+  image-rendering:pixelated;transition:opacity .11s;font-size:9px;line-height:1.3;overflow:hidden;user-select:none;-webkit-user-select:none}
+.room-stage.fading{opacity:0}
+.room-stage>*{position:absolute}
+.room-stage img{image-rendering:pixelated;-webkit-user-drag:none}
+/* 房間裡的按鈕：框線改細，才不會放大後變得很粗 */
+.room-stage .btn{font-size:9px;padding:2px 6px;margin:0;--pf:#1b1530;--pd:rgba(0,0,0,.45);
+  box-shadow:0 -1px 0 0 var(--pf),0 1px 0 0 var(--pf),-1px 0 0 0 var(--pf),1px 0 0 0 var(--pf),0 2px 0 0 var(--pd)!important}
+.room-stage .btn:active{transform:translateY(1px)}
+.room-back{background:#fbf6ea!important;color:#2a1d1a!important;z-index:20}
+.room-coins{z-index:20;font-size:9px;padding:2px 6px 2px 16px!important;box-shadow:0 -1px 0 0 #2a1d1a,0 1px 0 0 #2a1d1a,-1px 0 0 0 #2a1d1a,1px 0 0 0 #2a1d1a!important;text-align:right}
+.room-coins::before{left:3px;width:10px;height:10px;margin-top:-5px}
+/* 可以點的東西：滑鼠移過去微微發光、顯示名字 */
+.hot{background:none;border:0;padding:0;margin:0;cursor:pointer;box-shadow:none!important}
+.hot img{display:block;width:100%;height:100%;pointer-events:none;transition:filter .12s}
+.hot:hover img,.hot:focus-visible img{filter:drop-shadow(0 0 1px #fff7c2) drop-shadow(0 0 3px #f6c453) brightness(1.1)}
+.hot:focus-visible{outline:1px dashed #f6c453;outline-offset:2px}
+.hot-label{display:none;position:absolute;left:50%;bottom:100%;margin-bottom:3px;transform:translateX(-50%);white-space:nowrap;font-size:8px;
+  background:#fbf6ea;color:#2a1d1a;padding:1px 5px;box-shadow:0 -1px 0 0 #2a1d1a,0 1px 0 0 #2a1d1a,-1px 0 0 0 #2a1d1a,1px 0 0 0 #2a1d1a;z-index:10;pointer-events:none}
+.hot:hover .hot-label,.hot:focus-visible .hot-label{display:block}
+.touch-ui .hot:not(.shelf-item):not(.zone) .hot-label{display:block}                      /* 手機沒有滑鼠，名字一直顯示 */
+.touch-ui .hot:not(.shelf-item):not(.zone):not(.cup) img{animation:hotPulse 2.4s ease-in-out infinite}
+@keyframes hotPulse{50%{filter:drop-shadow(0 0 2px #f6c453) brightness(1.06)}}
+.room-sign{font-size:8px;text-align:center;padding:2px 4px;color:#fff0a8;text-shadow:0 1px 0 #000}
+.hint-sign{background:rgba(12,10,20,.65);box-shadow:0 -1px 0 0 #f6c453,0 1px 0 0 #f6c453,-1px 0 0 0 #f6c453,1px 0 0 0 #f6c453}
+.felt-sign{color:#fff7e0}
+.marquee{color:#fff0a8;font-size:10px;line-height:26px;padding:0;white-space:nowrap;overflow:hidden;text-shadow:0 0 4px #e5484d}
+/* 籌碼 */
+.chip{border-radius:50%!important;border:2px dashed rgba(255,255,255,.85)!important;font:inherit;font-size:8px;font-weight:700;color:#fff;cursor:pointer;
+  box-shadow:0 2px 0 rgba(0,0,0,.45)!important;padding:0;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+.chip-0{background:#c0392b}.chip-1{background:#2f6f9e}.chip-2{background:#3f2a6e}
+.chip.on{transform:translateY(-3px);box-shadow:0 0 0 2px #fff0a8,0 5px 0 rgba(0,0,0,.45)!important}
+.chip:disabled{opacity:.45;cursor:default}
+.chip.placed{background:#c0392b;pointer-events:none;transform:none}
+/* 出幣口與金幣 */
+.tray{background:#120a14;border:0;padding:0;cursor:pointer;box-shadow:0 -1px 0 0 #b8862b,0 1px 0 0 #b8862b,-1px 0 0 0 #b8862b,1px 0 0 0 #b8862b!important}
+.tray.has-coins{animation:trayGlow 1s steps(2) infinite}
+@keyframes trayGlow{50%{box-shadow:0 -1px 0 0 #fff0a8,0 1px 0 0 #fff0a8,-1px 0 0 0 #fff0a8,1px 0 0 0 #fff0a8,0 0 6px #f6c453!important}}
+.tray-label{position:absolute;left:0;right:0;top:2px;text-align:center;font-size:7px;color:#f6c453;pointer-events:none}
+.tray-coin{pointer-events:none;transition:transform .35s,opacity .35s}
+.tray-coin.picked{transform:translateY(-30px);opacity:0}
+.falling-coin{pointer-events:none;animation:coinFall .7s cubic-bezier(.5,0,1,.6) both}
+@keyframes coinFall{0%{transform:translate(0,-6px) rotate(0)}85%{transform:translate(var(--dx),var(--dy)) rotate(360deg)}92%{transform:translate(var(--dx),calc(var(--dy) - 4px))}100%{transform:translate(var(--dx),var(--dy))}}
+/* 中獎特效 */
+.win-flash{background:#fff7c2;pointer-events:none;animation:winFlash .5s ease-out both;z-index:30}
+.win-flash.big{animation:winFlash .35s ease-out 3 both}
+@keyframes winFlash{0%{opacity:.75}100%{opacity:0}}
+.win-banner{text-align:center;font-size:18px;color:#fff0a8;pointer-events:none;z-index:31;
+  text-shadow:1px 0 0 #7a1e18,-1px 0 0 #7a1e18,0 1px 0 #7a1e18,0 -1px 0 #7a1e18,0 3px 0 #3a0f0c;animation:winPop 1.4s ease-out both}
+.win-banner.big{font-size:26px;animation-duration:2.1s}
+@keyframes winPop{0%{transform:scale(.2);opacity:0}15%{transform:scale(1.25);opacity:1}25%{transform:scale(1)}80%{opacity:1}100%{transform:translateY(-14px);opacity:0}}
+.win-star{background:#fff0a8;pointer-events:none;z-index:31;animation:winStar 1s ease-out both;box-shadow:0 0 0 1px #f6c453}
+@keyframes winStar{0%{transform:rotate(var(--a)) translateX(0);opacity:1}100%{transform:rotate(var(--a)) translateX(var(--d));opacity:0}}
+/* 拉霸機 */
+.reel-window{overflow:hidden;background:#f4f1e8;box-shadow:inset 0 3px 0 rgba(0,0,0,.25),inset 0 -3px 0 rgba(0,0,0,.25)}
+.reel-window.stopped{animation:reelThud .2s}
+@keyframes reelThud{50%{transform:translateY(2px)}}
+.reel-strip{transition:transform .25s cubic-bezier(.3,1.5,.6,1)}
+.reel-strip.spinning{transition:none;animation:reelSpin .28s linear infinite;filter:blur(.4px)}
+@keyframes reelSpin{from{transform:translateY(0)}to{transform:translateY(var(--loop))}}
+.reel-cell{height:var(--cell,66px);background:center/36px 36px no-repeat;image-rendering:pixelated}
+.reel-cell[data-v=fish]{background-image:url(../assets/ui/slot-fish.png)}.reel-cell[data-v=clover]{background-image:url(../assets/ui/slot-clover.png)}
+.reel-cell[data-v=star]{background-image:url(../assets/ui/slot-star.png)}.reel-cell[data-v=bell]{background-image:url(../assets/ui/slot-bell.png)}
+.reel-cell[data-v=seven]{background-image:url(../assets/ui/slot-seven.png)}
+.machine-btn{background:transparent;border:0;padding:0;font:inherit;font-size:7px;color:#1a1222;cursor:pointer;box-shadow:none!important}
+.machine-btn.on,.machine-btn:hover{box-shadow:0 0 0 1px #fff0a8,0 0 5px #fff0a8!important}
+.machine-btn.go{color:#fff;font-size:8px}
+.lever{background:none;border:0;padding:0;cursor:grab;box-shadow:none!important;touch-action:none}
+.lever img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.lever .lever-down{opacity:0}.lever.pulled .lever-up{opacity:0}.lever.pulled .lever-down{opacity:1}
+.lever:hover .lever-up{filter:drop-shadow(0 0 3px #f6c453)}
+.lever-hint{font-size:8px;color:#2a1d1a;background:#fff0a8;padding:1px 4px;animation:hintBob .8s ease-in-out infinite;pointer-events:none;
+  box-shadow:0 -1px 0 0 #2a1d1a,0 1px 0 0 #2a1d1a,-1px 0 0 0 #2a1d1a,1px 0 0 0 #2a1d1a}
+.lever-hint::before{content:'▲ ';color:#c0392b}
+@keyframes hintBob{50%{transform:translateY(-3px)}}
+/* 21 點 */
+.pcard{background:#fbf8f0;box-shadow:0 -1px 0 0 #2a1d1a,0 1px 0 0 #2a1d1a,-1px 0 0 0 #2a1d1a,1px 0 0 0 #2a1d1a,1px 2px 0 0 rgba(0,0,0,.35)!important;
+  transition:left .35s ease-out,top .35s ease-out;color:#2a1d1a;background-size:100% 100%;image-rendering:pixelated}
+.pcard.red{color:#c0392b}
+.pcard .rank{position:absolute;left:3px;top:2px;font-size:10px;line-height:1}
+.pcard .suit{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-5px 0 0 -7px;background:center/contain no-repeat;image-rendering:pixelated}
+.suit-S{background-image:url(../assets/ui/suit-S.png)}.suit-H{background-image:url(../assets/ui/suit-H.png)}
+.suit-D{background-image:url(../assets/ui/suit-D.png)}.suit-C{background-image:url(../assets/ui/suit-C.png)}
+.pcard.back{background-color:#2a2550}
+.speech{background:#fbf6ea;color:#2a1d1a;font-size:8px;padding:4px 6px;box-shadow:0 -1px 0 0 #2a1d1a,0 1px 0 0 #2a1d1a,-1px 0 0 0 #2a1d1a,1px 0 0 0 #2a1d1a}
+.speech::before{content:'';position:absolute;left:-5px;top:8px;border:3px solid transparent;border-right-color:#2a1d1a}
+.table-btn{background:#7a1e18!important;color:#fff0a8!important;--pf:#f6c453}
+/* 骰子 */
+.zone{background:transparent;border:0;cursor:pointer;color:#fff7e0;box-shadow:none!important}
+.zone:hover,.zone.picked{box-shadow:0 0 0 1px #fff0a8,0 0 8px #f6c453!important}
+.zone-text{position:absolute;left:0;right:0;top:8px;text-align:center;font-size:11px;text-shadow:0 1px 0 #000}
+.zone-odds{position:absolute;left:0;right:0;top:26px;text-align:center;font-size:8px;opacity:.85}
+.room-stage .die{width:30px;height:30px}
+.cup{transition:transform .35s ease-out}
+.cup.shaking{animation:cupShake .12s linear infinite}
+@keyframes cupShake{0%{transform:translate(-3px,0) rotate(-4deg)}50%{transform:translate(3px,-2px) rotate(4deg)}100%{transform:translate(-3px,0) rotate(-4deg)}}
+.cup.lifted{transform:translateY(-52px) scale(.9);opacity:.8}
+/* 轉盤 */
+.wheel-disc{transition:transform 3.2s cubic-bezier(.12,.62,.1,1);transform-origin:50% 50%}
+.wheel-disc.clickable{cursor:pointer}
+.wheel-pointer{pointer-events:none;z-index:5;filter:drop-shadow(0 2px 0 rgba(0,0,0,.4))}
+.spin-btn{font-size:11px!important}
+/* 成就小屋 */
+.case-title{font-size:8px;text-align:center;color:#4a3524;line-height:11px}
+.shelf-count{font-size:8px;text-align:right;color:#f4ead6;text-shadow:0 1px 0 #000;pointer-events:none}
+.shelf-item.dark img{filter:brightness(0) opacity(.45)}
+.shelf-item.dark:hover img{filter:brightness(0) opacity(.6) drop-shadow(0 0 2px #fff0a8)}
+.shelf-item.lit img{animation:litGlow 2.6s ease-in-out infinite}
+@keyframes litGlow{50%{filter:drop-shadow(0 0 2px #fff0a8) brightness(1.08)}}
+.notebook .hot-label{display:block}
+.room-note{background:#fbf6ea;color:#2a1d1a;padding:6px 8px;font-size:8px;z-index:25;cursor:pointer;transform:rotate(-1deg);
+  box-shadow:0 -1px 0 0 #8a6a42,0 1px 0 0 #8a6a42,-1px 0 0 0 #8a6a42,1px 0 0 0 #8a6a42,2px 3px 0 0 rgba(0,0,0,.35)}
+.room-note b{display:block;font-size:10px;margin-bottom:3px;color:#8a4a12}.room-note p{margin:1px 0}
+@media (prefers-reduced-motion:reduce){.reel-strip.spinning{animation-duration:1s}.cup.shaking{animation:none}.wheel-disc{transition-duration:.8s}.win-flash{display:none}}
+.room-back{transform:translateX(var(--sx,0px))}
+.room-coins{transform:translateX(calc(var(--sx,0px) - var(--over,0px)))}
+/* 牌面花色：只改圖片，不要用 background 簡寫蓋掉 .suit-X 的圖 */
+.pcard .suit{background:none;background-position:center;background-size:contain;background-repeat:no-repeat}
+.pcard .suit.suit-S{background-image:url(../assets/ui/suit-S.png)}.pcard .suit.suit-H{background-image:url(../assets/ui/suit-H.png)}
+.pcard .suit.suit-D{background-image:url(../assets/ui/suit-D.png)}.pcard .suit.suit-C{background-image:url(../assets/ui/suit-C.png)}

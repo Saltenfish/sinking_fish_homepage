@@ -23,6 +23,8 @@
      fish.<物品id>      魚缸與釣魚畫面裡的魚（沒填會退回 item.<物品id>）
      scene.<畫面>       全螢幕畫面的背景：ring / tree / fishing / market / casino / tank / hut / offerings / bag / map
      fx.summon.<階段>   召喚特效的圖：charge / beam / flash / flip / reveal
+     room.<房間>        可以走進去的房間與裡面的家具、遊戲近景（位置在 data/rooms.js）
+     trophy.<種類>      成就小屋書架上的獎盃：cup / medal / star / scroll
 ============================================================ */
 
 /* 所有相對路徑前面會加上這個前綴。留空 = 相對於網站根目錄。
@@ -83,6 +85,47 @@ export const assets = {
   'scene.list': 'assets/scenes/list.png',
   'scene.menu': 'assets/scenes/menu.png',
   'scene.fishchat': 'assets/scenes/fishchat.png',
+
+  /* ── 以下由 tools/make_pixel_rooms.py 產生：房間、家具、遊戲近景、獎盃、物品圖示 ── */
+  'ui.coin': 'assets/ui/coin.png',
+  'room.casino': 'assets/rooms/casino-hall.png',
+  'room.casino.slots': 'assets/rooms/slots.png',
+  'room.casino.bj': 'assets/rooms/bj-table.png',
+  'room.casino.dice': 'assets/rooms/dice-table.png',
+  'room.casino.wheel': 'assets/rooms/wheel.png',
+  'room.slot': 'assets/rooms/slot-close.png',
+  'room.slot.lever': 'assets/rooms/lever-up.png',
+  'room.slot.lever.down': 'assets/rooms/lever-down.png',
+  'room.bj': 'assets/rooms/bj-close.png',
+  'room.dice': 'assets/rooms/dice-close.png',
+  'room.dice.cup': 'assets/rooms/dice-cup.png',
+  'room.wheel': 'assets/rooms/wheel-close.png',
+  'room.wheel.disc': 'assets/rooms/wheel-disc.png',
+  'room.wheel.pointer': 'assets/rooms/wheel-pointer.png',
+  'room.hut': 'assets/rooms/hut-room.png',
+  'trophy.cup': 'assets/rooms/trophy-cup.png',
+  'trophy.medal': 'assets/rooms/trophy-medal.png',
+  'trophy.star': 'assets/rooms/trophy-star.png',
+  'trophy.scroll': 'assets/rooms/trophy-scroll.png',
+  'item.feed': 'assets/items/feed.png',
+  'item.fertilizer': 'assets/items/fertilizer.png',
+  'item.growth_tonic': 'assets/items/growth_tonic.png',
+  'item.bait': 'assets/items/bait.png',
+  'item.seed_turnip': 'assets/items/seed_turnip.png',
+  'item.seed_star': 'assets/items/seed_star.png',
+  'item.crop_turnip': 'assets/items/crop_turnip.png',
+  'item.crop_star': 'assets/items/crop_star.png',
+  'item.fish_small': 'assets/items/fish_small.png',
+  'item.fish_koi': 'assets/items/fish_koi.png',
+  'item.fish_odd': 'assets/items/fish_odd.png',
+  'item.bug_firefly': 'assets/items/bug_firefly.png',
+  'item.bug_glow': 'assets/items/bug_glow.png',
+  'item.leaf_pink': 'assets/items/leaf_pink.png',
+  'item.leaf_purple': 'assets/items/leaf_purple.png',
+  'item.leaf_teal': 'assets/items/leaf_teal.png',
+  'item.leaf_gold': 'assets/items/leaf_gold.png',
+  'item.coin_old': 'assets/items/coin_old.png',
+  'item.shell': 'assets/items/shell.png',
 
   // 範例（把前面的 // 拿掉並放入圖檔即可生效）：
   // 'tile.grass': 'assets/tiles/grass.png',

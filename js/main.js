@@ -107,7 +107,7 @@ function boot() {
   const shop = createShop({ save, reg, inv, progress, bus });
   const wallet = createWallet({ save, bus, progress, cap: CONFIG.COIN_CAP });
   const market = createMarket({ reg, inv, wallet, progress, bus, cap: CONFIG.ITEM_CAP });
-  const casino = reg.casino ? createCasino({ cfg: reg.casino, wallet, progress, bus, rng }) : null;   // 設定有問題時停用
+  const casino = reg.casino ? createCasino({ cfg: reg.casino, wallet, progress, bus, save, rng }) : null;   // 設定有問題時停用
   const upgrades = createUpgrades({ save, reg, wallet, progress, bus });
   upgradesRef = upgrades;
   const tank = createTank({ save, reg, inv, wallet, progress, bus, capacity: CONFIG.TANK_CAPACITY, happyMs: CONFIG.TANK_HAPPY_MS, giftCdMs: CONFIG.TANK_GIFT_CD_MS, giftPerFish: CONFIG.TANK_GIFT_PER_FISH });
@@ -186,7 +186,7 @@ function boot() {
   /* 8.5 背景預先載入：地圖畫好之後，趁空閒把各畫面的背景、卡背、許願樹大圖先下載好，
      點右上角按鈕或進入畫面時就不用等圖片 */
   const preload = () => {
-    for (const k of assets.keys()) if (/^(scene|card\.back|tree|fx)\./.test(k)) assets.image(k);
+    for (const k of assets.keys()) if (/^(scene|card\.back|tree|fx|room|trophy|item)\./.test(k)) assets.image(k);
   };
   if ('requestIdleCallback' in window) requestIdleCallback(preload, { timeout: 1500 }); else setTimeout(preload, 600);
 

@@ -59,7 +59,7 @@ export function makeGame({ data = realData(), ls = memLS(), start = 1_000_000 } 
   const upgrades = createUpgrades({ save, reg, wallet, progress, bus });
   upRef = upgrades;
   const market = createMarket({ reg, inv, wallet, progress, bus });
-  const casino = createCasino({ cfg: reg.casino, wallet, progress, bus, rng });
+  const casino = createCasino({ cfg: reg.casino, wallet, progress, bus, save, rng });
   const tank = createTank({ save, reg, inv, wallet, progress, bus, now, capacity: 3, happyMs: 1000, giftCdMs: 5000, giftPerFish: 5 });
   return { upgrades, shop, wallet, market, casino, tank, t, setRng: (v) => { r = v; }, phase, bus, events, reg, storage, ls, save, clock, progress, inv, cards, farm, fishing, ach, rng, now };
 }

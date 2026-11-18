@@ -6,7 +6,7 @@ import { normalize } from '../js/core/save.js';
 import { resolveSrc, createAssets, frameAt } from '../js/core/assets.js';
 import { checkPhases, phaseOfHour } from '../js/systems/clock.js';
 import { PHASES } from '../js/data/time.js';
-import { diceMultiplier, diceRtp, slotMultiplier, slotRtp, checkCasino, rollDice, spinSlot } from '../js/systems/casino.js';
+import { diceMultiplier, diceRtp, slotMultiplier, slotRtp, checkCasino, rollDice, spinSlot, wheelRtp, handValue, isNatural, blackjackOutcome, dealerPlay, newDeck } from '../js/systems/casino.js';
 import { casino as cfg } from '../js/data/casino.js';
 import { buildTimeline, stepAt } from '../js/systems/summonFx.js';
 import { summonFx } from '../js/data/summonFx.js';
@@ -85,7 +85,7 @@ test('賭場：賠率表正確，期望值小於 1（長期一定輸給莊家）
   assert.ok(checkCasino({}).length > 0); assert.ok(checkCasino(null).length > 0);
 });
 
-test('賭場：先扣押注再派彩；付不起或亂填押注不會扣錢；大量模擬後莊家贏', async () => {
+test('賭場：先扣押注；贏的金幣先進出幣口，拾取後才進錢包；付不起或亂填押注不會扣錢', () => {
   const g = makeGame();
   assert.equal(g.casino.slot(10).reason, 'coins');
   g.wallet.add(1000);
@@ -93,19 +93,40 @@ test('賭場：先扣押注再派彩；付不起或亂填押注不會扣錢；�
   assert.equal(g.wallet.coins(), 1000);
   g.setRng(0.99);                                   // 兩顆都是 6 → 12 點
   const win = g.casino.dice(100, 'big');
-  assert.deepEqual([win.ok, win.payout, win.net, win.dice], [true, 200, 100, [6, 6]]); assert.equal(g.wallet.coins(), 1100);
+  assert.deepEqual([win.ok, win.payout, win.net, win.dice], [true, 200, 100, [6, 6]]);
+  assert.equal(g.wallet.coins(), 900); assert.equal(g.casino.tray(), 200);
   const lose = g.casino.dice(100, 'small');
-  assert.deepEqual([lose.payout, lose.net], [0, -100]); assert.equal(g.wallet.coins(), 1000);
+  assert.deepEqual([lose.payout, lose.net], [0, -100]); assert.equal(g.casino.tray(), 200);
   g.setRng(0.99); const jackpot = g.casino.slot(10);   // 權重最後一格 = 七
   assert.deepEqual(jackpot.reels, ['seven', 'seven', 'seven']); assert.equal(jackpot.payout, 1500);
+  assert.equal(g.casino.tray(), 1700);
+  g.save.flush();                                   // 出幣口存在存檔裡
+  assert.equal(makeGame({ ls: g.ls }).casino.tray(), 1700);
+  assert.equal(g.casino.pickup(), 1700); assert.equal(g.casino.tray(), 0); assert.equal(g.wallet.coins(), 2490);
+  assert.equal(g.casino.pickup(), 0);
   assert.ok(g.ach.unlocked('first_win'));
+});
 
+test('賭場：四種遊戲大量模擬後都是莊家贏', async () => {
+  const { createCasino } = await import('../js/systems/casino.js');
   const sim = makeGame(); let n = 7; const rnd = () => { n = (n * 1103515245 + 12345) % 2147483648; return n / 2147483648; };
-  const c = (await import('../js/systems/casino.js')).createCasino({ cfg, wallet: sim.wallet, progress: sim.progress, bus: sim.bus, rng: rnd });
-  sim.wallet.add(500000); let staked = 0, back = 0;
-  for (let i = 0; i < 20000; i++) { const r = i % 2 ? c.slot(10) : c.dice(10, ['small', 'big', 'seven'][i % 3]); staked += r.bet; back += r.payout; }
-  assert.ok(back / staked > 0.7 && back / staked < 0.95, `模擬回收率 ${back / staked}`);
-  assert.equal(sim.wallet.coins(), 500000 - staked + back);
+  const c = createCasino({ cfg, wallet: sim.wallet, progress: sim.progress, bus: sim.bus, save: sim.save, rng: rnd });
+  sim.wallet.add(900000);
+  const rtp = {};
+  for (const game of ['slot', 'dice', 'wheel', 'blackjack']) {
+    let staked = 0, back = 0;
+    for (let i = 0; i < 20000; i++) {
+      let r;
+      if (game === 'slot') r = c.slot(10);
+      else if (game === 'dice') r = c.dice(10, ['small', 'big', 'seven'][i % 3]);
+      else if (game === 'wheel') r = c.spinWheel(10);
+      else { r = c.bjDeal(10); while (!r.done) r = r.playerValue.total < 17 ? c.bjHit() : c.bjStand(); }
+      staked += r.bet; back += r.payout;
+      c.pickup();
+    }
+    rtp[game] = back / staked;
+    assert.ok(rtp[game] > 0.6 && rtp[game] < 1, `${game} 回收率 ${rtp[game]}`);
+  }
 });
 
 test('魚缸：只收魚、有容量、餵食後開心一段時間、禮物有冷卻、撈回背包', () => {
@@ -205,4 +226,44 @@ test('存檔：舊存檔沒有金幣與魚缸也能讀；不合法的值會被�
   assert.equal(normalize({ v: 1, coins: -5 }, 1).coins, 0); assert.equal(normalize({ v: 1, coins: 1.5 }, 1).coins, 0);
   assert.equal(normalize({ v: 1, coins: 1e12 }, 1).coins, 999999);
   assert.deepEqual(normalize({ v: 1, tank: [{ item: 'fish_small', at: 5 }, { item: '__proto__', at: 1 }, 'x', { item: 'a', at: -1 }] }, 1).tank, [{ item: 'fish_small', at: 5, fedAt: 0 }]);
+});
+
+test('轉盤：期望值小於 1；設定錯誤會被擋', () => {
+  const r = wheelRtp(cfg); assert.ok(r > 0.8 && r < 1, String(r));
+  assert.ok(checkCasino({ ...cfg, wheel: { segments: [{ mult: 2 }, { mult: 2 }, { mult: 0 }, { mult: 1 }] } }).some((e) => e.includes('轉盤')));
+  assert.ok(checkCasino({ ...cfg, wheel: { segments: [{ mult: 1 }] } }).length > 0);
+  assert.ok(checkCasino({ ...cfg, blackjack: { win: 3, push: 1, natural: 2, hitSoft17: true } }).length > 0);
+});
+
+test('21 點：點數計算、A 的軟硬、莊家補牌、結算', () => {
+  const C = (...rs) => rs.map((r) => ({ r, s: 'S' }));
+  assert.deepEqual(handValue(C(1, 13)), { total: 21, soft: true });
+  assert.deepEqual(handValue(C(1, 1, 9)), { total: 21, soft: true });
+  assert.deepEqual(handValue(C(1, 9, 5)), { total: 15, soft: false });
+  assert.deepEqual(handValue(C(10, 12, 2)), { total: 22, soft: false });
+  assert.ok(isNatural(C(1, 11))); assert.ok(!isNatural(C(10, 5, 6)));
+  const rules = cfg.blackjack;
+  assert.deepEqual(blackjackOutcome(C(10, 9), C(10, 8), rules), { result: 'win', mult: 2 });
+  assert.deepEqual(blackjackOutcome(C(10, 8), C(10, 8), rules), { result: 'push', mult: 1 });
+  assert.deepEqual(blackjackOutcome(C(10, 8, 5), C(10, 8), rules), { result: 'bust', mult: 0 });
+  assert.deepEqual(blackjackOutcome(C(10, 8), C(10, 8, 5), rules), { result: 'win', mult: 2 });
+  assert.deepEqual(blackjackOutcome(C(1, 12), C(10, 9), rules), { result: 'natural', mult: 2 });
+  assert.deepEqual(blackjackOutcome(C(10, 9), C(1, 13), rules), { result: 'lose', mult: 0 });
+  const soft17 = C(1, 6), deck = C(4, 9);           // 莊家軟 17 → 再補一張（9 → 硬 16 → 再補 4 → 20）
+  dealerPlay(soft17, deck, true); assert.equal(handValue(soft17).total, 20);
+  const soft17b = C(1, 6); dealerPlay(soft17b, C(4), false); assert.equal(handValue(soft17b).total, 17);
+  const d = newDeck(() => 0.5); assert.equal(d.length, 52); assert.equal(new Set(d.map((c) => c.s + c.r)).size, 52);
+});
+
+test('21 點：進行中的流程與防呆', () => {
+  const g = makeGame(); g.wallet.add(100);
+  assert.equal(g.casino.bjHit().reason, 'no-hand'); assert.equal(g.casino.bjStand().reason, 'no-hand');
+  let r; let tries = 0;
+  do { g.setRng((tries * 0.137) % 1); r = g.casino.bjDeal(10); if (r.done) g.casino.pickup(); } while (r.done && ++tries < 20);
+  assert.equal(r.done, false); assert.equal(r.player.length, 2); assert.ok(r.dealerUp);
+  assert.equal(g.casino.bjDeal(10).reason, 'busy');
+  const end = g.casino.bjStand();
+  assert.equal(end.done, true); assert.ok(['win', 'lose', 'push', 'bust', 'natural'].includes(end.result));
+  assert.ok(end.dealer.length >= 2 && end.dealerValue >= 17 || end.dealerValue <= 21);
+  assert.equal(g.casino.handActive, false);
 });
