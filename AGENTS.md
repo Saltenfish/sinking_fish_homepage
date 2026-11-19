@@ -56,6 +56,7 @@
 - **召喚神殿遺跡（地圖上抽卡的地方）**：白色大理石神殿崩塌後的遺跡，不是完整的一圈。中間是召喚台，四周零星散著幾塊地板、幾段斷牆、四根柱子。
   - 地板（`m`，可走）和斷牆（`R`，擋路）寫在 `js/data/maps/town.js` 的 `RUINS` 表（`RUINS-BEGIN`～`RUINS-END`）。
   - 外觀是一整張佈景圖 `decor.temple`，由 `tools/make_pixel_temple.py` 讀同一張表畫出崩落的邊緣；**改了表要重跑那支程式**。
+                            （站著的物件：柱子、石燈籠、告示牌、攤位…存檔前都經過 make_pixel_assets.volumize()：左亮右暗、深色外框、腳下影子；新畫的站立物件也請套用）
   - 召喚台上的光芒與飄起的紫色、金色亮點，以及繞著召喚台公轉的卡片，都畫在 `world/types.js` 的 `altar.drawOver`。
 - **走進去的房間**（`js/ui/room.js`）：賭場和成就小屋不是彈窗，是一個 480×270 的房間舞台，整個用 transform 放大填滿螢幕。
   - 房間裡的座標一律是「房間像素」，和背景圖（`assets/rooms/*.png`）一一對應；版位寫在 `js/data/rooms.js`，要和 `tools/make_pixel_rooms.py` 畫的位置一致。

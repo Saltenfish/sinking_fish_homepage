@@ -55,6 +55,86 @@ def shadow(im, cx, cy, rx, ry, a=70):
     im.paste(base, (0, 0))
 
 
+def _tone(c, k):
+    """k > 0 往白色靠、k < 0 往黑色靠"""
+    r_, g_, b_, a_ = c
+    if k >= 0:
+        return (round(r_ + (255 - r_) * k), round(g_ + (255 - g_) * k), round(b_ + (255 - b_) * k), a_)
+    k = -k
+    return (round(r_ * (1 - k)), round(g_ * (1 - k)), round(b_ * (1 - k)), a_)
+
+
+def volumize(im, sides=True, outline=True, cast=True, keep_alpha=False):
+    """讓站著的物件（柱子、石燈籠、告示牌…）在 2D 裡也有立體感。光從左上來：
+    1. 每一列由左到右：左邊受光變亮、右邊背光變暗、最右一格最暗（像圓柱或方塊的側面）
+    2. 朝上的面（上面是空的）亮一點，朝下的面暗一點
+    3. 整個外形描一圈深色外框（用旁邊顏色的深色版，不是純黑，比較柔和）
+    4. 腳下畫兩層影子：緊貼底部的深色接觸影，和往右下拉長的淡影
+    原本半透明的舊影子會先拿掉（keep_alpha=True 時保留半透明的光暈等）"""
+    W_, H_ = im.size
+    src = im.copy()
+    solid = [[src.getpixel((x, y))[3] >= 128 for x in range(W_)] for y in range(H_)]
+    if not keep_alpha:
+        for y in range(H_):
+            for x in range(W_):
+                if not solid[y][x]:
+                    src.putpixel((x, y), (0, 0, 0, 0))
+    S = lambda x, y: 0 <= x < W_ and 0 <= y < H_ and solid[y][x]   # noqa: E731
+    out = src.copy()
+    if sides:
+        for y in range(H_):
+            x = 0
+            while x < W_:
+                if not solid[y][x]:
+                    x += 1
+                    continue
+                x0 = x
+                while x < W_ and solid[y][x]:
+                    x += 1
+                x1 = x - 1
+                L = x1 - x0 + 1
+                for xx in range(x0, x1 + 1):
+                    c = src.getpixel((xx, y))
+                    k = 0.0
+                    if L >= 4:
+                        t = (xx - x0) / (L - 1)
+                        if t < 0.25:
+                            k += 0.16 * (1 - t / 0.25)
+                        elif t > 0.65:
+                            k -= 0.2 * (t - 0.65) / 0.35
+                        if xx == x1:
+                            k -= 0.12
+                    if not S(xx, y - 1):
+                        k += 0.22
+                    elif not S(xx, y + 1):
+                        k -= 0.18
+                    out.putpixel((xx, y), _tone(c, max(-0.6, min(0.6, k))))
+    if outline:
+        for y in range(H_):
+            for x in range(W_):
+                if solid[y][x]:
+                    continue
+                for dx, dy in ((0, 1), (1, 0), (-1, 0), (0, -1)):
+                    if S(x + dx, y + dy):
+                        c = src.getpixel((x + dx, y + dy))
+                        out.putpixel((x, y), _tone(c, -0.62))
+                        break
+    if cast:
+        rows = [y for y in range(H_) if any(solid[y])]
+        if rows:
+            yb = rows[-1]
+            xs = [x for y in range(max(0, yb - 2), yb + 1) for x in range(W_) if solid[y][x]]
+            x0, x1 = min(xs), max(xs)
+            base = new(W_, H_)
+            cx = (x0 + x1) / 2
+            ellipse(base, cx + 4, yb - 0.5, (x1 - x0) / 2 + 5, 3.2, (24, 36, 22, 85))    # 往右下拉長的淡影
+            ellipse(base, cx, yb, (x1 - x0) / 2 + 1, 1.6, (18, 26, 16, 120))           # 接觸影
+            base.alpha_composite(out)
+            out = base
+    im.paste(out, (0, 0))
+    return im
+
+
 def blob(im, cx, cy, r, dark, mid, light, hi=None, wrap=False):
     """有立體感的圓團（樹冠、草叢用）：左上亮、右下暗"""
     for y in range(int(cy - r) - 1, int(cy + r) + 2):
@@ -844,28 +924,28 @@ def main():
     out['tile.reed'] = save(strip([tile_reed(1), tile_reed(2)]), 'tiles', 'reed.png')
     out['tile.hut'] = save(tile_roof(), 'tiles', 'roof.png')
     out['tile.door'] = save(tile_door(), 'tiles', 'door.png')
-    out['decor.hut'] = save(decor_hut(), 'decor', 'hut.png')
+    out['decor.hut'] = save(volumize(decor_hut()), 'decor', 'hut.png')
     out['ent.hut'] = save(ent_hut_door(), 'sprites', 'hut-door.png')
-    out['ent.board'] = save(ent_board(), 'sprites', 'board.png')
-    out['ent.bush'] = save(ent_bush(), 'sprites', 'bush.png')
+    out['ent.board'] = save(volumize(ent_board()), 'sprites', 'board.png')
+    out['ent.bush'] = save(volumize(ent_bush(), sides=False), 'sprites', 'bush.png')
     out['ent.dig'] = save(ent_dig(False), 'sprites', 'dig.png')
     out['ent.dig.used'] = save(ent_dig(True), 'sprites', 'dig-used.png')
-    out['ent.lantern'] = save(ent_lantern(False), 'sprites', 'lantern.png')
-    out['ent.lantern.lit'] = save(ent_lantern(True), 'sprites', 'lantern-lit.png')
+    out['ent.lantern'] = save(volumize(ent_lantern(False)), 'sprites', 'lantern.png')
+    out['ent.lantern.lit'] = save(volumize(ent_lantern(True), keep_alpha=True), 'sprites', 'lantern-lit.png')
     for stage in ('empty', 'growing', 'ripe'):
         out[f'ent.plot.{stage}'] = save(ent_plot(stage), 'sprites', f'plot-{stage}.png')
-    out['ent.fishspot'] = save(ent_fishspot(), 'sprites', 'fishspot.png')
-    out['ent.pond'] = save(ent_pond(False), 'sprites', 'pond.png')
+    out['ent.fishspot'] = save(volumize(ent_fishspot()), 'sprites', 'fishspot.png')
+    out['ent.pond'] = save(volumize(ent_pond(False)), 'sprites', 'pond.png')
     out['ent.pond.found'] = save(ent_pond(True), 'sprites', 'pond-found.png')
-    out['ent.offering'] = save(ent_offering(), 'sprites', 'offering.png')
+    out['ent.offering'] = save(volumize(ent_offering(), keep_alpha=True), 'sprites', 'offering.png')
     out['ent.bugspot'] = save(ents_bug(), 'sprites', 'bug.png')
-    out['ent.tree'] = save(ent_tree(), 'sprites', 'wish-tree.png')
+    out['ent.tree'] = save(volumize(ent_tree(), sides=False, cast=False, keep_alpha=True), 'sprites', 'wish-tree.png')
     # ent.altar 改由 tools/make_pixel_temple.py 產生（白色大理石召喚台）
     out['ent.pillar'] = save(ent_pillar(), 'sprites', 'pillar.png')
     out['ent.banner'] = save(ent_banner(), 'sprites', 'banner.png')
-    out['ent.market'] = save(ent_market(), 'sprites', 'market.png')
-    out['ent.casino'] = save(ent_casino(), 'sprites', 'casino.png')
-    out['ent.tank'] = save(ent_tank(), 'sprites', 'tank.png')
+    out['ent.market'] = save(volumize(ent_market()), 'sprites', 'market.png')
+    out['ent.casino'] = save(volumize(ent_casino()), 'sprites', 'casino.png')
+    out['ent.tank'] = save(volumize(ent_tank()), 'sprites', 'tank.png')
     for key, path in out.items():
         print(f'{key:18s} {os.path.relpath(path, os.path.join(ROOT, ".."))}')
 

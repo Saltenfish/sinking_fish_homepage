@@ -19,7 +19,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from make_pixel_assets import new, px, rect, ellipse, rgb, save, strip  # noqa: E402
+from make_pixel_assets import new, px, rect, ellipse, rgb, save, strip, volumize  # noqa: E402
 
 T = 32
 ORIGIN = (9, 0)                      # 佈景圖左上角在地圖上的格子座標
@@ -366,7 +366,7 @@ def altar():
 
 
 def main():
-    out = [save(decor_temple(), 'decor', 'temple.png'), save(column(), 'sprites', 'column.png'), save(column(True), 'sprites', 'column-broken.png'),
+    out = [save(decor_temple(), 'decor', 'temple.png'), save(volumize(column(), keep_alpha=True), 'sprites', 'column.png'), save(volumize(column(True)), 'sprites', 'column-broken.png'),
            save(altar(), 'sprites', 'altar.png')]
     print(f'輸出 {len(out)} 張圖')
 
