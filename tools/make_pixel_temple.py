@@ -116,7 +116,7 @@ def decor_temple():
                 return r_
         return 3
 
-    STONES = ['#efebe4', '#e8e4ea', '#f3f0ea', '#e2ddd8', '#ebe7f0', '#dedad3']
+    STONES = ['#efebe4', '#e9e5df', '#f3f0ea', '#e2ddd8', '#ece8e1', '#dedad3']   # 和柱子同一組暖白色
     # 先算出每一塊石板的「頂面」（縫以外的部分）與顏色，再像土堆那樣一層一層疊出立體感：
     #   草地上的影子 → 石板的側面（頂面往下 3px 的厚度，比較暗）→ 頂面（上緣受光、下緣稍暗）
     # 石板之間的縫看得到下面那塊的側面和深色的土與青苔，所以每塊石板都像微微凸起、嵌在地上。
@@ -222,6 +222,7 @@ def decor_temple():
         col = '#5f9a4c' if rnd('gc', i) < 0.6 else '#86bd68'
         for t in range(hgt):
             px(im, x, y - t, col)
+    column_ground(im)
     # 斷牆：白色大理石塊疊成的矮牆，頂端高低不平，比佔地那格往上高出一截
     for (gx, gy), c in sorted(grid.items(), key=lambda kv: kv[0][1]):
         if c != 'R':
@@ -237,15 +238,15 @@ def decor_temple():
             bottom = y0 + T - 4
             for y in range(max(0, top), bottom):
                 if y < top + 3:
-                    cc = mix(MARBLE_L, '#ffffff', 0.5)                    # 牆頂
+                    cc = mix(ST_TOP, '#ffffff', 0.4)                       # 牆頂
                     if (x - x0) % 8 == 7:
-                        cc = mix(cc, '#cfc7dc', 0.5)
+                        cc = mix(cc, ST_SH, 0.5)
                 else:
                     t = (y - top) / max(1, bottom - top)
-                    cc = mix('#f1edf6', '#c3bad3', t)
+                    cc = mix(ST_MID, ST_SIDE2, t)
                     rowb = (y - y0 + 20) // 9
                     if (y - y0 + 20) % 9 == 0 or (x - x0 + (5 if rowb % 2 else 0)) % 12 == 0:
-                        cc = mix(cc, '#b3a9c6', 0.45)                       # 石塊之間的縫
+                        cc = mix(cc, ST_SIDE3, 0.45)                         # 石塊之間的縫
                 if y == top + 3 and rnd(gx, gy, col, 'g') < 0.5:
                     cc = C(GOLD)                                           # 殘留的金色飾帶
                 px(im, x, y, cc)
@@ -280,51 +281,123 @@ def blend_px(im, x, y, c):
         im.putpixel((x, y), (round(br + (c[0] - br) * k), round(bg_ + (c[1] - bg_) * k), round(bb + (c[2] - bb) * k), 255))
 
 
+# 柱子、斷牆和地上的石板用同一組暖白色的石頭色，看起來才是同一個地方的東西
+ST_TOP, ST_MID, ST_SH, ST_SIDE1, ST_SIDE2, ST_SIDE3 = '#f6f3ed', '#ebe7e0', '#cfc8bd', '#b9b0a4', '#9d9488', '#857c72'
+MOSS, MOSS_D = '#7d9a5c', '#5f7a45'
+
+
 def column(broken=False):
-    """白色大理石柱：底座、有凹槽的柱身、金色柱頭，上面浮著一顆紫色水晶（斷柱沒有）"""
+    """白色大理石柱（和地板同一種石頭色）：底座、有凹槽的柱身、金色柱頭，上面浮著一顆紫色水晶（斷柱沒有）。
+    柱子的影子與腳下的墊石畫在佈景圖 decor.temple 裡（和地板同一層），這裡不畫影子"""
+    r = random.Random(9 if broken else 8)
     im = new(T, T * 3)
-    # 底座（佔地那一格）
-    rect(im, 4, 84, 27, 93, '#d6d0e0')
-    rect(im, 4, 84, 27, 85, MARBLE_L)
-    rect(im, 6, 80, 25, 84, MARBLE)
-    rect(im, 6, 80, 25, 80, MARBLE_L)
-    rect(im, 4, 93, 27, 93, '#a99fbc')
+    # 底座：頂面（受光）＋正面（較暗），和地上石板的立體畫法一樣
+    rect(im, 4, 82, 27, 85, ST_TOP)
+    rect(im, 4, 82, 27, 82, '#ffffff')
+    rect(im, 4, 86, 27, 88, ST_SIDE1)
+    rect(im, 4, 89, 27, 91, ST_SIDE2)
+    rect(im, 4, 92, 27, 92, ST_SIDE3)
+    rect(im, 6, 78, 25, 81, ST_MID)
+    rect(im, 6, 78, 25, 78, ST_TOP)
+    rect(im, 6, 81, 25, 81, ST_SH)
     top = 50 if broken else 20
-    for y in range(top, 80):                                 # 柱身：左亮右暗、直的凹槽
+    for y in range(top, 78):                                 # 柱身：左亮右暗、直的凹槽
         for x in range(8, 24):
-            c = mix(MARBLE_L, '#cfc8dc', (x - 8) / 16)
+            c = mix(ST_TOP, ST_SH, (x - 8) / 15)
             if x in (11, 15, 19):
-                c = mix(c, '#b9b0c9', 0.6)
+                c = mix(c, ST_SIDE1, 0.55)
             if x in (12, 16, 20):
-                c = mix(c, '#ffffff', 0.4)
+                c = mix(c, '#ffffff', 0.35)
             px(im, x, y, c)
+    for y in range(70, 78):                                  # 柱腳長了一點青苔、顏色比較舊
+        for x in range(8, 24):
+            if r.random() < (y - 69) / 14:
+                px(im, x, y, mix(im.getpixel((x, y)), MOSS, 0.55))
+    for k in range(3):                                       # 幾道細裂縫
+        x, y = r.randrange(9, 22), r.randrange(top + 4, 70)
+        for _ in range(r.randrange(4, 9)):
+            px(im, x, y, ST_SIDE1)
+            x += r.choice((-1, 0, 1))
+            y += 1
     if broken:
-        r = random.Random(9)
         for x in range(8, 24):                               # 斷口參差
             cut = top + r.randrange(0, 6)
             for y in range(top, cut):
                 im.putpixel((x, y), (0, 0, 0, 0))
-            px(im, x, cut, '#e9e4f0')
-        rect(im, 22, 86, 30, 91, '#e6e1ee')                  # 掉在地上的一截
-        rect(im, 22, 91, 30, 91, '#b8b0c6')
-        rect(im, 25, 86, 25, 90, '#cfc8dc')
+            px(im, x, cut, ST_TOP)
+            px(im, x, cut + 1, '#ffffff')
+        rect(im, 22, 87, 30, 90, ST_MID)                     # 掉在地上的一截
+        rect(im, 22, 87, 30, 87, ST_TOP)
+        rect(im, 22, 91, 30, 92, ST_SIDE2)
+        rect(im, 25, 87, 25, 90, ST_SH)
     else:
-        rect(im, 5, 14, 26, 19, MARBLE)                      # 柱頭
-        rect(im, 5, 14, 26, 14, MARBLE_L)
+        rect(im, 5, 14, 26, 19, ST_MID)                      # 柱頭
+        rect(im, 5, 14, 26, 14, ST_TOP)
         rect(im, 6, 18, 25, 19, GOLD)
-        rect(im, 3, 11, 28, 13, MARBLE_L)
-        rect(im, 3, 13, 28, 13, '#cfc8dc')
+        rect(im, 3, 11, 28, 13, ST_TOP)
+        rect(im, 3, 11, 28, 11, '#ffffff')
+        rect(im, 3, 13, 28, 13, ST_SH)
         for x0 in (3, 25):                                   # 兩側的渦卷
-            rect(im, x0, 14, x0 + 3, 17, '#e3ddea')
+            rect(im, x0, 14, x0 + 3, 17, ST_SH)
             px(im, x0 + 1, 15, GOLD)
         for dy, w in ((0, 1), (1, 2), (2, 3), (3, 3), (4, 2), (5, 1)):   # 紫色水晶
             rect(im, 16 - w, 2 + dy, 15 + w, 2 + dy, VIOLET if dy > 2 else VIOLET_L)
         px(im, 15, 3, '#ffffff')
         for x, y in ((11, 4), (20, 2), (13, 0), (19, 7)):
             px(im, x, y, VIOLET_G)
-    for x in range(6, 26):                                   # 影子
-        px(im, x, 94, (40, 30, 60, 60))
     return im
+
+
+def read_columns():
+    """從 town.js 讀出柱子的位置（佈景圖要在它們腳下畫墊石與影子）"""
+    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'js', 'data', 'maps', 'town.js'), encoding='utf8').read()
+    return [(sp.endswith('broken'), int(x), int(y)) for sp, x, y in
+            re.findall(r"id: 'col\d+', type: 'deco', sprite: '([^']+)', x: (\d+), y: (\d+)", src)]
+
+
+def column_ground(im):
+    """每根柱子腳下：一塊比柱座大一點的方形墊石（有厚度，和地上石板同畫法），
+    以及往右下拉長、落在地板和草地上的影子（光從左上來，和所有東西一致）"""
+    W_, H_ = im.size
+    for broken, gx, gy in read_columns():
+        ox, oy = (gx - ORIGIN[0]) * T, (gy - ORIGIN[1]) * T
+        # 影子：柱子越高影子越長；靠柱腳深、越遠越淡，兩側邊緣柔一點。每個像素只算一次，不會疊出條紋
+        L = 30 if broken else 62
+        dx_, dy_ = 1 / math.hypot(1, 0.45), 0.45 / math.hypot(1, 0.45)
+        sx0, sy0 = ox + 16, oy + 25
+        for Y in range(int(sy0 - 10), int(sy0 + L * 0.45 + 10)):
+            for X in range(int(sx0 - 4), int(sx0 + L + 6)):
+                if not (0 <= X < W_ and 0 <= Y < H_):
+                    continue
+                vx, vy = X + 0.5 - sx0, Y + 0.5 - sy0
+                t = vx * dx_ + vy * dy_
+                perp = abs(-vx * dy_ + vy * dx_)
+                half = 8.5 - 3.5 * t / L
+                if 0 <= t <= L and perp <= half:
+                    a = 0.46 * (1 - t / L) + 0.08
+                    if perp > half - 1.5:
+                        a *= 0.55
+                    blend_px(im, X, Y, (38, 34, 30, int(a * 255)))
+        # 墊石：頂面 + 正面 + 一點青苔
+        x0, x1, y0, y1 = ox - 3, ox + 34, oy + 18, oy + 30
+        for y in range(y0, y1 + 1):
+            for x in range(x0, x1 + 1):
+                c = ST_TOP if y == y0 or x == x0 else ST_MID
+                if x == x1:
+                    c = ST_SH
+                px(im, x, y, c)
+        rect(im, x0, y1 + 1, x1, y1 + 2, ST_SIDE1)
+        rect(im, x0, y1 + 3, x1, y1 + 3, ST_SIDE2)
+        rect(im, x0, y1 + 4, x1, y1 + 4, ST_SIDE3)
+        rect(im, x0 + 1, y0 + 2, x1 - 1, y0 + 2, ST_SH)            # 墊石上的一道淺刻線
+        r = random.Random(gx * 31 + gy)
+        for _ in range(10):
+            x, y = r.randrange(x0, x1), y1 + r.randrange(1, 5)
+            px(im, x, y, MOSS if r.random() < 0.6 else MOSS_D)
+        for _ in range(5):
+            x = r.randrange(x0, x1)
+            for t in range(r.randrange(2, 4)):
+                px(im, x, y1 + 5 - t, MOSS)                          # 從墊石旁冒出的草
 
 
 def altar():
@@ -366,7 +439,8 @@ def altar():
 
 
 def main():
-    out = [save(decor_temple(), 'decor', 'temple.png'), save(volumize(column(), keep_alpha=True), 'sprites', 'column.png'), save(volumize(column(True)), 'sprites', 'column-broken.png'),
+    out = [save(decor_temple(), 'decor', 'temple.png'), save(volumize(column(), outline=False, cast=False, keep_alpha=True), 'sprites', 'column.png'),
+           save(volumize(column(True), outline=False, cast=False), 'sprites', 'column-broken.png'),
            save(altar(), 'sprites', 'altar.png')]
     print(f'輸出 {len(out)} 張圖')
 
