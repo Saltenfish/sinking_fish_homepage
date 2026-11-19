@@ -117,8 +117,12 @@ def decor_temple():
         return 3
 
     STONES = ['#efebe4', '#e8e4ea', '#f3f0ea', '#e2ddd8', '#ebe7f0', '#dedad3']
-    floor = [[False] * W for _ in range(H)]
-    sid = [[None] * W for _ in range(H)]
+    # 先算出每一塊石板的「頂面」（縫以外的部分）與顏色，再像土堆那樣一層一層疊出立體感：
+    #   草地上的影子 → 石板的側面（頂面往下 3px 的厚度，比較暗）→ 頂面（上緣受光、下緣稍暗）
+    # 石板之間的縫看得到下面那塊的側面和深色的土與青苔，所以每塊石板都像微微凸起、嵌在地上。
+    top = [[None] * W for _ in range(H)]          # 頂面的顏色
+    patch = [[False] * W for _ in range(H)]       # 整片地板（含縫）
+    dirt = set()
     for y in range(H):
         for x in range(W):
             gx, gy = ORIGIN[0] + x // T, ORIGIN[1] + y // T
@@ -126,72 +130,98 @@ def decor_temple():
             sgx, sgy = stone_tile(k)
             if cell(sgx, sgy) != 'm':                                        # 石板中心落在地板格上才有這塊石板：
                 continue                                                     # 邊緣就會沿著石板的形狀，不會是方的
-            if cell(gx, gy) != 'm' and gap < 1.3:
+            if cell(gx, gy) != 'm' and gap < 1.6:
                 continue
             near_altar = math.hypot(sgx + 0.5 - ALTAR_C[0], (sgy + 0.5 - ALTAR_C[1]) * 1.25) < 2.6
             ed = edge_dist(gx, gy)
             if not near_altar and ed <= 1 and rnd('gone', k) < (0.42 if ed == 0 else 0.18):
                 continue                                                     # 整塊不見，露出草地
-            floor[y][x] = True
-            sid[y][x] = k
-            lx, ly = x % T, y % T
-            if not near_altar and ed >= 1 and rnd('dirt', k) < 0.07:        # 少一塊，露出泥土
-                n = rnd('soil', x, y)
-                c = C('#b89f78') if n < 0.75 else C('#a48a64') if n < 0.93 else C('#8a7352')
-                if n > 0.985:
-                    c = C('#7fb069')                                         # 泥土裡冒出的小草
-                px(im, x, y, c)
-                sid[y][x] = ('dirt',)
+            patch[y][x] = True
+            if not near_altar and ed >= 1 and rnd('dirt', k) < 0.07:        # 少一塊，露出泥土（凹下去）
+                dirt.add((x, y))
                 continue
-            base = STONES[int(rnd('tone', k) * len(STONES))]
-            sx_, sy_ = seeds[k]
-            # 平放的石板：左上邊緣受光、右下邊緣稍暗（俯視的地面感），中間平平的
-            c = C(base)
-            if gap < 1.3:
-                moss = 0.25 + 0.5 * (1 - ed / 3)                              # 縫：越靠外圍越多青苔
-                c = mix('#c7c2bd', '#8fa676', moss)
-            elif gap < 2.6:
-                c = mix(base, '#ffffff', 0.55) if (x - sx_) + (y - sy_) < 0 else mix(base, '#b9b2ae', 0.35)
-            if (x, y) in veins and gap >= 1.3:
+            if gap < 1.6:
+                continue                                                     # 縫
+            lx, ly = x % T, y % T
+            c = C(STONES[int(rnd('tone', k) * len(STONES))])
+            if (x, y) in veins:
                 c = mix(c, '#cdc6d3', 0.45)
-            # 殘留的鑲嵌：以召喚台為中心的金色環與紫色符文環，斷斷續續，只畫在還留著的地板上
+            # 殘留的鑲嵌：以召喚台為中心的金色環與紫色符文環，斷斷續續
             d = altar_d(gx, gy, lx, ly)
             ang = math.atan2((gy + (ly + 0.5) / T - ALTAR_C[1]) * 1.25, gx + (lx + 0.5) / T - ALTAR_C[0])
             seg = int((ang + math.pi) / math.tau * 14)
-            if gap >= 1.3:
-                if 2.95 < d < 3.08 and rnd('gold', seg) > 0.35:
-                    c = C(GOLD_L if d < 3.01 else GOLD)
-                if 2.15 < d < 2.24 and rnd('vio', seg) > 0.25:
-                    c = C(VIOLET if (x // 3 + y // 3) % 2 else VIOLET_L)
-                elif 2.05 < d < 2.34 and rnd('vio', seg) > 0.25:
-                    c = mix(c, VIOLET_G, 0.45)
-            px(im, x, y, c)
-    # 石板的外緣：和草地交界處一圈淡淡的暗色（石板嵌在土裡），再讓草葉長進石板邊緣
-    for y in range(1, H - 1):
-        for x in range(1, W - 1):
-            if not floor[y][x] or sid[y][x] == ('dirt',):
+            if 2.95 < d < 3.08 and rnd('gold', seg) > 0.35:
+                c = C(GOLD_L if d < 3.01 else GOLD)
+            if 2.15 < d < 2.24 and rnd('vio', seg) > 0.25:
+                c = C(VIOLET if (x // 3 + y // 3) % 2 else VIOLET_L)
+            elif 2.05 < d < 2.34 and rnd('vio', seg) > 0.25:
+                c = mix(c, VIOLET_G, 0.45)
+            top[y][x] = c
+    istop = lambda x, y: 0 <= x < W and 0 <= y < H and top[y][x] is not None   # noqa: E731
+    DEPTH = 3
+    # 1) 草地上的影子：整片地板往右下錯開的地方
+    for y in range(H):
+        for x in range(W):
+            if patch[y][x]:
                 continue
-            out = [not floor[y + j][x + i] for i, j in ((1, 0), (-1, 0), (0, 1), (0, -1))]
-            if any(out):
-                px(im, x, y, mix(im.getpixel((x, y)), '#8d8676', 0.45))
-    for i in range(900):                                                     # 草葉：從邊緣往石板上長
-        x, y = int(rnd('gx', i) * W), int(rnd('gy', i) * H)
-        if not (2 <= x < W - 2 and 3 <= y < H - 1) or not floor[y][x]:
-            continue
-        if all(floor[y + j][x + i2] for i2 in (-2, 0, 2) for j in (-2, 0, 2)):
-            continue                                                         # 只在靠邊的地方長
-        hgt = 2 + int(rnd('gh', i) * 3)
-        col = '#6fa85a' if rnd('gc', i) < 0.6 else '#8cc06e'
-        for t in range(hgt):
-            px(im, x + (t if rnd('gd', i) < 0.3 else 0) // 2, y - t, col)
-    # 細細的裂縫
+            for dx, dy in ((-1, -2), (0, -3), (-2, -4), (-2, -5), (-1, -5), (0, -1)):
+                X, Y = x + dx, y + dy
+                if 0 <= X < W and 0 <= Y < H and patch[Y][X]:
+                    blend_px(im, x, y, (30, 48, 26, 120))
+                    break
+    # 2) 縫與泥土：深色的土，縫裡長青苔
+    for y in range(H):
+        for x in range(W):
+            if not patch[y][x] or istop(x, y):
+                continue
+            if (x, y) in dirt:
+                n = rnd('soil', x, y)
+                c = C('#8f7552') if n < 0.7 else C('#7a6244') if n < 0.92 else C('#5f4b33')
+                if n > 0.985:
+                    c = C('#6fa85a')
+            else:
+                c = C('#6f7d55') if rnd('moss', x, y) < 0.55 else C('#5d5a48')
+            px(im, x, y, c)
+    # 3) 石板的側面（厚度）：頂面往下 DEPTH 像素，被別的頂面蓋住的地方不畫
+    for y in range(H):
+        for x in range(W):
+            if not istop(x, y):
+                continue
+            for d_ in range(1, DEPTH + 1):
+                if y + d_ < H and not istop(x, y + d_) and (patch[y + d_][x] or d_ <= DEPTH):
+                    px(im, x, y + d_, C('#b9b0a4') if d_ == 1 else C('#9d9488') if d_ == 2 else C('#857c72'))
+    # 4) 頂面：上緣與左緣受光、下緣與右緣稍暗
+    for y in range(H):
+        for x in range(W):
+            c = top[y][x]
+            if c is None:
+                continue
+            if not istop(x, y - 1) or not istop(x - 1, y):
+                c = mix(c, '#ffffff', 0.6)
+            elif not istop(x, y + 1) or not istop(x + 1, y):
+                c = mix(c, '#a59d93', 0.35)
+            elif not istop(x, y - 2):
+                c = mix(c, '#ffffff', 0.25)
+            px(im, x, y, c)
+    # 細細的裂縫（只在頂面上）
     for _ in range(14):
         x, y = r.randrange(W), r.randrange(H)
         for _ in range(r.randrange(5, 14)):
-            if 0 <= x < W and 0 <= y < H and floor[y][x] and sid[y][x] != ('dirt',):
-                px(im, x, y, mix(im.getpixel((x, y)), '#a39cae', 0.6))
+            if istop(x, y) and istop(x, y - 1) and istop(x, y + 1):
+                px(im, x, y, mix(im.getpixel((x, y)), '#8f889a', 0.6))
             x += r.choice((-1, 1, 1))
             y += r.choice((0, 1, -1))
+    # 草葉：從地板外緣往石板上長一點
+    for i in range(700):
+        x, y = int(rnd('gx', i) * W), int(rnd('gy', i) * H)
+        if not (2 <= x < W - 2 and 3 <= y < H - 1) or not patch[y][x]:
+            continue
+        if all(patch[y + j][x + i2] for i2 in (-3, 0, 3) for j in (-3, 0, 3)):
+            continue
+        hgt = 2 + int(rnd('gh', i) * 3)
+        col = '#5f9a4c' if rnd('gc', i) < 0.6 else '#86bd68'
+        for t in range(hgt):
+            px(im, x, y - t, col)
     # 斷牆：白色大理石塊疊成的矮牆，頂端高低不平，比佔地那格往上高出一截
     for (gx, gy), c in sorted(grid.items(), key=lambda kv: kv[0][1]):
         if c != 'R':
@@ -225,7 +255,7 @@ def decor_temple():
         gx, gy = spots[int(rnd('rub', i) * len(spots))]
         x = (gx - ORIGIN[0]) * T + int(rnd('rx', i) * 44) - 6
         y = (gy - ORIGIN[1]) * T + int(rnd('ry', i) * 44) - 6
-        if not (0 <= x < W - 12 and 0 <= y < H - 8) or floor[min(H - 1, y + 3)][min(W - 1, x + 3)]:
+        if not (0 <= x < W - 12 and 0 <= y < H - 8) or patch[min(H - 1, y + 3)][min(W - 1, x + 3)]:
             continue
         w, h = 3 + int(rnd('rw', i) * 7), 2 + int(rnd('rh', i) * 4)
         rect(im, x, y, x + w, y + h, '#e9e4f0')
