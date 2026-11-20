@@ -150,49 +150,96 @@ def decor_temple():
                 shade_rect(x0 + 32, y0 + 4, x0 + 38, y0 + 31 + (FH if cell(gx, gy + 1) != 'P' else 0), 150)   # 右側
             if cell(gx, gy + 1) != 'P':
                 shade_rect(x0 + 1, y0 + 32 + FH + 1, x0 + 37, y0 + 32 + FH + 9, 165)                             # 正面牆腳
-        if c == 'm':
-            if cell(gx, gy + 1) not in 'mP':
-                shade_rect(x0 + 1, y0 + 35, x0 + 33, y0 + 36, 70)
-            if cell(gx + 1, gy) not in 'mP':
-                shade_rect(x0 + 32, y0 + 2, x0 + 33, y0 + 34, 60)
-    # ── 2. 地上的石板：平鋪，邊緣有缺塊、南緣露出一點厚度 ──
+    # ── 2. 倒塌散落的石塊：不是平鋪的地磚，而是從神殿掉下來、散在草地上的一塊一塊石板和碎石。
+    #        每塊都是斜俯視的小石塊：頂面（亮、有時歪一點）＋正面（暗）＋深色外框＋右下的影子；
+    #        有的平躺、有的斜插在土裡只露出一角；旁邊有小碎石和從石塊底下冒出來的草 ──
+    from PIL import Image as _I
+
+    def stone_block(w, d, h, skew, tone, rk):
+        """畫一塊石頭到小圖上，回傳 (圖, 底部 y)"""
+        Wt, Ht = w + abs(skew) + 4, d + h + 4
+        b = _I.new('RGBA', (Wt, Ht), (0, 0, 0, 0))
+        ox_ = 2 + max(0, -skew)
+        top = C(tone)
+        for r_ in range(d):                                         # 頂面：越往上越往 skew 方向偏（看起來歪著）
+            sh = round(skew * (d - 1 - r_) / max(1, d - 1))
+            for i in range(w):
+                if (r_ == 0 and (i == 0 or i == w - 1)) and rnd(rk, 'corner', i) < 0.8:
+                    continue                                        # 磨圓的角
+                if r_ < 2 and i < 2 and rnd(rk, 'chip') < 0.5:
+                    continue                                        # 缺角
+                c = top
+                if r_ == 0:
+                    c = mix(top, '#ffffff', 0.35)
+                elif i == 0:
+                    c = mix(top, '#ffffff', 0.15)
+                elif i == w - 1:
+                    c = mix(top, GROUT, 0.35)
+                elif rnd(rk, 'spk', i, r_) < 0.08:
+                    c = mix(top, GROUT, 0.3)
+                b.putpixel((ox_ + sh + i, 2 + r_), c)
+        for r_ in range(h):                                         # 正面：比較暗，最下面一條最暗
+            for i in range(w):
+                c = mix(C(FACE_A), C(FACE_DARK), r_ / max(1, h))
+                if i >= w - 2:
+                    c = mix(c, C(FACE_DARK), 0.4)
+                b.putpixel((ox_ + i, 2 + d + r_), c)
+        if rnd(rk, 'crack') < 0.35 and w > 8:                       # 一道裂縫從頂面裂到正面
+            cx_ = ox_ + 3 + int(rnd(rk, 'cx') * (w - 6))
+            for yy in range(2, 2 + d + h):
+                if cx_ < Wt and b.getpixel((cx_, yy))[3]:
+                    b.putpixel((cx_, yy), C(CRACK))
+                cx_ += 1 if rnd(rk, 'cd', yy) < 0.3 else 0
+        outline(b)
+        return b, 2 + d + h
+
+    pieces = []
     for (gx, gy), c in grid.items():
         if c != 'm':
             continue
-        edge = any(cell(gx + i, gy + j) not in 'mP' for i, j in ((1, 0), (-1, 0), (0, 1), (0, -1)))
-        tiles16(gx, gy, PAVE, 0.14 if edge else 0.04)
         x0, y0 = org(gx, gy)
-        if cell(gx, gy + 1) not in 'mP':
-            rect(im, x0, y0 + 32, x0 + 31, y0 + 33, '#b2a48f')
-            rect(im, x0, y0 + 34, x0 + 31, y0 + 34, '#8c7e6a')
-    # ── 2b. 地上石板的邊緣：草從旁邊長過來蓋住石板一點點（參考圖裡草地邊緣那種不規則的一圈），
-    #        草的邊上一條深綠線，石板被草蓋住的地方暗一點 → 石板看起來是陷在草地裡的 ──
-    GR, GR_D, GR_L = '#5e9c4c', '#3c6e34', '#7cb862'
-    for (gx, gy), c in grid.items():
-        if c != 'm':
-            continue
-        x0, y0 = org(gx, gy)
-        for side in ('n', 'w', 'e'):
-            nb = {'n': (gx, gy - 1), 'w': (gx - 1, gy), 'e': (gx + 1, gy)}[side]
-            if cell(*nb) in 'mP':
-                continue
-            for t in range(32):
-                depth = 1 + int(4 * rnd('gd', gx, gy, side, t // 3))
-                for d in range(depth + 2):
-                    if side == 'n':
-                        x, y = x0 + t, y0 + d
-                    elif side == 'w':
-                        x, y = x0 + d, y0 + t
-                    else:
-                        x, y = x0 + 31 - d, y0 + t
-                    if not (0 <= x < W and 0 <= y < H):
-                        continue
-                    if d < depth:
-                        px(im, x, y, GR_L if d == 0 and rnd('gl', x, y) < 0.3 else GR)
-                    elif d == depth:
-                        px(im, x, y, GR_D)                                  # 草邊的深色線
-                    else:
-                        px(im, x, y, mix(im.getpixel((x, y)), '#5a4f40', 0.35))   # 草下的石板暗一點
+        n = 1 + int(rnd('np', gx, gy) * 2.6)
+        for i in range(n):
+            k = ('pc', gx, gy, i)
+            kind = rnd(k, 'kind')
+            if kind < 0.6:                                          # 平躺的石板
+                w, d, h = 12 + int(rnd(k, 'w') * 12), 8 + int(rnd(k, 'd') * 6), 3 + int(rnd(k, 'h') * 2)
+            elif kind < 0.85:                                       # 斜插在土裡、只露出一角
+                w, d, h = 8 + int(rnd(k, 'w') * 8), 3 + int(rnd(k, 'd') * 3), 7 + int(rnd(k, 'h') * 5)
+            else:                                                   # 方正的石塊
+                w, d, h = 10 + int(rnd(k, 'w') * 6), 6 + int(rnd(k, 'd') * 4), 8 + int(rnd(k, 'h') * 4)
+            skew = int(rnd(k, 'sk') * 7) - 3
+            tone = PAVE[int(rnd(k, 'tone') * len(PAVE))]
+            x = x0 + int(rnd(k, 'x') * max(1, 32 - w)) - 3
+            y = y0 + int(rnd(k, 'y') * max(1, 30 - d - h)) - 2
+            pieces.append((y + d + h, x, y, w, d, h, skew, tone, k))
+        for i in range(3 + int(rnd('nr', gx, gy) * 5)):             # 小碎石
+            k = ('rb', gx, gy, i)
+            w = 3 + int(rnd(k, 'w') * 4)
+            pieces.append((0, x0 + int(rnd(k, 'x') * 34) - 2, y0 + int(rnd(k, 'y') * 32), w, 2, 1 + int(rnd(k, 'h') * 2), 0,
+                           PAVE[int(rnd(k, 't') * len(PAVE))], k))
+    pieces = [(y + d + h, x, y, w, d, h, sk, t, k) for (_, x, y, w, d, h, sk, t, k) in pieces]
+    for bot, x, y, w, d, h, sk, tone, k in sorted(pieces):
+        b, bh = stone_block(w, d, h, sk, tone, k)
+        # 影子：往右下，深綠色
+        for yy in range(b.size[1]):
+            for xx in range(b.size[0]):
+                if b.getpixel((xx, yy))[3]:
+                    X, Y = x + xx + 2, y + yy + 3
+                    if 0 <= X < W and 0 <= Y < H and not (0 <= x + xx < W and 0 <= y + yy < H and im.getpixel((min(W - 1, x + xx + 2), min(H - 1, y + yy + 3)))[3] > 200):
+                        shade_rect(X, Y, X, Y, 150)
+        for yy in range(b.size[1]):
+            for xx in range(b.size[0]):
+                c = b.getpixel((xx, yy))
+                if c[3] and 0 <= x + xx < W and 0 <= y + yy < H:
+                    px(im, x + xx, y + yy, c)
+        if w > 6 and rnd(k, 'tuft') < 0.55:                          # 石塊底下冒出來的草
+            for t in range(2 + int(rnd(k, 'tn') * 3)):
+                tx = x + 2 + int(rnd(k, 'tx', t) * (w + 2))
+                ty = y + bh - 1 + int(rnd(k, 'ty', t) * 2)
+                for hh in range(2 + int(rnd(k, 'th', t) * 3)):
+                    if 0 <= tx < W and 0 <= ty - hh < H:
+                        px(im, tx + (1 if hh == 2 and t % 2 else 0), ty - hh, TUFT[(t + hh) % 3])
     # ── 3. 石台頂面 ──
     for (gx, gy), c in grid.items():
         if c != 'P':
@@ -337,7 +384,7 @@ def decor_temple():
             for x in range(x0 - 2, x0 + 38):
                 dx, dy = (x + 0.5 - (x0 + 19)) / 19, (y + 0.5 - (y0 + 28)) / 5.5
                 if dx * dx + dy * dy <= 1 and 0 <= x < W and 0 <= y < H:
-                    blend_px(im, x, y, SHADOW + (120,))
+                    shade_rect(x, y, x, y, 130)
     # ── 7. 草：從石板邊緣、石縫冒出來的一叢一叢深綠色小草 ──
     for i in range(900):
         keys = [k for k, c in grid.items() if c in 'mPR']
