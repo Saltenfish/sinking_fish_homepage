@@ -55,6 +55,29 @@ def shadow(im, cx, cy, rx, ry, a=70):
     im.paste(base, (0, 0))
 
 
+def outline_dark(im, color='#3b3340'):
+    """斜俯視像素物件的一圈深色外框（參考常見的 2D 俯視素材：每個物件都有一圈深色描邊）"""
+    W_, H_ = im.size
+    src = im.copy()
+    for y in range(H_):
+        for x in range(W_):
+            if src.getpixel((x, y))[3] >= 128:
+                continue
+            if any(0 <= x + dx < W_ and 0 <= y + dy < H_ and src.getpixel((x + dx, y + dy))[3] >= 200
+                   for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                px(im, x, y, color)
+    return im
+
+
+def ground_shadow(im, cx, cy, rx, ry, a=120):
+    """腳下的影子：深綠色、偏右下，畫在最底層（像參考圖裡樹和石像下面那塊深色的地）"""
+    base = new(*im.size)
+    ellipse(base, cx, cy, rx, ry, (22, 50, 26, a))
+    base.alpha_composite(im)
+    im.paste(base, (0, 0))
+    return im
+
+
 def _tone(c, k):
     """k > 0 往白色靠、k < 0 往黑色靠"""
     r_, g_, b_, a_ = c
@@ -461,25 +484,33 @@ ST, ST_L, ST_D = '#8f8d9e', '#b3b1c0', '#6f6d7e'
 
 
 def ent_board():
+    """斜俯視的告示牌：木板上緣看得到一條頂面（板子的厚度），兩根木樁，外面一圈深色框"""
     im = new(T, T)
-    for x0 in (6, 23):
-        rect(im, x0, 12, x0 + 2, 28, WOOD_D)
-        rect(im, x0, 12, x0, 28, '#8a5a30')
-    rect(im, 2, 4, 29, 21, WOOD_D)
-    rect(im, 3, 5, 28, 20, WOOD)
-    rect(im, 3, 5, 28, 5, WOOD_L)
+    for x0 in (6, 23):                                    # 木樁：左亮右暗
+        rect(im, x0, 18, x0 + 2, 28, WOOD_D)
+        rect(im, x0, 18, x0, 28, '#a8743f')
+    rect(im, 2, 3, 29, 4, WOOD_L)                         # 板子的頂面（厚度）
+    rect(im, 2, 5, 29, 21, WOOD)
+    rect(im, 2, 20, 29, 21, WOOD_D)
+    rect(im, 27, 5, 29, 21, '#7a4e2c')
+    for y in (9, 14):
+        rect(im, 3, y, 26, y, '#8a5a30')                  # 木板接縫
     rect(im, 5, 7, 12, 16, '#fbf6e6')                     # 貼著的紙
+    rect(im, 12, 8, 12, 16, '#d8d0bc')
     for y in (9, 11, 13):
         rect(im, 6, y, 11, y, '#b9b3a0')
     rect(im, 14, 8, 20, 14, '#f6e27a')
+    rect(im, 20, 9, 20, 14, '#d6bd52')
     rect(im, 15, 10, 19, 10, '#c9a93f')
     rect(im, 15, 12, 18, 12, '#c9a93f')
     rect(im, 21, 10, 26, 18, '#f7b6cf')
+    rect(im, 26, 11, 26, 18, '#d98fb0')
     rect(im, 22, 12, 25, 12, '#d776a3')
     rect(im, 22, 15, 24, 15, '#d776a3')
     for x, y in ((8, 7), (17, 8), (23, 10)):
         px(im, x, y, '#d1495b')
-    shadow(im, 16, 28, 12, 3)
+    outline_dark(im, '#3a2618')
+    ground_shadow(im, 18, 28, 13, 2.6)
     return im
 
 
@@ -513,29 +544,38 @@ def ent_dig(used=False):
 
 
 def ent_lantern(lit=False):
+    """斜俯視的石燈籠：底座和火袋都看得到頂面（亮）與正面（暗），屋頂是四面坡（左上亮、右下暗），外面一圈深色框"""
     im = new(T, T)
-    rect(im, 9, 26, 22, 29, ST_D)
-    rect(im, 10, 25, 21, 27, ST)
-    rect(im, 10, 25, 21, 25, ST_L)
-    rect(im, 13, 17, 18, 24, ST)
-    rect(im, 13, 17, 13, 24, ST_L)
-    rect(im, 18, 17, 18, 24, ST_D)
-    rect(im, 8, 9, 23, 16, ST)
-    rect(im, 8, 9, 8, 16, ST_L)
-    rect(im, 23, 9, 23, 16, ST_D)
-    rect(im, 8, 16, 23, 16, ST_D)
-    rect(im, 11, 10, 20, 15, '#fff0a8' if lit else '#3a3a48')
+    L_, M_, D_, DD = '#c9c9d6', '#a9a9ba', '#8a8a9e', '#6c6c80'
+    # 底座：頂面＋正面
+    rect(im, 9, 24, 22, 25, L_)
+    rect(im, 9, 26, 22, 29, D_)
+    rect(im, 20, 26, 22, 29, DD)
+    # 柱：左亮右暗
+    rect(im, 13, 18, 18, 23, M_)
+    rect(im, 13, 18, 14, 23, L_)
+    rect(im, 17, 18, 18, 23, D_)
+    # 中台（托住火袋的平板）：頂面＋正面
+    rect(im, 9, 15, 22, 15, L_)
+    rect(im, 9, 16, 22, 17, D_)
+    # 火袋：正面有窗，右側暗
+    rect(im, 10, 9, 21, 14, M_)
+    rect(im, 10, 9, 11, 14, L_)
+    rect(im, 19, 9, 21, 14, D_)
+    rect(im, 12, 10, 18, 13, '#fff0a8' if lit else '#3a3a4c')
     if lit:
-        rect(im, 13, 11, 18, 14, '#ffffff')
-        rect(im, 11, 10, 20, 10, '#ffd66b')
-        rect(im, 11, 15, 20, 15, '#ffd66b')
-    rect(im, 15, 10, 16, 15, ST_D if not lit else '#e0a93a')
-    for i, y in enumerate((8, 7, 6, 5)):                  # 屋頂
-        rect(im, 6 + i * 2, y, 25 - i * 2, y, ST_L if i == 3 else ST)
-    rect(im, 5, 8, 26, 8, ST_D)
-    rect(im, 14, 2, 17, 4, ST)
-    rect(im, 15, 1, 16, 1, ST_L)
-    shadow(im, 16, 29, 9, 2)
+        rect(im, 13, 11, 17, 12, '#ffffff')
+    rect(im, 15, 10, 15, 13, M_ if not lit else '#e0a93a')
+    # 屋頂：四面坡，往下展開；頂面（左上）亮、右邊暗、下緣有一條深色屋簷
+    for i, y in enumerate(range(3, 9)):
+        x0, x1 = 13 - i * 2, 18 + i * 2
+        rect(im, x0, y, x1, y, M_)
+        rect(im, x0, y, (x0 + x1) // 2, y, L_)
+        rect(im, x1 - 1, y, x1, y, D_)
+    rect(im, 4, 8, 27, 8, DD)
+    rect(im, 15, 1, 16, 2, L_)
+    outline_dark(im)
+    ground_shadow(im, 18, 29, 10, 2.6)
     return im
 
 
@@ -608,26 +648,28 @@ def ent_pond(found=False):
 
 
 def ent_offering():
-    """供奉石：石座上放著發光的寶石"""
+    """供奉石（神殿遺跡旁）：白色石座，斜俯視看得到頂面與正面，上面浮著發光的紫寶石"""
     im = new(T, T)
-    rect(im, 8, 17, 23, 28, ST)
-    rect(im, 8, 17, 8, 28, ST_L)
-    rect(im, 23, 17, 23, 28, ST_D)
-    rect(im, 8, 28, 23, 28, ST_D)
-    rect(im, 5, 13, 26, 17, ST)
-    rect(im, 5, 13, 26, 13, ST_L)
-    rect(im, 5, 17, 26, 17, ST_D)
-    for y in (21, 24):
-        rect(im, 11, y, 20, y, ST_D)
-    for i, w in enumerate((1, 2, 3, 3, 2, 1)):            # 菱形寶石
-        rect(im, 16 - w, 4 + i, 15 + w, 4 + i, '#9d8cff')
-        px(im, 16 - w, 4 + i, '#d6ccff')
-        px(im, 15 + w, 4 + i, '#6c5ce7')
-    px(im, 15, 6, '#ffffff')
-    rect(im, 12, 11, 19, 12, '#6c5ce7')
-    for x, y in ((9, 6), (22, 5), (11, 2), (21, 9)):
+    TOPc, FR, FRD, LN = '#f3ede3', '#cdbfac', '#a6987f', '#9d8f7c'
+    rect(im, 6, 12, 25, 16, TOPc)                         # 頂板：頂面
+    rect(im, 6, 12, 25, 12, '#ffffff')
+    rect(im, 23, 12, 25, 16, '#ddd3c4')
+    rect(im, 6, 17, 25, 19, FR)                           # 頂板：正面
+    rect(im, 8, 20, 23, 28, FR)                           # 石座本體：正面
+    rect(im, 20, 20, 23, 28, FRD)
+    for y in (23, 26):
+        rect(im, 10, y, 19, y, LN)                        # 刻紋
+    rect(im, 8, 28, 23, 28, '#7f725f')
+    rect(im, 10, 14, 21, 15, '#6c5ce7')                   # 頂上的紫色凹槽
+    outline_dark(im, '#6e6153')
+    for i, w in enumerate((1, 2, 3, 3, 2, 1)):            # 菱形寶石（浮著，不描框）
+        rect(im, 16 - w, 3 + i, 15 + w, 3 + i, '#9d8cff')
+        px(im, 16 - w, 3 + i, '#d6ccff')
+        px(im, 15 + w, 3 + i, '#6c5ce7')
+    px(im, 15, 5, '#ffffff')
+    for x, y in ((9, 5), (22, 4), (11, 1), (21, 8)):
         px(im, x, y, '#d6ccff')
-    shadow(im, 16, 29, 10, 2)
+    ground_shadow(im, 18, 29, 12, 2.6)
     return im
 
 
@@ -926,18 +968,18 @@ def main():
     out['tile.door'] = save(tile_door(), 'tiles', 'door.png')
     out['decor.hut'] = save(volumize(decor_hut()), 'decor', 'hut.png')
     out['ent.hut'] = save(ent_hut_door(), 'sprites', 'hut-door.png')
-    out['ent.board'] = save(volumize(ent_board()), 'sprites', 'board.png')
+    out['ent.board'] = save(ent_board(), 'sprites', 'board.png')
     out['ent.bush'] = save(volumize(ent_bush(), sides=False), 'sprites', 'bush.png')
     out['ent.dig'] = save(ent_dig(False), 'sprites', 'dig.png')
     out['ent.dig.used'] = save(ent_dig(True), 'sprites', 'dig-used.png')
-    out['ent.lantern'] = save(volumize(ent_lantern(False)), 'sprites', 'lantern.png')
-    out['ent.lantern.lit'] = save(volumize(ent_lantern(True), keep_alpha=True), 'sprites', 'lantern-lit.png')
+    out['ent.lantern'] = save(ent_lantern(False), 'sprites', 'lantern.png')
+    out['ent.lantern.lit'] = save(ent_lantern(True), 'sprites', 'lantern-lit.png')
     for stage in ('empty', 'growing', 'ripe'):
         out[f'ent.plot.{stage}'] = save(ent_plot(stage), 'sprites', f'plot-{stage}.png')
     out['ent.fishspot'] = save(volumize(ent_fishspot()), 'sprites', 'fishspot.png')
     out['ent.pond'] = save(volumize(ent_pond(False)), 'sprites', 'pond.png')
     out['ent.pond.found'] = save(ent_pond(True), 'sprites', 'pond-found.png')
-    out['ent.offering'] = save(volumize(ent_offering(), keep_alpha=True), 'sprites', 'offering.png')
+    out['ent.offering'] = save(ent_offering(), 'sprites', 'offering.png')
     out['ent.bugspot'] = save(ents_bug(), 'sprites', 'bug.png')
     out['ent.tree'] = save(volumize(ent_tree(), sides=False, cast=False, keep_alpha=True), 'sprites', 'wish-tree.png')
     # ent.altar 改由 tools/make_pixel_temple.py 產生（白色大理石召喚台）

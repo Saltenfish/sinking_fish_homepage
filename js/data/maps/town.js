@@ -8,29 +8,35 @@ const g = Array.from({ length: H }, () => Array(W).fill('.'));
 const rect = (x0, y0, x1, y1, c) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) g[y][x] = c; };
 
 rect(0, 0, W - 1, H - 1, '#'); rect(1, 1, W - 2, H - 2, '.');   // 外圍樹牆
-// 召喚神殿遺跡：白色大理石神殿崩塌後剩下的樣子。不是完整的一圈：
-// 中間的召喚台周圍有一塊殘缺的地板，四周零星散著幾塊地板、幾段斷牆。
-// m：大理石地板（可以走）　R：斷牆（擋路）　.：草地
+// 召喚神殿遺跡（斜俯視的 2D 地圖，看得到東西的頂面和正面）：
+// 中間是一座墊高的石台（P），召喚台在上面，正面是一道石牆、中間有台階；
+// 四周零星散著幾塊平鋪在地上的石板（m）和幾段斷牆（R）。
+// P：石台頂面（可以走）　m：地上的石板（可以走）　R：斷牆（擋路）　.：草地
+// 石台南邊露出來的那一格是石台的正面（擋路），只有 TEMPLE_STAIRS 那兩格是台階可以走上去。
 // 這張表從地圖 (9, 1) 開始，一列是一行。tools/make_pixel_temple.py 會讀同一張表畫佈景圖 decor.temple，
 // 所以只要改這裡、再重跑那支程式，碰撞和畫面就會一致。
 export const RUINS_ORIGIN = [9, 1];
 export const RUINS = [
   // RUINS-BEGIN
-  '.......m........RRR...',
-  '..Rmmm.........mmmm...',
-  '..Rmmmm..mmmmm..mm....',
-  '..R.mm.mmmmmmmm.....m.',
-  '.......mmmmmmmmm......',
-  '..m...mmmmmmmmmm.mmm..',
-  '.......mmmmmmmm...mmm.',
-  '........mmmmm.m..mm...',
-  '...mmm...mmmmmm.......',
-  '..mmmm....mm...RR..R..',
-  '....mm..m..........R..',
-  '.............m........',
+  '.................RR...',
+  '..R.....PPPPPPP.mmm...',
+  '..RmmmPPPPPPPPPP......',
+  '...mmmPPPPPPPPPPP.....',
+  '....mmPPPPPPPPPPP.....',
+  '......PPPPPPPPPPPmmm..',
+  '.......PPPPPPPPPPmmmm.',
+  '.......PPPPPPPPP..mm..',
+  '........PPPPPPP.......',
+  '..mmm..............R..',
+  '...mmm.m.......RR..R..',
+  '....m........mm.......',
   // RUINS-END
 ];
 RUINS.forEach((row, dy) => [...row].forEach((c, dx) => { if (c !== '.') g[RUINS_ORIGIN[1] + dy][RUINS_ORIGIN[0] + dx] = c; }));
+export const TEMPLE_STAIRS = [19, 20];
+for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {   // 石台正面：P 正下方不是 P 的那一格
+  if (g[y - 1][x] === 'P' && g[y][x] !== 'P') g[y][x] = TEMPLE_STAIRS.includes(x) ? 'S' : 'F';
+}
 rect(31, 1, 32, 28, '~'); rect(31, 14, 32, 14, '=');             // 溪流與小橋
 rect(33, 20, 38, 20, 'r');                                       // 蘆葦叢：看起來擋路，其實走得過去（秘密入口）
 rect(35, 23, 37, 26, '~');                                       // 隱藏池塘
@@ -43,6 +49,9 @@ export const town = {
     '#': { key: 'wall', solid: true, color: '#2f5d3a', name: '樹牆' },
     'm': { key: 'grass', solid: false, color: '#ece8f2', name: '大理石地板' },   // 崩落的地板邊緣由 decor.temple 畫，底下是草地
     'R': { key: 'grass', solid: true, color: '#d9d3e3', name: '斷牆' },   // 外觀由 decor.temple 畫
+    'P': { key: 'grass', solid: false, color: '#e6dccb', name: '石台' },
+    'F': { key: 'grass', solid: true, color: '#b8a994', name: '石台的牆' },
+    'S': { key: 'grass', solid: false, color: '#d8ccb8', name: '台階' },
     '~': { key: 'water', solid: true, color: '#4f8fc0', name: '水' },
     '=': { key: 'bridge', solid: false, color: '#a47148', name: '橋' },
     'r': { key: 'reed', solid: false, color: '#3a6b45', name: '蘆葦' },
@@ -73,8 +82,8 @@ export const town = {
     { id: 'tree', type: 'tree', x: 19, y: 18, w: 2, h: 2, solid: true, art: { x: -2, y: -4, w: 6, h: 6 } },   // 圖是 6×6 格，樹冠往上、往兩邊伸出去
     { id: 'altar', type: 'altar', x: 19, y: 5, w: 2, h: 2, solid: true, art: { x: -0.5, y: -0.5, w: 3, h: 3 } },   // 圖是 3×3 格的大理石圓台
     // 卡殿裡的裝飾：石柱（佔 1 格、圖往上高 1 格）與牆上的掛旗
-    // 白色大理石柱：只剩四根，站在零散的地板上（一根是斷的）
-    { id: 'col1', type: 'deco', sprite: 'ent.column', x: 13, y: 3, solid: true, art: { x: 0, y: -2, w: 1, h: 3 } },
+    // 白色大理石柱：只剩四根（一根是斷的），一根在石台上、其他站在零散的石板上
+    { id: 'col1', type: 'deco', sprite: 'ent.column', x: 16, y: 3, solid: true, art: { x: 0, y: -2, w: 1, h: 3 } },
     { id: 'col2', type: 'deco', sprite: 'ent.column.broken', x: 26, y: 2, solid: true, art: { x: 0, y: -2, w: 1, h: 3 } },
     { id: 'col3', type: 'deco', sprite: 'ent.column', x: 27, y: 7, solid: true, art: { x: 0, y: -2, w: 1, h: 3 } },
     { id: 'col4', type: 'deco', sprite: 'ent.column', x: 13, y: 10, solid: true, art: { x: 0, y: -2, w: 1, h: 3 } },

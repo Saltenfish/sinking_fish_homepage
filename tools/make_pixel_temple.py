@@ -53,215 +53,246 @@ def mix(c1, c2, t):
     return tuple(round(a[i] + (b[i] - a[i]) * t) for i in range(3)) + (255,)
 
 
+def rnd(*k):
+    return random.Random(hash_k(*k)).random()
+
+
+# 斜俯視（3/4 視角）的石頭配色：頂面亮、正面暗，石縫與外框用深一點的暖灰
+TOP = ['#eee7dc', '#e8e0d3', '#f2ece2', '#e3dbce']      # 石台頂面的石板
+PAVE = ['#e4dbcc', '#ddd3c3', '#e8e0d2', '#d6cbb9']     # 地上的石板（比較舊）
+GROUT, HILITE, CRACK = '#b3a691', '#fbf8f1', '#9f9282'
+FACE_A, FACE_B, MORTAR, FACE_DARK, LIP, LIP_D = '#cdbfac', '#c3b5a1', '#9d8f7c', '#7f725f', '#f6f0e6', '#dcd1c0'
+LINE = '#6e6153'                                         # 外框
+SHADOW = (24, 52, 28)                                    # 投在草地上的影子（深綠）
+FH = 22                                                  # 石台正面的高度（像素）
+TUFT = ['#4f8a45', '#6aa65a', '#3f7438']
+
+
 def decor_temple():
-    """神殿遺跡：殘缺的大理石地板（邊緣崩落、有裂縫）、幾段斷牆、地上殘留半圈金色與紫色的鑲嵌、散落的碎石"""
+    """召喚神殿遺跡（斜俯視）：墊高的石台（看得到頂面＋正面石牆＋台階）、平鋪在地上的石板、斷牆。
+    光從左上來：頂面亮、正面暗、影子落在正下方與右邊的地上"""
     grid = read_ruins()
     W, H = DW * T, DH * T
     im = new(W, H)
-    rnd = lambda *k: random.Random(hash_k(*k)).random()   # noqa: E731
+    cell = lambda gx, gy: grid.get((gx, gy), '.')        # noqa: E731
+    org = lambda gx, gy: ((gx - ORIGIN[0]) * T, (gy - ORIGIN[1]) * T)   # noqa: E731
+    stairs = (19, 20)
 
-    def cell(gx, gy):
-        return grid.get((gx, gy), '.')
+    shaded = {}
 
-    def noise1(key, t):
-        """平滑的一維雜訊（0～1）：每 8 像素一個隨機值，中間線性內插"""
-        i, f = int(t // 8), (t % 8) / 8
-        return rnd(key, i) * (1 - f) + rnd(key, i + 1) * f
+    def shade_rect(x0, y0, x1, y1, a):
+        # 影子重疊的地方不要疊得更黑：同一個像素只取最深的那一次
+        for y in range(max(0, y0), min(H, y1 + 1)):
+            for x in range(max(0, x0), min(W, x1 + 1)):
+                if shaded.get((x, y), 0) >= a:
+                    continue
+                if (x, y) in shaded or im.getpixel((x, y))[3] == 0:
+                    shaded[(x, y)] = a
+                    im.putpixel((x, y), SHADOW + (a,))
+                else:
+                    shaded[(x, y)] = a
+                    blend_px(im, x, y, SHADOW + (a,))
 
-    def altar_d(gx, gy, lx, ly):
-        return math.hypot(gx + (lx + 0.5) / T - ALTAR_C[0], (gy + (ly + 0.5) / T - ALTAR_C[1]) * 1.25)
+    def tiles16(gx, gy, palette, worn):
+        """一格（32px）裡鋪 2×2 塊方形石板：每塊左上一條亮邊、右下一條石縫，偶爾有裂縫或缺一塊"""
+        x0, y0 = org(gx, gy)
+        for j in range(2):
+            for i in range(2):
+                k = (gx, gy, i, j)
+                tx, ty = x0 + i * 16, y0 + j * 16
+                if worn and rnd('miss', k) < worn:
+                    # 缺了一塊：露出底下的土，上緣有一道陰影（看起來凹下去）
+                    for y in range(ty, ty + 16):
+                        for x in range(tx, tx + 16):
+                            n = rnd('soil', x, y)
+                            c = '#8f7552' if n < 0.7 else '#7a6244' if n < 0.92 else '#5f4b33'
+                            if y < ty + 3:
+                                c = '#5a4632'
+                            px(im, x, y, c)
+                    for t in range(int(rnd('tg', k) * 4)):
+                        gx_ = tx + 3 + int(rnd('tgx', k, t) * 10)
+                        for h_ in range(3):
+                            px(im, gx_, ty + 14 - h_, TUFT[t % 3])
+                    continue
+                base = palette[int(rnd('tone', k) * len(palette))]
+                for y in range(ty, ty + 16):
+                    for x in range(tx, tx + 16):
+                        c = base
+                        if x == tx + 15 or y == ty + 15:
+                            c = GROUT
+                        elif x == tx or y == ty:
+                            c = HILITE
+                        elif rnd('spk', x, y) < 0.04:
+                            c = mix(base, GROUT, 0.35)
+                        px(im, x, y, c)
+                if rnd('crack', k) < 0.15:                         # 裂縫
+                    x, y = tx + 2 + int(rnd('cx', k) * 11), ty + 2
+                    for _ in range(int(6 + rnd('cl', k) * 8)):
+                        if tx < x < tx + 15 and ty < y < ty + 15:
+                            px(im, x, y, CRACK)
+                        x += 1 if rnd('cd', k, x, y) < 0.5 else 0
+                        y += 1
 
-    veins = set()
-    r = random.Random(77)
-    for _ in range(40):
-        x, y = r.randrange(W), r.randrange(H)
-        ang = r.random() * math.tau
-        for _ in range(r.randrange(20, 60)):
-            veins.add((int(x), int(y)))
-            ang += (r.random() - 0.5) * 0.7
-            x += math.cos(ang)
-            y += math.sin(ang) * 0.7
-    # ── 地面：一塊一塊不規則的石板平鋪在地上（俯視），不是砌牆的磚 ──
-    # 石板形狀用「抖動格點的最近點」切出來（每塊約 18px），石板之間的縫長了青苔；
-    # 靠外圍的石板有些整塊不見（露出草地），中間偶爾少一塊（露出泥土）。
-    S = 18
-    seeds = {}
-    for cy_ in range(-1, H // S + 2):
-        for cx_ in range(-1, W // S + 2):
-            seeds[(cx_, cy_)] = (cx_ * S + 3 + rnd('sx', cx_, cy_) * (S - 6), cy_ * S + 3 + rnd('sy', cx_, cy_) * (S - 6))
-
-    def stone_at(x, y):
-        cx_, cy_ = int(x // S), int(y // S)
-        best = second = 1e9
-        bid = None
-        for j in (-1, 0, 1):
-            for i in (-1, 0, 1):
-                k = (cx_ + i, cy_ + j)
-                sx_, sy_ = seeds[k]
-                d = (x - sx_) ** 2 + (y - sy_) ** 2
-                if d < best:
-                    second, best, bid = best, d, k
-                elif d < second:
-                    second = d
-        return bid, math.sqrt(second) - math.sqrt(best)
-
-    def stone_tile(k):
-        sx_, sy_ = seeds[k]
-        return ORIGIN[0] + int(min(W - 1, max(0, sx_)) // T), ORIGIN[1] + int(min(H - 1, max(0, sy_)) // T)
-
-    def edge_dist(gx, gy):
-        """這塊石板所在的格子離草地多近（0＝就在邊上）"""
-        for r_ in range(0, 3):
-            if any(cell(gx + i, gy + j) != 'm' for i in range(-r_, r_ + 1) for j in range(-r_, r_ + 1)):
-                return r_
-        return 3
-
-    STONES = ['#efebe4', '#e9e5df', '#f3f0ea', '#e2ddd8', '#ece8e1', '#dedad3']   # 和柱子同一組暖白色
-    # 先算出每一塊石板的「頂面」（縫以外的部分）與顏色，再像土堆那樣一層一層疊出立體感：
-    #   草地上的影子 → 石板的側面（頂面往下 3px 的厚度，比較暗）→ 頂面（上緣受光、下緣稍暗）
-    # 石板之間的縫看得到下面那塊的側面和深色的土與青苔，所以每塊石板都像微微凸起、嵌在地上。
-    top = [[None] * W for _ in range(H)]          # 頂面的顏色
-    patch = [[False] * W for _ in range(H)]       # 整片地板（含縫）
-    dirt = set()
+    # ── 1. 石台與石板投在地上的影子（先畫，在最底下） ──
+    for (gx, gy), c in grid.items():
+        x0, y0 = org(gx, gy)
+        if c == 'P':
+            if cell(gx + 1, gy) != 'P':
+                shade_rect(x0 + 32, y0 + 4, x0 + 38, y0 + 31 + (FH if cell(gx, gy + 1) != 'P' else 0), 150)   # 右側
+            if cell(gx, gy + 1) != 'P':
+                shade_rect(x0 + 1, y0 + 32 + FH + 1, x0 + 37, y0 + 32 + FH + 9, 165)                             # 正面牆腳
+        if c == 'm':
+            if cell(gx, gy + 1) not in 'mP':
+                shade_rect(x0 + 1, y0 + 35, x0 + 33, y0 + 36, 70)
+            if cell(gx + 1, gy) not in 'mP':
+                shade_rect(x0 + 32, y0 + 2, x0 + 33, y0 + 34, 60)
+    # ── 2. 地上的石板：平鋪，邊緣有缺塊、南緣露出一點厚度 ──
+    for (gx, gy), c in grid.items():
+        if c != 'm':
+            continue
+        edge = any(cell(gx + i, gy + j) not in 'mP' for i, j in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+        tiles16(gx, gy, PAVE, 0.14 if edge else 0.04)
+        x0, y0 = org(gx, gy)
+        if cell(gx, gy + 1) not in 'mP':
+            rect(im, x0, y0 + 32, x0 + 31, y0 + 33, '#b2a48f')
+            rect(im, x0, y0 + 34, x0 + 31, y0 + 34, '#8c7e6a')
+    # ── 3. 石台頂面 ──
+    for (gx, gy), c in grid.items():
+        if c != 'P':
+            continue
+        near = math.hypot(gx + 0.5 - ALTAR_C[0], (gy + 0.5 - ALTAR_C[1]) * 1.25) < 2.4
+        edge = any(cell(gx + i, gy + j) != 'P' for i, j in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+        tiles16(gx, gy, TOP, 0 if near else (0.05 if edge else 0.015))
+        x0, y0 = org(gx, gy)
+        # 外緣：上、左受光（亮），右邊暗；最外圈一條深色外框
+        if cell(gx, gy - 1) != 'P':
+            rect(im, x0, y0, x0 + 31, y0, LINE)
+            rect(im, x0, y0 + 1, x0 + 31, y0 + 2, LIP)
+        if cell(gx - 1, gy) != 'P':
+            rect(im, x0, y0, x0, y0 + 31, LINE)
+            rect(im, x0 + 1, y0, x0 + 2, y0 + 31, LIP)
+        if cell(gx + 1, gy) != 'P':
+            rect(im, x0 + 31, y0, x0 + 31, y0 + 31, LINE)
+            rect(im, x0 + 29, y0 + 1, x0 + 30, y0 + 31, LIP_D)
+    # 殘留的鑲嵌：以召喚台為中心的金色環與紫色符文環（斷斷續續，只畫在石台頂面的石板上）
     for y in range(H):
         for x in range(W):
             gx, gy = ORIGIN[0] + x // T, ORIGIN[1] + y // T
-            k, gap = stone_at(x + 0.5, y + 0.5)
-            sgx, sgy = stone_tile(k)
-            if cell(sgx, sgy) != 'm':                                        # 石板中心落在地板格上才有這塊石板：
-                continue                                                     # 邊緣就會沿著石板的形狀，不會是方的
-            if cell(gx, gy) != 'm' and gap < 1.6:
+            if cell(gx, gy) != 'P':
                 continue
-            near_altar = math.hypot(sgx + 0.5 - ALTAR_C[0], (sgy + 0.5 - ALTAR_C[1]) * 1.25) < 2.6
-            ed = edge_dist(gx, gy)
-            if not near_altar and ed <= 1 and rnd('gone', k) < (0.42 if ed == 0 else 0.18):
-                continue                                                     # 整塊不見，露出草地
-            patch[y][x] = True
-            if not near_altar and ed >= 1 and rnd('dirt', k) < 0.07:        # 少一塊，露出泥土（凹下去）
-                dirt.add((x, y))
+            cur = im.getpixel((x, y))
+            if cur[:3] in (rgb(GROUT)[:3], rgb('#8f7552')[:3]):
                 continue
-            if gap < 1.6:
-                continue                                                     # 縫
-            lx, ly = x % T, y % T
-            c = C(STONES[int(rnd('tone', k) * len(STONES))])
-            if (x, y) in veins:
-                c = mix(c, '#cdc6d3', 0.45)
-            # 殘留的鑲嵌：以召喚台為中心的金色環與紫色符文環，斷斷續續
-            d = altar_d(gx, gy, lx, ly)
-            ang = math.atan2((gy + (ly + 0.5) / T - ALTAR_C[1]) * 1.25, gx + (lx + 0.5) / T - ALTAR_C[0])
+            d = math.hypot((ORIGIN[0] * T + x + 0.5) / T - ALTAR_C[0], ((ORIGIN[1] * T + y + 0.5) / T - ALTAR_C[1]) * 1.25)
+            ang = math.atan2(((ORIGIN[1] * T + y + 0.5) / T - ALTAR_C[1]) * 1.25, (ORIGIN[0] * T + x + 0.5) / T - ALTAR_C[0])
             seg = int((ang + math.pi) / math.tau * 14)
             if 2.95 < d < 3.08 and rnd('gold', seg) > 0.35:
-                c = C(GOLD_L if d < 3.01 else GOLD)
-            if 2.15 < d < 2.24 and rnd('vio', seg) > 0.25:
-                c = C(VIOLET if (x // 3 + y // 3) % 2 else VIOLET_L)
-            elif 2.05 < d < 2.34 and rnd('vio', seg) > 0.25:
-                c = mix(c, VIOLET_G, 0.45)
-            top[y][x] = c
-    istop = lambda x, y: 0 <= x < W and 0 <= y < H and top[y][x] is not None   # noqa: E731
-    DEPTH = 3
-    # 1) 草地上的影子：整片地板往右下錯開的地方
-    for y in range(H):
-        for x in range(W):
-            if patch[y][x]:
-                continue
-            for dx, dy in ((-1, -2), (0, -3), (-2, -4), (-2, -5), (-1, -5), (0, -1)):
-                X, Y = x + dx, y + dy
-                if 0 <= X < W and 0 <= Y < H and patch[Y][X]:
-                    blend_px(im, x, y, (30, 48, 26, 120))
-                    break
-    # 2) 縫與泥土：深色的土，縫裡長青苔
-    for y in range(H):
-        for x in range(W):
-            if not patch[y][x] or istop(x, y):
-                continue
-            if (x, y) in dirt:
-                n = rnd('soil', x, y)
-                c = C('#8f7552') if n < 0.7 else C('#7a6244') if n < 0.92 else C('#5f4b33')
-                if n > 0.985:
-                    c = C('#6fa85a')
-            else:
-                c = C('#6f7d55') if rnd('moss', x, y) < 0.55 else C('#5d5a48')
-            px(im, x, y, c)
-    # 3) 石板的側面（厚度）：頂面往下 DEPTH 像素，被別的頂面蓋住的地方不畫
-    for y in range(H):
-        for x in range(W):
-            if not istop(x, y):
-                continue
-            for d_ in range(1, DEPTH + 1):
-                if y + d_ < H and not istop(x, y + d_) and (patch[y + d_][x] or d_ <= DEPTH):
-                    px(im, x, y + d_, C('#b9b0a4') if d_ == 1 else C('#9d9488') if d_ == 2 else C('#857c72'))
-    # 4) 頂面：上緣與左緣受光、下緣與右緣稍暗
-    for y in range(H):
-        for x in range(W):
-            c = top[y][x]
-            if c is None:
-                continue
-            if not istop(x, y - 1) or not istop(x - 1, y):
-                c = mix(c, '#ffffff', 0.6)
-            elif not istop(x, y + 1) or not istop(x + 1, y):
-                c = mix(c, '#a59d93', 0.35)
-            elif not istop(x, y - 2):
-                c = mix(c, '#ffffff', 0.25)
-            px(im, x, y, c)
-    # 細細的裂縫（只在頂面上）
-    for _ in range(14):
-        x, y = r.randrange(W), r.randrange(H)
-        for _ in range(r.randrange(5, 14)):
-            if istop(x, y) and istop(x, y - 1) and istop(x, y + 1):
-                px(im, x, y, mix(im.getpixel((x, y)), '#8f889a', 0.6))
-            x += r.choice((-1, 1, 1))
-            y += r.choice((0, 1, -1))
-    # 草葉：從地板外緣往石板上長一點
-    for i in range(700):
-        x, y = int(rnd('gx', i) * W), int(rnd('gy', i) * H)
-        if not (2 <= x < W - 2 and 3 <= y < H - 1) or not patch[y][x]:
+                px(im, x, y, GOLD_L if d < 3.01 else GOLD)
+            elif 2.15 < d < 2.24 and rnd('vio', seg) > 0.25:
+                px(im, x, y, VIOLET if (x // 3 + y // 3) % 2 else VIOLET_L)
+    # ── 4. 石台正面：一道石磚牆（看得到的那一面），中間是台階 ──
+    for (gx, gy), c in grid.items():
+        if c != 'P' or cell(gx, gy + 1) == 'P':
             continue
-        if all(patch[y + j][x + i2] for i2 in (-3, 0, 3) for j in (-3, 0, 3)):
+        x0, y0 = org(gx, gy)
+        y0 += 32
+        if gx in stairs:
+            # 台階：三階，每階有亮的踏面和暗的立面
+            for k in range(3):
+                sy = y0 + k * 6
+                rect(im, x0, sy, x0 + 31, sy + 2, LIP if k == 0 else '#ebe3d6')
+                rect(im, x0, sy + 3, x0 + 31, sy + 5, FACE_A if k < 2 else FACE_B)
+                rect(im, x0, sy + 5, x0 + 31, sy + 5, MORTAR)
+            if gx == stairs[0]:
+                rect(im, x0, y0, x0 + 1, y0 + 17, LINE)
+            if gx == stairs[-1]:
+                rect(im, x0 + 30, y0, x0 + 31, y0 + 17, LINE)
+            rect(im, x0, y0 + 18, x0 + 31, y0 + 18, LINE)
             continue
-        hgt = 2 + int(rnd('gh', i) * 3)
-        col = '#5f9a4c' if rnd('gc', i) < 0.6 else '#86bd68'
-        for t in range(hgt):
-            px(im, x, y - t, col)
-    column_ground(im)
-    # 斷牆：白色大理石塊疊成的矮牆，頂端高低不平，比佔地那格往上高出一截
+        for y in range(y0, y0 + FH):
+            row = (y - y0) // 5
+            for x in range(x0, x0 + 32):
+                cc = FACE_A if ((x + (8 if row % 2 else 0)) // 16 + row) % 2 else FACE_B
+                if (y - y0) % 5 == 4 or (x + (8 if row % 2 else 0)) % 16 == 0:
+                    cc = MORTAR
+                if y >= y0 + FH - 2:
+                    cc = FACE_DARK
+                if y == y0:
+                    cc = LINE
+                px(im, x, y, cc)
+            if rnd('brk', gx, row) < 0.25:                              # 幾塊破掉的磚
+                bx = x0 + int(rnd('bx', gx, row) * 24)
+                rect(im, bx, y0 + row * 5 + 1, bx + 5, y0 + row * 5 + 3, '#a89a86')
+        rect(im, x0, y0 + FH, x0 + 31, y0 + FH, LINE)
+        if cell(gx - 1, gy) != 'P' and cell(gx - 1, gy + 1) != 'P':
+            rect(im, x0, y0, x0, y0 + FH, LINE)
+        if cell(gx + 1, gy) != 'P':
+            rect(im, x0 + 31, y0, x0 + 31, y0 + FH, LINE)
+    # ── 5. 斷牆：斜俯視的石塊，看得到頂面（亮）與正面（磚、暗），頂端高低不平 ──
     for (gx, gy), c in sorted(grid.items(), key=lambda kv: kv[0][1]):
         if c != 'R':
             continue
-        x0, y0 = (gx - ORIGIN[0]) * T, (gy - ORIGIN[1]) * T
-        for x in range(x0, x0 + T):
-            col = (x - x0) // 8                                            # 頂端以 8px 為一階，高低不平
-            top = y0 - 18 + int(14 * rnd(gx, gy, col))
-            if cell(gx - 1, gy) != 'R' and col == 0:
-                top += 6
-            if cell(gx + 1, gy) != 'R' and col == 3:
-                top += 6
-            bottom = y0 + T - 4
-            for y in range(max(0, top), bottom):
-                if y < top + 3:
-                    cc = mix(ST_TOP, '#ffffff', 0.4)                       # 牆頂
-                    if (x - x0) % 8 == 7:
-                        cc = mix(cc, ST_SH, 0.5)
+        x0, y0 = org(gx, gy)
+        below = cell(gx, gy + 1) == 'R'
+        left, right = cell(gx - 1, gy) == 'R', cell(gx + 1, gy) == 'R'
+        shade_rect(x0 + 1, y0 + 30, x0 + 36, y0 + 37, 160)
+        if not right:
+            shade_rect(x0 + 32, y0 - 6, x0 + 37, y0 + 30, 140)
+        for x in range(x0, x0 + 32):
+            col = (x - x0) // 8
+            ht = 10 + int(10 * rnd('wh', gx, gy, col))                   # 牆的高度（頂面往上抬多少）
+            if not left and col == 0:
+                ht -= 6
+            if not right and col == 3:
+                ht -= 6
+            top_y = y0 - ht
+            face_y = y0 + 6 - (0 if not below else 40)
+            for y in range(max(0, top_y), y0 + 30 if not below else y0 + 32):
+                if y < top_y + 10 or below:
+                    cc = mix(LIP, '#e9e1d4', (y - top_y) / 10) if not below else '#e6ded0'   # 頂面
+                    if y == top_y:
+                        cc = LINE
                 else:
-                    t = (y - top) / max(1, bottom - top)
-                    cc = mix(ST_MID, ST_SIDE2, t)
-                    rowb = (y - y0 + 20) // 9
-                    if (y - y0 + 20) % 9 == 0 or (x - x0 + (5 if rowb % 2 else 0)) % 12 == 0:
-                        cc = mix(cc, ST_SIDE3, 0.45)                         # 石塊之間的縫
-                if y == top + 3 and rnd(gx, gy, col, 'g') < 0.5:
-                    cc = C(GOLD)                                           # 殘留的金色飾帶
+                    row = (y - top_y - 10) // 6
+                    cc = FACE_A if ((x + (8 if row % 2 else 0)) // 12 + row) % 2 else FACE_B
+                    if (y - top_y - 10) % 6 == 5 or (x + (8 if row % 2 else 0)) % 12 == 0:
+                        cc = MORTAR
+                    if y == top_y + 10:
+                        cc = '#b9ab97'
+                    if y >= y0 + 27:
+                        cc = FACE_DARK
                 px(im, x, y, cc)
-    # 碎石：散在斷牆與地板塊旁邊的草地上
-    spots = [k for k, c in grid.items() if c in 'mR']
-    for i in range(34):
-        gx, gy = spots[int(rnd('rub', i) * len(spots))]
-        x = (gx - ORIGIN[0]) * T + int(rnd('rx', i) * 44) - 6
-        y = (gy - ORIGIN[1]) * T + int(rnd('ry', i) * 44) - 6
-        if not (0 <= x < W - 12 and 0 <= y < H - 8) or patch[min(H - 1, y + 3)][min(W - 1, x + 3)]:
+            if not below:
+                px(im, x, y0 + 29, LINE)
+        if not left:
+            rect(im, x0, y0 - 4, x0, y0 + 29, LINE)
+        if not right:
+            rect(im, x0 + 31, y0 - 4, x0 + 31, y0 + 29, LINE)
+        del face_y
+    # ── 6. 柱子腳下的接觸影（柱子本身是另外的圖，站在這上面） ──
+    for broken, gx, gy in read_columns():
+        x0, y0 = org(gx, gy)
+        for y in range(y0 + 22, y0 + 34):
+            for x in range(x0 - 2, x0 + 38):
+                dx, dy = (x + 0.5 - (x0 + 19)) / 19, (y + 0.5 - (y0 + 28)) / 5.5
+                if dx * dx + dy * dy <= 1 and 0 <= x < W and 0 <= y < H:
+                    blend_px(im, x, y, SHADOW + (120,))
+    # ── 7. 草：從石板邊緣、石縫冒出來的一叢一叢深綠色小草 ──
+    for i in range(900):
+        keys = [k for k, c in grid.items() if c in 'mPR']
+        gx, gy = keys[int(rnd('tk', i) * len(keys))]
+        x0, y0 = org(gx, gy)
+        x, y = x0 + int(rnd('tx', i) * 40) - 4, y0 + int(rnd('ty', i) * 40) - 4
+        if not (2 <= x < W - 3 and 4 <= y < H):
             continue
-        w, h = 3 + int(rnd('rw', i) * 7), 2 + int(rnd('rh', i) * 4)
-        rect(im, x, y, x + w, y + h, '#e9e4f0')
-        rect(im, x, y + h, x + w, y + h, '#b8b0c6')
-        rect(im, x, y, x + w, y, '#fbfaff')
+        cur = im.getpixel((x, y))
+        if cur[3] > 0:
+            continue                                                       # 只長在石頭外面（草地上、緊貼著石頭）
+        if not any(im.getpixel((min(W - 1, max(0, x + dx)), min(H - 1, max(0, y + dy))))[3] > 200 for dx, dy in ((3, 0), (-3, 0), (0, 3), (0, -3))):
+            continue
+        for t, (dx, h_) in enumerate(((0, 3), (1, 4), (2, 2), (-1, 2))):
+            for k in range(h_):
+                px(im, x + dx, y - k, TUFT[(t + i) % 3])
     return im
 
 
@@ -281,69 +312,102 @@ def blend_px(im, x, y, c):
         im.putpixel((x, y), (round(br + (c[0] - br) * k), round(bg_ + (c[1] - bg_) * k), round(bb + (c[2] - bb) * k), 255))
 
 
-# 柱子、斷牆和地上的石板用同一組暖白色的石頭色，看起來才是同一個地方的東西
-ST_TOP, ST_MID, ST_SH, ST_SIDE1, ST_SIDE2, ST_SIDE3 = '#f6f3ed', '#ebe7e0', '#cfc8bd', '#b9b0a4', '#9d9488', '#857c72'
-MOSS, MOSS_D = '#7d9a5c', '#5f7a45'
+def outline(im, color=None, skip=lambda c: False):
+    """在整個外形外面描一圈深色外框（斜俯視像素圖的物件都有一圈這樣的框，才會從地面跳出來）"""
+    color = color or LINE
+    W_, H_ = im.size
+    src = im.copy()
+    for y in range(H_):
+        for x in range(W_):
+            if src.getpixel((x, y))[3]:
+                continue
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                X, Y = x + dx, y + dy
+                if 0 <= X < W_ and 0 <= Y < H_:
+                    c = src.getpixel((X, Y))
+                    if c[3] > 128 and not skip(c):
+                        px(im, x, y, color)
+                        break
+    return im
+
+
+# 柱身每一直排的顏色（由左到右）：左邊受光、偏左有一條最亮的高光、右邊進入陰影 → 看起來是圓柱
+SHAFT = ['#d8cebe', '#efe8dc', '#f7f2e9', '#ffffff', '#f3ede2', '#ebe3d6', '#e4dbcd', '#ddd3c4',
+         '#d5cab9', '#cbbfad', '#c0b3a0', '#b3a692', '#a6987f', '#998b74']
 
 
 def column(broken=False):
-    """白色大理石柱（和地板同一種石頭色）：底座、有凹槽的柱身、金色柱頭，上面浮著一顆紫色水晶（斷柱沒有）。
-    柱子的影子與腳下的墊石畫在佈景圖 decor.temple 裡（和地板同一層），這裡不畫影子"""
+    """斜俯視的白色石柱：方形柱礎（看得到頂面和正面）、圓柱柱身（左亮右暗）、
+    柱頭（頂板也看得到頂面），外面一圈深色外框；柱頂浮著一顆紫水晶（斷柱沒有）。
+    影子畫在佈景圖 decor.temple 裡（柱腳下的接觸影）"""
     r = random.Random(9 if broken else 8)
     im = new(T, T * 3)
-    # 底座：頂面（受光）＋正面（較暗），和地上石板的立體畫法一樣
-    rect(im, 4, 82, 27, 85, ST_TOP)
-    rect(im, 4, 82, 27, 82, '#ffffff')
-    rect(im, 4, 86, 27, 88, ST_SIDE1)
-    rect(im, 4, 89, 27, 91, ST_SIDE2)
-    rect(im, 4, 92, 27, 92, ST_SIDE3)
-    rect(im, 6, 78, 25, 81, ST_MID)
-    rect(im, 6, 78, 25, 78, ST_TOP)
-    rect(im, 6, 81, 25, 81, ST_SH)
-    top = 50 if broken else 20
-    for y in range(top, 78):                                 # 柱身：左亮右暗、直的凹槽
-        for x in range(8, 24):
-            c = mix(ST_TOP, ST_SH, (x - 8) / 15)
-            if x in (11, 15, 19):
-                c = mix(c, ST_SIDE1, 0.55)
-            if x in (12, 16, 20):
-                c = mix(c, '#ffffff', 0.35)
-            px(im, x, y, c)
-    for y in range(70, 78):                                  # 柱腳長了一點青苔、顏色比較舊
-        for x in range(8, 24):
-            if r.random() < (y - 69) / 14:
-                px(im, x, y, mix(im.getpixel((x, y)), MOSS, 0.55))
-    for k in range(3):                                       # 幾道細裂縫
-        x, y = r.randrange(9, 22), r.randrange(top + 4, 70)
-        for _ in range(r.randrange(4, 9)):
-            px(im, x, y, ST_SIDE1)
+    # 柱礎：頂面（亮）＋正面（暗）
+    rect(im, 4, 75, 27, 79, '#f3ede3')
+    rect(im, 4, 75, 27, 75, '#ffffff')
+    rect(im, 26, 75, 27, 79, '#ddd3c4')
+    rect(im, 4, 80, 27, 88, FACE_A)
+    rect(im, 4, 84, 27, 84, MORTAR)
+    rect(im, 15, 80, 15, 83, MORTAR)
+    rect(im, 9, 85, 9, 88, MORTAR)
+    rect(im, 21, 85, 21, 88, MORTAR)
+    rect(im, 4, 88, 27, 88, FACE_DARK)
+    rect(im, 22, 80, 27, 88, mix(FACE_A, FACE_DARK, 0.35))
+    # 柱腳的圓盤（環）
+    for x in range(7, 25):
+        c = SHAFT[min(13, max(0, (x - 7) * 14 // 18))]
+        rect(im, x, 71, x, 74, c)
+        px(im, x, 71, mix(c, '#ffffff', 0.5))
+        px(im, x, 74, mix(c, FACE_DARK, 0.4))
+    top = 46 if broken else 22
+    for y in range(top, 71):                                 # 柱身
+        for i, c in enumerate(SHAFT):
+            x = 9 + i
+            cc = c
+            if i in (2, 6, 10) and y % 2 == 0:
+                cc = mix(c, '#b9ad99', 0.25)                 # 淡淡的凹槽
+            px(im, x, y, cc)
+    for y in range(62, 71):                                  # 柱腳的青苔
+        for x in range(9, 23):
+            if r.random() < (y - 61) / 16:
+                px(im, x, y, mix(im.getpixel((x, y)), '#6f8f52', 0.6))
+    for _ in range(2):                                       # 細裂縫
+        x, y = r.randrange(11, 20), r.randrange(top + 4, 60)
+        for _ in range(r.randrange(4, 8)):
+            px(im, x, y, '#a89a86')
             x += r.choice((-1, 0, 1))
             y += 1
     if broken:
-        for x in range(8, 24):                               # 斷口參差
-            cut = top + r.randrange(0, 6)
+        for x in range(9, 23):                               # 斷口：參差的頂，斷面亮
+            cut = top + r.randrange(0, 7)
             for y in range(top, cut):
                 im.putpixel((x, y), (0, 0, 0, 0))
-            px(im, x, cut, ST_TOP)
-            px(im, x, cut + 1, '#ffffff')
-        rect(im, 22, 87, 30, 90, ST_MID)                     # 掉在地上的一截
-        rect(im, 22, 87, 30, 87, ST_TOP)
-        rect(im, 22, 91, 30, 92, ST_SIDE2)
-        rect(im, 25, 87, 25, 90, ST_SH)
+            px(im, x, cut, '#fbf7ef')
+            px(im, x, cut + 1, '#efe7da')
+        x0, y0 = 22, 89                                      # 掉在地上的一截
+        rect(im, x0, y0, x0 + 8, y0 + 4, '#e2d9ca')
+        rect(im, x0, y0, x0 + 8, y0, '#f7f2e9')
+        rect(im, x0, y0 + 4, x0 + 8, y0 + 4, '#a6987f')
+        rect(im, x0 - 1, y0, x0 + 1, y0 + 4, '#f3ede3')
     else:
-        rect(im, 5, 14, 26, 19, ST_MID)                      # 柱頭
-        rect(im, 5, 14, 26, 14, ST_TOP)
-        rect(im, 6, 18, 25, 19, GOLD)
-        rect(im, 3, 11, 28, 13, ST_TOP)
-        rect(im, 3, 11, 28, 11, '#ffffff')
-        rect(im, 3, 13, 28, 13, ST_SH)
-        for x0 in (3, 25):                                   # 兩側的渦卷
-            rect(im, x0, 14, x0 + 3, 17, ST_SH)
-            px(im, x0 + 1, 15, GOLD)
-        for dy, w in ((0, 1), (1, 2), (2, 3), (3, 3), (4, 2), (5, 1)):   # 紫色水晶
-            rect(im, 16 - w, 2 + dy, 15 + w, 2 + dy, VIOLET if dy > 2 else VIOLET_L)
-        px(im, 15, 3, '#ffffff')
-        for x, y in ((11, 4), (20, 2), (13, 0), (19, 7)):
+        # 柱頭：圓盤＋方形頂板（頂面亮、正面暗）＋金色飾帶
+        for x in range(6, 26):
+            c = SHAFT[min(13, max(0, (x - 6) * 14 // 20))]
+            rect(im, x, 17, x, 21, c)
+        rect(im, 7, 20, 24, 21, GOLD)
+        rect(im, 7, 20, 10, 20, GOLD_L)
+        rect(im, 3, 8, 28, 11, '#f6f1e8')
+        rect(im, 3, 8, 28, 8, '#ffffff')
+        rect(im, 3, 12, 28, 16, FACE_A)
+        rect(im, 3, 16, 28, 16, FACE_DARK)
+        rect(im, 23, 12, 28, 16, mix(FACE_A, FACE_DARK, 0.35))
+        rect(im, 27, 8, 28, 11, '#ddd3c4')
+    outline(im)
+    if not broken:
+        for dy, w in ((0, 1), (1, 2), (2, 3), (3, 3), (4, 2), (5, 1)):   # 紫色水晶（浮在柱頂上）
+            rect(im, 16 - w, dy, 15 + w, dy, VIOLET if dy > 2 else VIOLET_L)
+        px(im, 15, 1, '#ffffff')
+        for x, y in ((11, 2), (20, 0), (21, 5)):
             px(im, x, y, VIOLET_G)
     return im
 
@@ -353,51 +417,6 @@ def read_columns():
     src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'js', 'data', 'maps', 'town.js'), encoding='utf8').read()
     return [(sp.endswith('broken'), int(x), int(y)) for sp, x, y in
             re.findall(r"id: 'col\d+', type: 'deco', sprite: '([^']+)', x: (\d+), y: (\d+)", src)]
-
-
-def column_ground(im):
-    """每根柱子腳下：一塊比柱座大一點的方形墊石（有厚度，和地上石板同畫法），
-    以及往右下拉長、落在地板和草地上的影子（光從左上來，和所有東西一致）"""
-    W_, H_ = im.size
-    for broken, gx, gy in read_columns():
-        ox, oy = (gx - ORIGIN[0]) * T, (gy - ORIGIN[1]) * T
-        # 影子：柱子越高影子越長；靠柱腳深、越遠越淡，兩側邊緣柔一點。每個像素只算一次，不會疊出條紋
-        L = 30 if broken else 62
-        dx_, dy_ = 1 / math.hypot(1, 0.45), 0.45 / math.hypot(1, 0.45)
-        sx0, sy0 = ox + 16, oy + 25
-        for Y in range(int(sy0 - 10), int(sy0 + L * 0.45 + 10)):
-            for X in range(int(sx0 - 4), int(sx0 + L + 6)):
-                if not (0 <= X < W_ and 0 <= Y < H_):
-                    continue
-                vx, vy = X + 0.5 - sx0, Y + 0.5 - sy0
-                t = vx * dx_ + vy * dy_
-                perp = abs(-vx * dy_ + vy * dx_)
-                half = 8.5 - 3.5 * t / L
-                if 0 <= t <= L and perp <= half:
-                    a = 0.46 * (1 - t / L) + 0.08
-                    if perp > half - 1.5:
-                        a *= 0.55
-                    blend_px(im, X, Y, (38, 34, 30, int(a * 255)))
-        # 墊石：頂面 + 正面 + 一點青苔
-        x0, x1, y0, y1 = ox - 3, ox + 34, oy + 18, oy + 30
-        for y in range(y0, y1 + 1):
-            for x in range(x0, x1 + 1):
-                c = ST_TOP if y == y0 or x == x0 else ST_MID
-                if x == x1:
-                    c = ST_SH
-                px(im, x, y, c)
-        rect(im, x0, y1 + 1, x1, y1 + 2, ST_SIDE1)
-        rect(im, x0, y1 + 3, x1, y1 + 3, ST_SIDE2)
-        rect(im, x0, y1 + 4, x1, y1 + 4, ST_SIDE3)
-        rect(im, x0 + 1, y0 + 2, x1 - 1, y0 + 2, ST_SH)            # 墊石上的一道淺刻線
-        r = random.Random(gx * 31 + gy)
-        for _ in range(10):
-            x, y = r.randrange(x0, x1), y1 + r.randrange(1, 5)
-            px(im, x, y, MOSS if r.random() < 0.6 else MOSS_D)
-        for _ in range(5):
-            x = r.randrange(x0, x1)
-            for t in range(r.randrange(2, 4)):
-                px(im, x, y1 + 5 - t, MOSS)                          # 從墊石旁冒出的草
 
 
 def altar():
@@ -439,8 +458,7 @@ def altar():
 
 
 def main():
-    out = [save(decor_temple(), 'decor', 'temple.png'), save(volumize(column(), outline=False, cast=False, keep_alpha=True), 'sprites', 'column.png'),
-           save(volumize(column(True), outline=False, cast=False), 'sprites', 'column-broken.png'),
+    out = [save(decor_temple(), 'decor', 'temple.png'), save(column(), 'sprites', 'column.png'), save(column(True), 'sprites', 'column-broken.png'),
            save(altar(), 'sprites', 'altar.png')]
     print(f'輸出 {len(out)} 張圖')
 
