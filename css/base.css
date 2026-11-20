@@ -520,3 +520,16 @@ input,textarea{--pf:#4a5270;--pd:transparent;padding:7px 10px;margin:3px}
 .vp-narrow .tree-stage{min-width:0}
 .vp-narrow .tree-scroll::after{display:none!important}
 .vp-narrow .plaque{font-size:clamp(7px,1.9cqw,13px);padding:2% 2%}
+
+/* ═════════════════ 召喚神殿：白色大理石的神話神殿，卡片是紫色的魔法卡 ═════════════════ */
+.panel.has-bg.scene-ring{--ink:#3b2468;--ink-shadow:0 1px 0 #fff,0 0 6px rgba(255,255,255,.9);--sign:#fbfaff;--sign-ink:#4b2a8a;--edge:#d4ae5a;
+  --btn:#5b3aa8;--btn-ink:#f3eaff;--btn-edge:#2f1a66;--surf:#fbfaff;--surf-ink:#3b2468}
+.panel.has-bg.scene-ring .panel-head b{--pf:#d4ae5a}
+.panel.has-bg.scene-ring .btn{box-shadow:0 0 10px rgba(167,124,240,.55),0 3px 0 #2f1a66}
+.panel.has-bg.scene-ring .panel-head .btn{background:#fbfaff;color:#4b2a8a;--pf:#d4ae5a}
+.scene-ring .ring-title{font-size:18px}
+/* 大螢幕：卡片放大一點 */
+@media (min-width:700px) and (min-height:600px){
+  .scene-ring .ring-stage{height:236px;--ring-gap:112px}
+  .scene-ring .rcard{width:104px;height:154px;margin-left:-52px;top:24px}
+}

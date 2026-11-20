@@ -5,7 +5,7 @@ import { CONFIG } from '../config.js';
 import { createRing } from '../systems/ringModel.js';
 import { cssUrl } from './icon.js';
 
-const GAP = 92;   // 相鄰兩張卡的水平距離（像素）
+const GAP_DEFAULT = 92;   // 相鄰兩張卡的水平距離（像素）；CSS 變數 --ring-gap 可以覆寫（大螢幕卡片比較大）
 
 export function ringView(game) {
   const { reg, cards, ui } = game;
@@ -17,6 +17,8 @@ export function ringView(game) {
   let showFaces = false, rafId = null, lastT = 0, alive = true, summoning = false;
 
   const stage = h('div', { class: `ring-stage back-${game.shop.back()}` });   // 卡背花色由供奉石決定
+  let GAP = GAP_DEFAULT;
+  const readGap = () => { GAP = parseFloat(getComputedStyle(stage).getPropertyValue('--ring-gap')) || GAP_DEFAULT; };
   const backImg = game.assets?.url(`card.back.${game.shop.back()}`);            // 有卡背圖檔就用圖檔
   if (backImg) { stage.style.setProperty('--back-img', cssUrl(backImg)); stage.classList.add('has-back-img'); }
   const slots = Array.from({ length: half * 2 + 2 }, () => {
@@ -121,7 +123,7 @@ export function ringView(game) {
 
   const p = ui.panel({
     title: '召喚卡環', body, cls: 'xl', scene: 'ring',
-    onClose: () => { alive = false; if (rafId !== null) cancelAnimationFrame(rafId); },
+    onClose: () => { alive = false; offResize?.(); if (rafId !== null) cancelAnimationFrame(rafId); },
     onKey: (e) => {
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') { model.nudge(-1); return true; }
       if (e.code === 'ArrowRight' || e.code === 'KeyD') { model.nudge(1); return true; }
@@ -130,6 +132,8 @@ export function ringView(game) {
       return false;
     },
   });
+  readGap();                                         // 面板已經放進畫面，可以讀 CSS 變數了
+  const offResize = game.bus?.on?.('view:resize', () => { readGap(); paint(); });
   paint();
   rafId = requestAnimationFrame((t) => { lastT = t; frame(t); });
   return p.closed;

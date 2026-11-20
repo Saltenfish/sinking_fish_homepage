@@ -88,17 +88,50 @@ register('altar', (def, game) => ({
   },
   drawOver(ctx, px, py, tile, time) {
     const cx = px + tile, cy = py + tile;
-    // 地圖上的卡環：依卡片數自動分圈，交替反向公轉
+    // 召喚台上的光：幾道慢慢轉動的光芒，加上往上飄的紫色、金色亮點
+    ctx.save();
+    for (let i = 0; i < 5; i++) {                        // 光芒：從法陣中心往外、貼著台面轉
+      const a = time * 0.5 + (i / 5) * Math.PI * 2;
+      const len = tile * (1.15 + 0.15 * Math.sin(time * 1.3 + i));
+      const ex = cx + Math.cos(a) * len, ey = cy - 2 + Math.sin(a) * len * 0.7;
+      const grad = ctx.createLinearGradient(cx, cy - 2, ex, ey);
+      const col = i % 2 ? '224,168,58' : '139,92,240';                // 白天的白色台面上也看得到：用飽和一點的金、紫
+      grad.addColorStop(0, `rgba(${col},0.7)`); grad.addColorStop(1, `rgba(${col},0)`);
+      ctx.strokeStyle = grad; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(cx, cy - 2); ctx.lineTo(ex, ey); ctx.stroke();
+    }
+    const beam = 0.25 + 0.15 * Math.sin(time * 1.7);     // 中央往上的一柱淡光
+    const g2 = ctx.createLinearGradient(0, cy - tile * 2.2, 0, cy);
+    g2.addColorStop(0, 'rgba(167,124,240,0)'); g2.addColorStop(1, `rgba(167,124,240,${beam + 0.1})`);
+    ctx.fillStyle = g2; ctx.fillRect(Math.round(cx - tile * 0.28), Math.round(cy - tile * 2.2), Math.round(tile * 0.56), Math.round(tile * 2.2));
+    for (let i = 0; i < 22; i++) {                       // 亮點：從台面上冒出來、往上飄、慢慢淡掉
+      const ph = (time * (0.28 + (i % 5) * 0.04) + i * 0.137) % 1;
+      const ang = i * 2.399, rad = tile * (0.25 + ((i * 7) % 10) / 10 * 0.95);
+      const x = Math.round(cx + Math.cos(ang) * rad + Math.sin(time * 2 + i) * 2);
+      const y = Math.round(cy - 2 + Math.sin(ang) * rad * 0.7 - ph * tile * 1.8);
+      const al = Math.sin(ph * Math.PI);
+      const gold = i % 3 === 0;
+      ctx.fillStyle = gold ? `rgba(224,168,58,${al})` : `rgba(124,77,230,${al})`;      // 外圈深一點
+      ctx.fillRect(x - 1, y - 1, 4, 4);
+      ctx.fillStyle = gold ? `rgba(255,240,190,${al})` : `rgba(233,220,255,${al})`;    // 亮心
+      ctx.fillRect(x, y, 2, 2);
+      if (al > 0.8 && i % 4 === 0) {                     // 偶爾閃成十字星
+        ctx.fillStyle = gold ? `rgba(224,168,58,${al})` : `rgba(124,77,230,${al})`;
+        ctx.fillRect(x - 3, y + 0.5, 8, 1); ctx.fillRect(x + 0.5, y - 3, 1, 8);
+      }
+    }
+    ctx.restore();
+    // 地圖上的卡環：依卡片數自動分圈，交替反向公轉（卡片樣式和以前一樣，只是放大）
     const rings = splitRings(game.reg.characters.length, CONFIG.RING_PER_RING);
     rings.forEach((count, ri) => {
-      const radius = tile * (1.9 + ri * 0.8), dir = ri % 2 ? -1 : 1;
+      const radius = tile * (2.5 + ri * 1.0), dir = ri % 2 ? -1 : 1;
       for (let i = 0; i < count; i++) {
         const a = (i / count) * Math.PI * 2 + dir * time * 0.25;
-        const x = Math.round(cx + Math.cos(a) * radius - 4), y = Math.round(cy + Math.sin(a) * radius * 0.7 - 6 + Math.sin(time * 2 + i) * 2);
-        ctx.fillStyle = 'rgba(20,16,40,0.25)'; ctx.fillRect(x + 1, y + 14, 7, 2);   // 影子
-        ctx.fillStyle = '#9d8cff'; ctx.fillRect(x, y, 9, 12);                         // 卡背：亮框、深底、中間一點光
-        ctx.fillStyle = '#2d2a4a'; ctx.fillRect(x + 1, y + 1, 7, 10);
-        ctx.fillStyle = '#6c5ce7'; ctx.fillRect(x + 3, y + 4, 3, 4);
+        const x = Math.round(cx + Math.cos(a) * radius - 6), y = Math.round(cy + Math.sin(a) * radius * 0.65 - 10 + Math.sin(time * 2 + i) * 2);
+        ctx.fillStyle = 'rgba(20,16,40,0.25)'; ctx.fillRect(x + 2, y + 20, 10, 3);   // 影子
+        ctx.fillStyle = '#9d8cff'; ctx.fillRect(x, y, 14, 18);                       // 卡背：亮框、深底、中間一點光
+        ctx.fillStyle = '#2d2a4a'; ctx.fillRect(x + 2, y + 2, 10, 14);
+        ctx.fillStyle = '#6c5ce7'; ctx.fillRect(x + 5, y + 6, 4, 6);
       }
     });
   },

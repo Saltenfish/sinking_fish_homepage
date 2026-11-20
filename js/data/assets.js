@@ -44,10 +44,13 @@ export const assets = {
   'tile.hut': 'assets/tiles/roof.png',
   'tile.door': 'assets/tiles/door.png',
   'decor.hut': 'assets/decor/hut.png',
+  'decor.temple': 'assets/decor/temple.png',   // 召喚神殿（tools/make_pixel_temple.py）
   'ent.hut': 'assets/sprites/hut-door.png',
   'ent.tree': 'assets/sprites/wish-tree.png',
   'ent.altar': 'assets/sprites/altar.png',
   'ent.pillar': 'assets/sprites/pillar.png',
+  'ent.column': 'assets/sprites/column.png',
+  'ent.column.broken': 'assets/sprites/column-broken.png',
   'ent.banner': 'assets/sprites/banner.png',
   'ent.market': 'assets/sprites/market.png',
   'ent.casino': 'assets/sprites/casino.png',
