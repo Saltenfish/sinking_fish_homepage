@@ -58,10 +58,10 @@ def rnd(*k):
 
 
 # 斜俯視（3/4 視角）的石頭配色：頂面亮、正面暗，石縫與外框用深一點的暖灰
-TOP = ['#eee7dc', '#e8e0d3', '#f2ece2', '#e3dbce']      # 石台頂面的石板
-PAVE = ['#e4dbcc', '#ddd3c3', '#e8e0d2', '#d6cbb9']     # 地上的石板（比較舊）
-GROUT, HILITE, CRACK = '#b3a691', '#fbf8f1', '#9f9282'
-FACE_A, FACE_B, MORTAR, FACE_DARK, LIP, LIP_D = '#cdbfac', '#c3b5a1', '#9d8f7c', '#7f725f', '#f6f0e6', '#dcd1c0'
+TOP = ['#d9ccb9', '#d3c5b1', '#ddd1bf', '#cfc1ac']      # 石台頂面的石板（比白色柱子深一點，柱子才站得出來）
+PAVE = ['#cbbda8', '#c4b5a0', '#d0c3af', '#bdae98']     # 地上的石板（比較舊、比較暗）
+GROUT, HILITE, CRACK = '#9c8c75', '#f3ebdd', '#8f806b'
+FACE_A, FACE_B, MORTAR, FACE_DARK, LIP, LIP_D = '#bfae98', '#b5a48d', '#8e7f6b', '#74664f', '#efe6d6', '#cdbfa8'
 LINE = '#6e6153'                                         # 外框
 SHADOW = (24, 52, 28)                                    # 投在草地上的影子（深綠）
 FH = 22                                                  # 石台正面的高度（像素）
@@ -94,44 +94,53 @@ def decor_temple():
                     blend_px(im, x, y, SHADOW + (a,))
 
     def tiles16(gx, gy, palette, worn):
-        """一格（32px）裡鋪 2×2 塊方形石板：每塊左上一條亮邊、右下一條石縫，偶爾有裂縫或缺一塊"""
+        """一格（32px）的石板地：有的格子是一整塊大石板，有的切成 2×2 小塊。
+        石縫只是比石頭深一點、不畫亮邊（才不會像浴室磁磚）；偶爾有短裂縫、髒污或缺一塊"""
         x0, y0 = org(gx, gy)
-        for j in range(2):
-            for i in range(2):
-                k = (gx, gy, i, j)
-                tx, ty = x0 + i * 16, y0 + j * 16
-                if worn and rnd('miss', k) < worn:
-                    # 缺了一塊：露出底下的土，上緣有一道陰影（看起來凹下去）
-                    for y in range(ty, ty + 16):
-                        for x in range(tx, tx + 16):
-                            n = rnd('soil', x, y)
-                            c = '#8f7552' if n < 0.7 else '#7a6244' if n < 0.92 else '#5f4b33'
-                            if y < ty + 3:
-                                c = '#5a4632'
-                            px(im, x, y, c)
-                    for t in range(int(rnd('tg', k) * 4)):
-                        gx_ = tx + 3 + int(rnd('tgx', k, t) * 10)
-                        for h_ in range(3):
-                            px(im, gx_, ty + 14 - h_, TUFT[t % 3])
-                    continue
-                base = palette[int(rnd('tone', k) * len(palette))]
+        big = rnd('big', gx, gy) < 0.45
+        slabs = [(0, 0, 32)] if big else [(i * 16, j * 16, 16) for j in range(2) for i in range(2)]
+        for (ox_, oy_, sz) in slabs:
+            k = (gx, gy, ox_, oy_)
+            tx, ty = x0 + ox_, y0 + oy_
+            if worn and sz == 16 and rnd('miss', k) < worn:
+                # 缺了一塊：露出底下的土，上緣有一道陰影（看起來凹下去）
                 for y in range(ty, ty + 16):
                     for x in range(tx, tx + 16):
-                        c = base
-                        if x == tx + 15 or y == ty + 15:
-                            c = GROUT
-                        elif x == tx or y == ty:
-                            c = HILITE
-                        elif rnd('spk', x, y) < 0.04:
-                            c = mix(base, GROUT, 0.35)
+                        n = rnd('soil', x, y)
+                        c = '#8a7050' if n < 0.7 else '#765e42' if n < 0.92 else '#5f4b33'
+                        if y < ty + 3:
+                            c = '#4f3d2b'
                         px(im, x, y, c)
-                if rnd('crack', k) < 0.15:                         # 裂縫
-                    x, y = tx + 2 + int(rnd('cx', k) * 11), ty + 2
-                    for _ in range(int(6 + rnd('cl', k) * 8)):
-                        if tx < x < tx + 15 and ty < y < ty + 15:
-                            px(im, x, y, CRACK)
-                        x += 1 if rnd('cd', k, x, y) < 0.5 else 0
-                        y += 1
+                for t in range(int(rnd('tg', k) * 4)):
+                    gx_ = tx + 3 + int(rnd('tgx', k, t) * 10)
+                    for h_ in range(3):
+                        px(im, gx_, ty + 14 - h_, TUFT[t % 3])
+                continue
+            base = C(palette[int(rnd('tone', k) * len(palette))])
+            stain = rnd('stain', k) < 0.1
+            for y in range(ty, ty + sz):
+                for x in range(tx, tx + sz):
+                    c = base
+                    if x == tx + sz - 1 or y == ty + sz - 1:
+                        c = mix(base, GROUT, 0.75)                     # 石縫（右、下）
+                    elif y == ty and rnd('hl', x) < 0.7:
+                        c = mix(base, '#ffffff', 0.18)                 # 上緣很淡的受光
+                    else:
+                        n = rnd('spk', x, y)
+                        if n < 0.06:
+                            c = mix(base, GROUT, 0.3)                  # 石頭表面的小斑點
+                        elif n > 0.97:
+                            c = mix(base, '#ffffff', 0.25)
+                        if stain and (x - tx - sz / 2) ** 2 + (y - ty - sz / 2) ** 2 < (sz / 3) ** 2 and rnd('st', x // 2, y // 2) < 0.5:
+                            c = mix(c, '#8f8a6a', 0.12)                # 舊舊的髒污、苔痕
+                    px(im, x, y, c)
+            if rnd('crack', k) < 0.12:                                 # 短裂縫
+                x, y = tx + 3 + int(rnd('cx', k) * (sz - 8)), ty + 3
+                for _ in range(int(4 + rnd('cl', k) * 5)):
+                    if tx < x < tx + sz - 1 and ty < y < ty + sz - 1:
+                        px(im, x, y, CRACK)
+                    x += 1 if rnd('cd', k, x, y) < 0.5 else 0
+                    y += 1
 
     # ── 1. 石台與石板投在地上的影子（先畫，在最底下） ──
     for (gx, gy), c in grid.items():
@@ -156,6 +165,34 @@ def decor_temple():
         if cell(gx, gy + 1) not in 'mP':
             rect(im, x0, y0 + 32, x0 + 31, y0 + 33, '#b2a48f')
             rect(im, x0, y0 + 34, x0 + 31, y0 + 34, '#8c7e6a')
+    # ── 2b. 地上石板的邊緣：草從旁邊長過來蓋住石板一點點（參考圖裡草地邊緣那種不規則的一圈），
+    #        草的邊上一條深綠線，石板被草蓋住的地方暗一點 → 石板看起來是陷在草地裡的 ──
+    GR, GR_D, GR_L = '#5e9c4c', '#3c6e34', '#7cb862'
+    for (gx, gy), c in grid.items():
+        if c != 'm':
+            continue
+        x0, y0 = org(gx, gy)
+        for side in ('n', 'w', 'e'):
+            nb = {'n': (gx, gy - 1), 'w': (gx - 1, gy), 'e': (gx + 1, gy)}[side]
+            if cell(*nb) in 'mP':
+                continue
+            for t in range(32):
+                depth = 1 + int(4 * rnd('gd', gx, gy, side, t // 3))
+                for d in range(depth + 2):
+                    if side == 'n':
+                        x, y = x0 + t, y0 + d
+                    elif side == 'w':
+                        x, y = x0 + d, y0 + t
+                    else:
+                        x, y = x0 + 31 - d, y0 + t
+                    if not (0 <= x < W and 0 <= y < H):
+                        continue
+                    if d < depth:
+                        px(im, x, y, GR_L if d == 0 and rnd('gl', x, y) < 0.3 else GR)
+                    elif d == depth:
+                        px(im, x, y, GR_D)                                  # 草邊的深色線
+                    else:
+                        px(im, x, y, mix(im.getpixel((x, y)), '#5a4f40', 0.35))   # 草下的石板暗一點
     # ── 3. 石台頂面 ──
     for (gx, gy), c in grid.items():
         if c != 'P':
@@ -164,16 +201,6 @@ def decor_temple():
         edge = any(cell(gx + i, gy + j) != 'P' for i, j in ((1, 0), (-1, 0), (0, 1), (0, -1)))
         tiles16(gx, gy, TOP, 0 if near else (0.05 if edge else 0.015))
         x0, y0 = org(gx, gy)
-        # 外緣：上、左受光（亮），右邊暗；最外圈一條深色外框
-        if cell(gx, gy - 1) != 'P':
-            rect(im, x0, y0, x0 + 31, y0, LINE)
-            rect(im, x0, y0 + 1, x0 + 31, y0 + 2, LIP)
-        if cell(gx - 1, gy) != 'P':
-            rect(im, x0, y0, x0, y0 + 31, LINE)
-            rect(im, x0 + 1, y0, x0 + 2, y0 + 31, LIP)
-        if cell(gx + 1, gy) != 'P':
-            rect(im, x0 + 31, y0, x0 + 31, y0 + 31, LINE)
-            rect(im, x0 + 29, y0 + 1, x0 + 30, y0 + 31, LIP_D)
     # 殘留的鑲嵌：以召喚台為中心的金色環與紫色符文環（斷斷續續，只畫在石台頂面的石板上）
     for y in range(H):
         for x in range(W):
@@ -190,6 +217,40 @@ def decor_temple():
                 px(im, x, y, GOLD_L if d < 3.01 else GOLD)
             elif 2.15 < d < 2.24 and rnd('vio', seg) > 0.25:
                 px(im, x, y, VIOLET if (x // 3 + y // 3) % 2 else VIOLET_L)
+    # ── 3b. 石台的邊石：沿著石台外緣一圈比較亮、比較大的石塊（像參考圖裡平台邊緣的那圈框），
+    #        把地板框起來，看起來是一個墊高的台子，而不是一片貼在草上的磁磚 ──
+    CURB, CURB_L, CURB_D, CW = '#efe6d6', '#fbf6ec', '#a8977d', 7
+    for (gx, gy), c in grid.items():
+        if c != 'P':
+            continue
+        x0, y0 = org(gx, gy)
+        sides = {'n': cell(gx, gy - 1) != 'P', 's': cell(gx, gy + 1) != 'P', 'w': cell(gx - 1, gy) != 'P', 'e': cell(gx + 1, gy) != 'P'}
+        for y in range(y0, y0 + 32):
+            for x in range(x0, x0 + 32):
+                lx, ly = x - x0, y - y0
+                on = (sides['n'] and ly < CW) or (sides['s'] and ly >= 32 - CW) or (sides['w'] and lx < CW) or (sides['e'] and lx >= 32 - CW)
+                # 內角：旁邊兩格是石台、斜角不是 → 補一小塊邊石把角接起來
+                for dx, dy, cx_, cy_ in ((-1, -1, 0, 0), (1, -1, 31, 0), (-1, 1, 0, 31), (1, 1, 31, 31)):
+                    if cell(gx + dx, gy + dy) != 'P' and not on and abs(lx - cx_) < CW and abs(ly - cy_) < CW:
+                        on = True
+                if not on:
+                    continue
+                seg = ((x if (sides['n'] or sides['s']) and not (sides['w'] and lx < CW) and not (sides['e'] and lx >= 32 - CW) else y) // 16)
+                cc = CURB
+                edge_in = (sides['n'] and ly == CW - 1) or (sides['s'] and ly == 32 - CW) or (sides['w'] and lx == CW - 1) or (sides['e'] and lx == 32 - CW)
+                if (sides['n'] and ly == 0) or (sides['w'] and lx == 0):
+                    cc = LINE
+                elif (sides['s'] and ly == 31) or (sides['e'] and lx == 31):
+                    cc = LINE
+                elif edge_in:
+                    cc = CURB_D                                            # 邊石和地板交界的一道暗線
+                elif (sides['n'] and ly == 1) or (sides['w'] and lx == 1):
+                    cc = CURB_L
+                elif (x + y) % 16 == 0 and rnd('cs', seg) < 0.8:
+                    cc = CURB_D                                            # 邊石之間的接縫
+                elif rnd('cspk', x, y) < 0.05:
+                    cc = mix(CURB, CURB_D, 0.4)
+                px(im, x, y, cc)
     # ── 4. 石台正面：一道石磚牆（看得到的那一面），中間是台階 ──
     for (gx, gy), c in grid.items():
         if c != 'P' or cell(gx, gy + 1) == 'P':
