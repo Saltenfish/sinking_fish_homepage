@@ -45,6 +45,8 @@ export const assets = {
   'tile.door': 'assets/tiles/door.png',
   'decor.hut': 'assets/decor/hut.png',
   'decor.temple': 'assets/decor/temple.png',   // 召喚神殿（tools/make_pixel_temple.py）
+  // 玩家行走圖：每格 32×48（1×1.5 格），四列依序 下、左、右、上，每列 4 格（tools/make_pixel_town.py）
+  'player': { src: 'assets/sprites/player.png', frameW: 32, frameH: 48, frames: 4, fps: 8 },
   'ent.hut': 'assets/sprites/hut-door.png',
   'ent.tree': 'assets/sprites/wish-tree.png',
   'ent.altar': 'assets/sprites/altar.png',

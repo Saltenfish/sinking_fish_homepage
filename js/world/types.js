@@ -25,16 +25,26 @@ export function register(name, factory) {
 }
 
 /* 依地圖資料建立物件；資料有問題時回傳 null 並印出原因 */
-/* 可以互動的小型地面物件，圖畫成兩倍大（2×2 格），底部對齊原本那一格；佔地與碰撞仍是 1 格 */
-const BIG = new Set(['board', 'bush', 'dig', 'lantern', 'fishspot', 'pond', 'offering', 'bugspot']);
-export const BIG_ART = Object.freeze({ x: -0.5, y: -1, w: 2, h: 2 });
+/* 各類物件的圖比佔地大時，圖的範圍（相對於物件左上角，單位是格）。
+   所有圖都是 1 倍像素密度（1 格 = 32px），比例一致：人物 1×1.5 格、石燈籠 1×2、告示牌 2×1.5、草叢 1.5×1.25…
+   圖的底部對齊佔地那一格的底部（tools/make_pixel_town.py 畫圖時也照這個對齊）。地圖資料裡寫了 art 的以地圖為準 */
+export const ART = Object.freeze({
+  lantern: { x: 0, y: -1, w: 1, h: 2 },
+  board: { x: -0.5, y: -0.5, w: 2, h: 1.5 },
+  bush: { x: -0.25, y: -0.25, w: 1.5, h: 1.25 },
+  fishspot: { x: 0, y: -0.5, w: 1, h: 1.5 },
+  offering: { x: 0, y: -0.5, w: 1, h: 1.5 },
+  pond: { x: -0.25, y: 0, w: 1.5, h: 1 },
+  market: { x: 0, y: -1, w: 4, h: 3 },
+  casino: { x: 0, y: -1, w: 4, h: 3 },
+});
 
 export function createEntity(def, game) {
   const factory = types.get(def?.type);
   if (!factory) { console.warn(`[world] 未知的物件類型，已略過：`, def); return null; }
   if (typeof def.id !== 'string' || !Number.isFinite(def.x) || !Number.isFinite(def.y)) { console.warn('[world] 物件缺少 id / x / y，已略過：', def); return null; }
   let art = def.art && [def.art.x, def.art.y, def.art.w, def.art.h].every(Number.isFinite) && def.art.w > 0 && def.art.h > 0 ? { ...def.art } : null;
-  if (!art && BIG.has(def.type) && !(def.w > 1) && !(def.h > 1)) art = { ...BIG_ART };
+  if (!art && ART[def.type]) art = { ...ART[def.type] };
   const base = {
     id: def.id, type: def.type, x: def.x, y: def.y, w: def.w || 1, h: def.h || 1, solid: def.solid === true, art,
     prompt: () => null, interact: () => {}, color: () => '#888', label: () => '',

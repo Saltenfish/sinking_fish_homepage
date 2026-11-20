@@ -73,7 +73,7 @@ export const town = {
     { id: 'hut', name: '成就小屋', x: 6, y: 9.5 },
     { id: 'farm', name: '農田', x: 6, y: 23.5 },
     { id: 'stream', name: '溪邊釣點', x: 30.5, y: 20.5 },
-    { id: 'market', name: '商店與小賭場', x: 35.5, y: 6.6 },
+    { id: 'market', name: '商店與小賭場', x: 35, y: 5 },
     { id: 'pond', name: '魚魚的池塘', x: 34.5, y: 25.5, secret: 'fishFound' },
   ],
   objects: [
@@ -97,7 +97,7 @@ export const town = {
     { id: 'bush1', type: 'bush', x: 8, y: 14 },
     { id: 'bush2', type: 'bush', x: 14, y: 25 },
     { id: 'bush3', type: 'bush', x: 26, y: 22 },
-    { id: 'bush4', type: 'bush', x: 35, y: 8 },
+    { id: 'bush4', type: 'bush', x: 33, y: 10 },
 
     { id: 'dig1', type: 'dig', x: 4, y: 26 },
     { id: 'dig2', type: 'dig', x: 25, y: 14 },
@@ -111,8 +111,8 @@ export const town = {
     { id: 'bug3', type: 'bugspot', x: 37, y: 13 },
     { id: 'bug4', type: 'bugspot', x: 15, y: 13 },
 
-    { id: 'market', type: 'market', x: 33, y: 4, w: 2, h: 2, solid: true },
-    { id: 'casino', type: 'casino', x: 36, y: 4, w: 2, h: 2, solid: true },
+    { id: 'market', type: 'market', x: 33, y: 2, w: 4, h: 2, solid: true },   // 圖 4×3 格（屋頂往上多一格）
+    { id: 'casino', type: 'casino', x: 34, y: 7, w: 4, h: 2, solid: true },
     { id: 'tank', type: 'tank', x: 9, y: 7, w: 2, h: 1, solid: true },
 
     { id: 'lantern1', type: 'lantern', x: 15, y: 14, solid: true },

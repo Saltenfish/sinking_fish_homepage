@@ -992,5 +992,8 @@ def main():
         print(f'{key:18s} {os.path.relpath(path, os.path.join(ROOT, ".."))}')
 
 
+    import make_pixel_town                         # 小鎮的斜俯視素材（人物、物件、建築）會蓋掉上面同名的舊圖
+    make_pixel_town.main()
+
 if __name__ == '__main__':
     main()
