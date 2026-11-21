@@ -371,24 +371,52 @@ def tank():
 
 
 def plot(stage):
-    """農田（1×1 格）：翻好的土畦，斜俯視看得到土埂的頂面和正面；發芽、成熟各一張"""
-    im = new(32, 32)
-    box(im, 2, 3, 29, 28, 3, '#9c6a40', '#6e4527', '#5a381f')
-    rect(im, 3, 6, 28, 26, '#7a4e2c')
-    for y in (9, 15, 21):                                           # 一行一行的土溝
-        rect(im, 4, y, 27, y + 1, '#8a5a34')
-        rect(im, 4, y + 2, 27, y + 2, '#5f3d22')
+    """菜圃（2×2 格，64×64）：木板圍起來的高架菜圃，斜俯視看得到木框的頂面和正面；
+    裡面是三條隆起的土壟。發芽時是一排排小苗，成熟時是長滿葉子的紅蘿蔔與蕪菁"""
+    r = random.Random({'empty': 1, 'growing': 2, 'ripe': 3}[stage])
+    im = new(64, 64)
+    WL, W_, WD, WDD = '#d9a56c', '#b07a48', '#8a5a30', '#6a4224'
+    # 木框：頂面（亮）＋正面（暗）＋四角的木樁
+    rect(im, 2, 6, 61, 57, WD)
+    rect(im, 2, 6, 61, 9, WL)
+    rect(im, 2, 6, 5, 57, WL)
+    rect(im, 58, 6, 61, 57, W_)
+    rect(im, 2, 52, 61, 54, WL)
+    rect(im, 2, 55, 61, 60, W_)
+    rect(im, 2, 60, 61, 60, WDD)
+    for x in range(10, 60, 12):
+        rect(im, x, 55, x, 59, WD)                               # 木板接縫
+    for x0, y0 in ((1, 4), (58, 4), (1, 52), (58, 52)):
+        rect(im, x0, y0, x0 + 4, y0 + 8, WD)
+        rect(im, x0, y0, x0 + 4, y0 + 1, WL)
+    # 土
+    rect(im, 6, 10, 57, 51, '#6e4527')
+    for i, y in enumerate((14, 27, 40)):                          # 三條土壟：頂面亮、下緣暗
+        rect(im, 8, y, 55, y + 8, '#8a5a34')
+        rect(im, 8, y, 55, y + 1, '#a8743f')
+        rect(im, 8, y + 7, 55, y + 8, '#5f3d22')
+        for _ in range(14):
+            px(im, r.randrange(9, 55), r.randrange(y + 2, y + 7), '#7a4e2c')
     if stage == 'growing':
-        for x, y in ((8, 9), (16, 9), (24, 9), (8, 15), (16, 15), (24, 15), (8, 21), (16, 21), (24, 21)):
-            rect(im, x, y - 2, x, y, '#5fae54')
-            px(im, x - 1, y - 2, '#8fd06e')
-            px(im, x + 1, y - 3, '#8fd06e')
+        for y in (17, 30, 43):
+            for x in range(13, 54, 9):
+                rect(im, x, y - 1, x, y + 2, '#4f9a4c')
+                rect(im, x - 2, y - 2, x - 1, y - 1, '#8fd06e')
+                rect(im, x + 1, y - 3, x + 2, y - 2, '#6fbf5c')
     if stage == 'ripe':
-        for x, y in ((8, 10), (16, 10), (24, 10), (8, 16), (16, 16), (24, 16), (8, 22), (16, 22), (24, 22)):
-            rect(im, x - 2, y - 5, x + 2, y - 3, '#4f9a4c')
-            rect(im, x - 1, y - 6, x + 1, y - 6, '#8fd06e')
-            rect(im, x - 2, y - 2, x + 2, y, '#f0a24a')
-            px(im, x - 1, y - 2, '#ffd08a')
+        for j, y in enumerate((18, 31, 44)):
+            for i, x in enumerate(range(13, 54, 9)):
+                carrot = (i + j) % 2 == 0
+                rect(im, x - 1, y - 8, x + 1, y - 2, '#3f8a46')        # 葉子
+                rect(im, x - 3, y - 7, x - 2, y - 4, '#5fae54')
+                rect(im, x + 2, y - 6, x + 3, y - 3, '#5fae54')
+                px(im, x, y - 9, '#8fd06e')
+                if carrot:
+                    rect(im, x - 2, y - 1, x + 2, y + 2, '#f08a3a')    # 露出土的紅蘿蔔頭
+                    px(im, x - 1, y - 1, '#ffc08a')
+                else:
+                    rect(im, x - 2, y - 1, x + 2, y + 2, '#f2eadf')    # 蕪菁
+                    rect(im, x - 2, y - 1, x + 2, y - 1, '#c86aa0')
     outline(im, '#3a2618')
     return im
 
@@ -490,6 +518,203 @@ def tile_reed(v):
     ellipse(base, 17, 29, 15, 3, SHADOW + (110,))
     base.alpha_composite(im)
     return base
+
+
+def bridge():
+    """木橋（6×3.5 格，192×112）：兩端是石頭橋墩，中間 2 格寬的橋面（直鋪木板），
+    上下兩道有柱子的欄杆（看得到欄杆頂面），兩端柱頭上掛著小燈，橋下的水面有影子"""
+    im = new(192, 112)
+    WL, W_, WD, WDD = '#d9a56c', '#b07a48', '#8a5a30', '#6a4224'
+    # 橋下的影子（落在水上）
+    rect(im, 32, 84, 159, 95, (10, 30, 60, 110))
+    # 兩端石墩：斜俯視的石塊（頂面＋正面）
+    for x0 in (2, 158):
+        rect(im, x0, 22, x0 + 31, 85, '#c9c1b5')
+        rect(im, x0, 22, x0 + 31, 25, '#e6dfd3')
+        rect(im, x0, 80, x0 + 31, 92, '#9d9488')
+        rect(im, x0, 92, x0 + 31, 93, '#7a7267')
+        for y in range(84, 92, 4):
+            rect(im, x0 + 1, y, x0 + 30, y, '#857c72')
+        for x in range(x0 + 7, x0 + 31, 10):
+            rect(im, x, 81, x, 91, '#857c72')
+    # 橋面：直鋪的木板（左右走），每塊木板左亮右暗
+    for x in range(20, 172):
+        k = (x - 20) % 8
+        c = W_ if k < 6 else WD
+        if k == 0:
+            c = WL
+        if k == 7:
+            c = WDD
+        rect(im, x, 26, x, 81, c)
+    for x in range(20, 172, 8):                                     # 釘子
+        px(im, x + 3, 30, WDD)
+        px(im, x + 3, 77, WDD)
+    rect(im, 20, 82, 171, 85, WD)                                   # 橋面正面（厚度）
+    rect(im, 20, 86, 171, 86, WDD)
+    # 欄杆：上、下各一道，柱子 + 扶手（扶手頂面亮）
+    for y0 in (8, 70):
+        for x in range(14, 179, 24):
+            rect(im, x, y0, x + 5, y0 + 18, WD)
+            rect(im, x, y0, x + 1, y0 + 18, W_)
+            rect(im, x, y0, x + 5, y0 + 1, WL)
+        rect(im, 14, y0 + 3, 178, y0 + 5, WL)
+        rect(im, 14, y0 + 6, 178, y0 + 8, W_)
+        rect(im, 14, y0 + 9, 178, y0 + 9, WDD)
+        rect(im, 14, y0 + 13, 178, y0 + 14, WD)
+    # 兩端柱頭上的小燈籠
+    for x in (13, 173):
+        rect(im, x, 0, x + 7, 7, '#f6c453')
+        rect(im, x + 1, 1, x + 6, 6, '#fff0a8')
+        rect(im, x - 1, -1 + 1, x + 8, 0, '#b0453a')
+    outline(im, LINE_W)
+    return im
+
+
+def read_paths():
+    """讀 js/data/maps/town.js 的 PATHS（PATHS-BEGIN 到 PATHS-END）"""
+    import re
+    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'js', 'data', 'maps', 'town.js'), encoding='utf8').read()
+    body = src.split('// PATHS-BEGIN')[1].split('// PATHS-END')[0]
+    out = []
+    for kind, pts in re.findall(r"\['(dirt|stone)', \[(.*?)\]\],", body):
+        out.append((kind, [(float(a), float(b)) for a, b in re.findall(r'\[([\d.]+), ([\d.]+)\]', pts)]))
+    W = int(re.search(r'const W = (\d+)', src).group(1))
+    H = int(re.search(r'const W = \d+, H = (\d+)', src).group(1))
+    return out, W, H
+
+
+def _rnd(*k):
+    h = 2166136261
+    for ch in repr(k):
+        h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
+    return random.Random(h).random()
+
+
+def _noise(key, t, step=10):
+    i, f = int(t // step), (t % step) / step
+    return _rnd(key, i) * (1 - f) + _rnd(key, i + 1) * f
+
+
+def decor_paths():
+    """小路佈景圖（整張地圖大小）。
+    泥土路：沿著折線一團一團的泥土，寬窄不一、時有時無；邊緣上方是草蓋過來的一條深綠線（斜俯視），土裡有小石子。
+    石頭小徑：沿著折線一路連續鋪著大小不一的扁石，每塊石頭有頂面、厚度、外框和影子，石縫露出草"""
+    paths, MW, MH = read_paths()
+    W, H = MW * T, MH * T
+    im = new(W, H)
+    dirt = [[False] * W for _ in range(H)]
+    # ── 泥土路 ──
+    for pi, (kind, pts) in enumerate(paths):
+        if kind != 'dirt':
+            continue
+        dist = 0.0
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            L = math.hypot(x1 - x0, y1 - y0) * T
+            for s_ in range(int(L)):
+                t = s_ / max(1, L)
+                cx, cy = (x0 + (x1 - x0) * t) * T, (y0 + (y1 - y0) * t) * T
+                d = dist + s_
+                if _noise(('gap', pi), d, 46) < 0.36:                  # 斷掉的地方：沒有泥土
+                    continue
+                w = 9 + 12 * _noise(('w', pi), d, 18)                  # 寬窄
+                off = (_noise(('o', pi), d, 30) - 0.5) * 10            # 左右飄
+                nx, ny = -(y1 - y0), (x1 - x0)
+                nl = math.hypot(nx, ny) or 1
+                cx += nx / nl * off
+                cy += ny / nl * off
+                for yy in range(int(cy - w), int(cy + w) + 1):
+                    for xx in range(int(cx - w), int(cx + w) + 1):
+                        if 0 <= xx < W and 0 <= yy < H and (xx - cx) ** 2 + ((yy - cy) * 1.25) ** 2 <= w * w:
+                            dirt[yy][xx] = True
+            dist += L
+    # 農田底下一整片翻過的土地（所有菜圃的範圍，還沒擴建的地方也看得到是田），邊緣不規則
+    fx0, fy0, fx1, fy1 = 1.6 * T, 18.5 * T, 14.4 * T, 25.4 * T
+    for y in range(int(fy0) - 6, int(fy1) + 7):
+        for x in range(int(fx0) - 6, int(fx1) + 7):
+            e = min(x - fx0, fx1 - x, y - fy0, fy1 - y)
+            if 0 <= x < W and 0 <= y < H and e > -4 + 6 * _noise(('farm', x // 6 if abs(y - fy0) < 8 or abs(y - fy1) < 8 else y // 6), x + y, 9):
+                dirt[y][x] = True
+    for y in range(H):
+        for x in range(W):
+            if not dirt[y][x]:
+                continue
+            up = y > 0 and not dirt[y - 1][x]
+            up2 = y > 1 and not dirt[y - 2][x]
+            down = y < H - 1 and not dirt[y + 1][x]
+            n = _rnd('soil', x, y)
+            c = '#b98b5a' if n < 0.7 else '#a87b4c' if n < 0.93 else '#8f6640'
+            if up:
+                c = '#3c6e34'                                          # 草邊的深綠線（草比路高一點）
+            elif up2:
+                c = '#7a5634'                                          # 草底下的陰影
+            elif down:
+                c = '#d1a571'                                          # 下緣受光
+            elif fx0 <= x <= fx1 and fy0 <= y <= fy1 and y % 10 in (0, 1):
+                c = '#a07246' if y % 10 == 0 else '#c99a66'           # 田裡一條一條的犁溝
+            px(im, x, y, c)
+    r = random.Random(5)
+    for _ in range(900):                                               # 小石子
+        x, y = r.randrange(W), r.randrange(H)
+        if dirt[y][x] and y + 1 < H and dirt[y + 1][x] and dirt[y - 1][x]:
+            px(im, x, y, '#e6dccb')
+            px(im, x, y + 1, '#8f7a5c')
+    # ── 石頭小徑：沿著折線放一塊一塊扁石 ──
+    stones = []
+    for pi, (kind, pts) in enumerate(paths):
+        if kind != 'stone':
+            continue
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            L = math.hypot(x1 - x0, y1 - y0) * T
+            s_ = 0.0
+            k = 0
+            while s_ < L:
+                t = s_ / L
+                cx, cy = (x0 + (x1 - x0) * t) * T, (y0 + (y1 - y0) * t) * T
+                # 一步一塊大扁石，左右交錯；偶爾旁邊多一塊小的，路面寬窄就不會太規則
+                key = (pi, x0, y0, k)
+                nx, ny = -(y1 - y0), (x1 - x0)
+                nl = math.hypot(nx, ny) or 1
+                off = (4 if k % 2 else -4) + (_rnd(key, 'o') - 0.5) * 6
+                w = 16 + int(_rnd(key, 'w') * 9)
+                d = 10 + int(_rnd(key, 'd') * 5)
+                stones.append((cx + nx / nl * off, cy + ny / nl * off, w, d, key))
+                if _rnd(key, 'extra') < 0.35:
+                    side = -1 if k % 2 else 1
+                    stones.append((cx + nx / nl * side * 14, cy + ny / nl * side * 14 + 2, 8 + int(_rnd(key, 'ew') * 4), 6, key + ('e',)))
+                s_ += 15 + _rnd(pi, x0, k) * 5
+                k += 1
+    stones.sort(key=lambda q: q[1])
+    TONES = ['#d9d2c6', '#cfc7ba', '#e2dbcf', '#c6bdaf']
+    for cx, cy, w, d, key in stones:                                   # 影子
+        for yy in range(int(cy - d / 2) + 2, int(cy + d / 2) + 6):
+            for xx in range(int(cx - w / 2) + 2, int(cx + w / 2) + 3):
+                if 0 <= xx < W and 0 <= yy < H and ((xx - cx - 2) / (w / 2 + 0.5)) ** 2 + ((yy - cy - 3) / (d / 2 + 1)) ** 2 <= 1 and not im.getpixel((xx, yy))[3]:
+                    px(im, xx, yy, (22, 50, 26, 120))
+    for cx, cy, w, d, key in stones:
+        tone = TONES[int(_rnd(key, 't') * len(TONES))]
+        hh = 3                                                         # 石頭的厚度
+        for yy in range(int(cy - d / 2) - 1, int(cy + d / 2) + hh + 2):
+            for xx in range(int(cx - w / 2) - 1, int(cx + w / 2) + 2):
+                if not (0 <= xx < W and 0 <= yy < H):
+                    continue
+                ex = (xx - cx) / (w / 2)
+                top_in = ex * ex + ((yy - cy) / (d / 2)) ** 2 <= 1
+                side_in = ex * ex + ((yy - cy - hh) / (d / 2)) ** 2 <= 1
+                out_top = ex * ex + ((yy - cy) / (d / 2 + 1)) ** 2 <= 1.0 + 0.25 or ex * ex + ((yy - cy - hh) / (d / 2 + 1)) ** 2 <= 1.25
+                if top_in:
+                    c = C(tone)
+                    if (yy - cy) < -d / 2 + 2:
+                        c = mix(tone, '#ffffff', 0.4)
+                    elif xx > cx + w / 2 - 3:
+                        c = mix(tone, '#8f877a', 0.3)
+                    elif _rnd('sp', xx, yy) < 0.06:
+                        c = mix(tone, '#8f877a', 0.25)
+                    px(im, xx, yy, c)
+                elif side_in:
+                    px(im, xx, yy, mix(tone, '#6e665a', 0.45))
+                elif out_top and im.getpixel((xx, yy))[3] < 200:
+                    px(im, xx, yy, '#4a4238')
+    return im
 
 
 # ───────────────────────────── 建築 ─────────────────────────────
@@ -606,6 +831,7 @@ def main():
         save(pond_rock(False), 'sprites', 'pond.png'), save(pond_rock(True), 'sprites', 'pond-found.png'),
         save(bugs(), 'sprites', 'bug.png'), save(tank(), 'sprites', 'tank.png'),
         save(market(), 'sprites', 'market.png'), save(casino(), 'sprites', 'casino.png'),
+        save(bridge(), 'sprites', 'bridge.png'), save(decor_paths(), 'decor', 'paths.png'),
         save(strip([tile_forest(1), tile_forest(2), tile_forest(3)]), 'tiles', 'forest.png'),
         save(water_frames(), 'tiles', 'water.png'),
         save(on(water_frames().crop((0, 0, 32, 32)), tile_bridge()), 'tiles', 'bridge.png'),

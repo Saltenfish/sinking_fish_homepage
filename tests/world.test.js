@@ -17,7 +17,7 @@ test('tilemap：格式錯誤會給出明確訊息', () => {
 
 test('town：地圖可載入；物件 id 不重複、都在地圖內、不放在擋路的格子上', () => {
   const map = createTilemap(town);
-  assert.equal(map.w, 40); assert.equal(map.h, 30);
+  assert.equal(map.w, 50); assert.equal(map.h, 30);
   const ids = new Set();
   for (const o of town.objects) {
     assert.ok(!ids.has(o.id), `id 重複：${o.id}`); ids.add(o.id);
