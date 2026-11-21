@@ -345,31 +345,6 @@ def bugs():
     return strip(frames)
 
 
-def tank():
-    """魚缸（2×1 格，64×32）：木頭底座上的玻璃缸，看得到缸口（頂面）和正面的水"""
-    r = random.Random(3)
-    im = new(64, 32)
-    box(im, 2, 22, 61, 29, 2, '#d29a62', '#8a5a30', '#6a4224')      # 木座
-    rect(im, 4, 4, 59, 7, '#cfeefa')                                # 缸口（水面，頂面）
-    rect(im, 4, 4, 59, 4, '#ffffff')
-    rect(im, 4, 8, 59, 21, '#5fb4dc')                               # 正面的水
-    rect(im, 4, 8, 59, 9, '#8fd3ef')
-    rect(im, 57, 8, 59, 21, '#3f8fbd')
-    rect(im, 4, 18, 59, 21, '#c9a86a')                              # 沙
-    for x in (10, 14, 46, 50):                                      # 水草
-        for y in range(11, 19):
-            px(im, x + (y % 2), y, '#4f9a4c')
-    for x, y, c in ((20, 13, '#ff9a5c'), (36, 11, '#f7b6cf'), (28, 16, '#ffe27a')):
-        rect(im, x, y, x + 3, y + 1, c)
-        px(im, x - 1, y, c)
-    for _ in range(6):
-        px(im, r.randrange(8, 56), r.randrange(9, 16), '#d8f2ff')
-    rect(im, 5, 9, 5, 16, '#e8f8ff')                                # 玻璃反光
-    outline(im)
-    shadow_under(im, 34, 29, 30, 3)
-    return im
-
-
 def plot(stage):
     """菜圃（2×2 格，64×64）：木板圍起來的高架菜圃，斜俯視看得到木框的頂面和正面；
     裡面是三條隆起的土壟。發芽時是一排排小苗，成熟時是長滿葉子的紅蘿蔔與蕪菁"""
@@ -658,6 +633,38 @@ def decor_paths():
         if dirt[y][x] and y + 1 < H and dirt[y + 1][x] and dirt[y - 1][x]:
             px(im, x, y, '#e6dccb')
             px(im, x, y + 1, '#8f7a5c')
+    # ── 蘆葦叢（池塘北邊那一帶，x 35～49）：一叢一叢高低不一，位置上下亂飄、中間有空隙，不是一條整齊的線 ──
+    reeds = []
+    x = 35 * T + 2
+    i = 0
+    while x < 49 * T - 4:
+        cy = 20.6 * T + math.sin(x / 37) * 14 + (_rnd('ry', i) - 0.5) * 26
+        if _rnd('rgap', i) > 0.12:
+            reeds.append((x, cy, 6 + int(_rnd('rw', i) * 10), 12 + int(_rnd('rh', i) * 16), i))
+        if _rnd('rx2', i) < 0.4:                                  # 旁邊偶爾多一小叢，前後錯開
+            reeds.append((x + 6, cy + (_rnd('ry2', i) - 0.5) * 40, 4 + int(_rnd('rw2', i) * 5), 8 + int(_rnd('rh2', i) * 8), i + 1000))
+        x += 8 + _rnd('rs', i) * 12
+        i += 1
+    reeds.sort(key=lambda q: q[1])
+    rim = new(W, H)
+    for rx, ry, rw, rh, k in reeds:
+        ellipse(im, rx + rw / 2 + 2, ry + 1, rw / 2 + 3, 2.5, (22, 50, 26, 110))   # 腳下的影子
+        for j in range(max(2, rw // 2)):
+            sx = int(rx) + j * 2 + int(_rnd('sx', k, j) * 2)
+            top = ry - rh + int(_rnd('st', k, j) * rh * 0.45)
+            lean = int((_rnd('sl', k, j) - 0.5) * 4)
+            for yy in range(int(top), int(ry)):
+                xx = sx + (lean if yy < top + rh * 0.3 else 0)
+                c = '#6fbf5c' if yy < top + 4 else '#4f9a4c' if j % 2 else '#3f8a46'
+                if 0 <= xx < W and 0 <= yy < H:
+                    rim.putpixel((xx, yy), C(c))
+            if _rnd('cat', k, j) < 0.3:                           # 香蒲的穗
+                for yy in range(int(top) - 1, int(top) + 4):
+                    for xx in (sx + lean, sx + lean + 1):
+                        if 0 <= xx < W and 0 <= yy < H:
+                            rim.putpixel((xx, yy), C('#8a5a30' if yy > top else '#b07a48'))
+    outline(rim, '#1d3a24')
+    im.alpha_composite(rim)
     # ── 石頭小徑：沿著折線放一塊一塊扁石 ──
     stones = []
     for pi, (kind, pts) in enumerate(paths):
@@ -719,98 +726,281 @@ def decor_paths():
 
 # ───────────────────────────── 建築 ─────────────────────────────
 
-def market():
-    """商店攤位（4×3 格，128×96）：條紋遮雨棚（看得到棚頂）、木頭櫃台擺著蔬果與魚、旁邊木箱"""
-    im = new(128, 96)
-    W_, WL, WD = '#b07a48', '#d29a62', '#8a5a30'
-    # 後面的木牆
-    rect(im, 12, 26, 115, 58, '#c9a070')
-    for x in range(12, 116, 8):
-        rect(im, x, 26, x, 58, '#a8804f')
-    # 支柱
-    for x0 in (10, 113):
-        rect(im, x0, 22, x0 + 4, 84, WD)
-        rect(im, x0, 22, x0 + 1, 84, W_)
-    # 遮雨棚：上面是斜的棚頂（看得到），下緣一排波浪
-    for y in range(4, 26):
-        t = (y - 4) / 21
-        x0, x1 = round(8 - t * 4), round(119 + t * 4)
-        for x in range(x0, x1 + 1):
-            stripe = ((x - 4) // 12) % 2
-            c = '#e05a4f' if stripe else '#fbf3e4'
-            if y < 7:
-                c = mix(c, '#ffffff', 0.3)
-            elif y > 21:
-                c = mix(c, '#000000', 0.15)
+def shingles(im, x0, y0, x1, y1, ramp, row=7, edge_l=None, edge_r=None, seed=0):
+    """斜俯視的屋頂瓦片：一排一排往下疊，每排上緣亮、下緣有陰影，瓦片左右錯開；
+    ramp = (最亮, 亮, 中, 暗)。edge_l/edge_r(y) 可以讓屋頂兩側變斜"""
+    r = random.Random(seed)
+    HL, L_, M_, D_ = ramp
+    for y in range(y0, y1 + 1):
+        k = (y - y0) % row
+        rowi = (y - y0) // row
+        lx = edge_l(y) if edge_l else x0
+        rx = edge_r(y) if edge_r else x1
+        for x in range(lx, rx + 1):
+            c = M_
+            if k == 0:
+                c = HL
+            elif k == 1:
+                c = L_
+            elif k >= row - 1:
+                c = D_
+            if (x + (5 if rowi % 2 else 0)) % 10 == 0 and k < row - 1:
+                c = D_                                              # 瓦片之間的縫
+            if k not in (0, row - 1) and r.random() < 0.05:
+                c = mix(c, D_, 0.4)
             px(im, x, y, c)
-    for x in range(4, 124):
+
+
+def hut():
+    """成就小屋（6×4 格，192×128）：斜俯視看得到大片屋頂（一排排的瓦、屋脊、煙囪）、
+    木框架的白牆、有窗台花箱的兩扇窗、內凹的雙開門、石頭牆腳；外面一圈深色框"""
+    im = new(192, 128)
+    ROOF = ('#f0a07a', '#dd8058', '#c4623f', '#8e3f2b')
+    # 屋頂：屋脊在上面，前坡很大；兩側往下微微外擴
+    rect(im, 14, 4, 177, 9, '#a84a32')                              # 後坡露出的一條
+    rect(im, 14, 4, 177, 4, '#cf6d4b')
+    shingles(im, 6, 10, 185, 75, ROOF, 7, edge_l=lambda y: 12 - (y - 10) // 8, edge_r=lambda y: 179 + (y - 10) // 8, seed=1)
+    rect(im, 10, 9, 181, 10, '#f6b796')                             # 屋脊
+    for x in range(14, 178, 12):
+        rect(im, x, 8, x + 5, 10, '#e89a74')
+    rect(im, 3, 75, 188, 79, '#6e2e22')                              # 屋簷（厚度）
+    rect(im, 3, 75, 188, 75, '#a84a32')
+    # 煙囪：頂面（黑色的口）＋正面磚
+    rect(im, 140, 0, 157, 30, '#9a8e86')
+    rect(im, 140, 0, 157, 4, '#c9bfb6')
+    rect(im, 143, 1, 154, 3, '#2e2830')
+    for y in range(8, 30, 5):
+        rect(im, 140, y, 157, y, '#7a6e66')
+        for x in range(140 + (4 if (y // 5) % 2 else 0), 157, 8):
+            rect(im, x, y, x, y + 4, '#7a6e66')
+    rect(im, 155, 5, 157, 30, '#7a6e66')
+    # 牆：白灰泥＋木框架
+    rect(im, 6, 80, 185, 117, '#f3e6cb')
+    rect(im, 6, 80, 185, 84, '#c9b48f')                              # 屋簷在牆上的影子
+    rect(im, 177, 85, 185, 117, '#e2d2b0')                           # 右邊背光
+    for x0 in (6, 58, 128, 180):
+        rect(im, x0, 80, x0 + 5, 117, '#8a5a30')
+        rect(im, x0, 80, x0 + 1, 117, '#b07a48')
+    rect(im, 6, 84, 185, 86, '#8a5a30')
+    rect(im, 6, 84, 185, 84, '#b07a48')
+    # 窗：木框、玻璃（斜的反光）、上緣陰影、窗台＋花箱
+    for wx in (20, 144):
+        rect(im, wx - 2, 89, wx + 29, 110, '#6a4224')
+        rect(im, wx, 91, wx + 27, 106, '#7fb8d8')
+        rect(im, wx, 91, wx + 27, 93, '#4f86a8')
+        for k in range(8):
+            px(im, wx + 6 + k, 104 - k, '#d8f2ff')
+            px(im, wx + 9 + k, 104 - k, '#bfe6f5')
+        rect(im, wx + 13, 91, wx + 14, 106, '#6a4224')
+        rect(im, wx, 98, wx + 27, 98, '#6a4224')
+        rect(im, wx - 4, 107, wx + 31, 108, '#d29a62')               # 窗台（頂面）
+        rect(im, wx - 4, 109, wx + 31, 113, '#8a5a30')               # 花箱
+        for i, fx in enumerate(range(wx - 2, wx + 31, 4)):
+            c = ('#e05a7a', '#ffd25a', '#f7f1e8')[i % 3]
+            rect(im, fx, 104 + (i % 2), fx + 1, 106 + (i % 2), '#4f9a4c')
+            rect(im, fx, 103 + (i % 2), fx + 1, 104 + (i % 2), c)
+    # 門：內凹的雙開門（門框、上方橫楣、門把、門前石階）
+    rect(im, 64, 87, 127, 121, '#5a381f')
+    rect(im, 67, 92, 124, 121, '#2e1d12')                            # 門洞的陰影
+    rect(im, 69, 93, 95, 121, '#a8743f')
+    rect(im, 97, 93, 122, 121, '#96652f')
+    for x in range(72, 122, 6):
+        rect(im, x, 93, x, 121, '#7a4e2c')
+    rect(im, 69, 93, 122, 94, '#c08a55')
+    px(im, 93, 108, '#ffd25a')
+    px(im, 99, 108, '#ffd25a')
+    rect(im, 62, 86, 129, 88, '#6a4224')                             # 橫楣
+    rect(im, 92, 81, 99, 86, '#ffd25a')                              # 門上的小招牌
+    rect(im, 93, 82, 98, 85, '#e0a93a')
+    # 牆腳的石頭＋門前石階（頂面亮）
+    for x in range(6, 186, 12):
+        rect(im, x, 117, x + 11, 125, '#b7aca2')
+        rect(im, x, 117, x + 11, 118, '#d9d0c6')
+        rect(im, x + 11, 117, x + 11, 125, '#8f857c')
+    rect(im, 60, 121, 131, 127, '#c9bfb6')
+    rect(im, 60, 121, 131, 122, '#e6dfd3')
+    rect(im, 60, 127, 131, 127, '#8f857c')
+    outline(im, LINE_W)
+    return im
+
+
+def market():
+    """商店攤位（4×3 格，128×96），斜俯視：條紋布棚從後往前斜下來（看得到棚頂）、前緣波浪垂邊、
+    木頭櫃台的頂面擺著一籃一籃的蔬果和魚（從上面看）、正面是直木板，旁邊疊著木箱"""
+    im = new(128, 96)
+    WL, W_, WD, WDD = '#d9a56c', '#b07a48', '#8a5a30', '#6a4224'
+    # 後牆
+    rect(im, 12, 22, 115, 52, '#c99a66')
+    for x in range(12, 116, 7):
+        rect(im, x, 22, x, 52, '#a8784a')
+    rect(im, 12, 22, 115, 30, '#8a5a30')                             # 布棚的影子
+    # 布棚：從後（上）往前（下）斜下來，條紋直的；越往前越亮
+    for y in range(2, 32):
+        t = (y - 2) / 29
+        x0, x1 = round(14 - t * 10), round(113 + t * 10)
+        for x in range(x0, x1 + 1):
+            u = (x - x0) / max(1, x1 - x0)
+            stripe = int(u * 10) % 2
+            c = ('#c2453b', '#e05a4f', '#f07a68') if stripe else ('#d8cbb4', '#f3ead9', '#fffaf0')
+            c = c[0] if t < 0.25 else c[1] if t < 0.8 else c[2]
+            if x == x0 or x == x1:
+                c = '#7a2a24' if stripe else '#a8987c'
+            px(im, x, y, c)
+    for x in range(4, 124):                                          # 前緣的波浪垂邊
+        u = (x - 4) / 119
+        stripe = int(u * 10) % 2
         k = (x - 4) % 12
-        h = 3 if k in (4, 5, 6, 7) else 2 if k in (2, 3, 8, 9) else 1
-        stripe = ((x - 4) // 12) % 2
-        rect(im, x, 26, x, 26 + h, '#c2453b' if stripe else '#e3d6bf')
-    # 招牌
-    rect(im, 44, 30, 83, 40, '#fbf3e4')
-    rect(im, 44, 40, 83, 40, '#c9b48f')
-    for x in range(48, 80, 4):
-        rect(im, x, 34, x + 2, 36, '#8a4a12')
-    # 櫃台：頂面＋正面
-    box(im, 6, 58, 121, 86, 8, '#e0b07a', W_, WD)
-    for x in range(10, 118, 14):
-        rect(im, x, 67, x, 85, WD)
-    goods = [(14, '#e05a4f'), (24, '#f0a24a'), (34, '#8fd06e'), (48, '#ffe27a'), (60, '#e05a4f'), (74, '#7fc8e8'), (88, '#f7b6cf'), (102, '#8fd06e')]
-    for x, c in goods:                                        # 櫃台上的貨
-        ellipse(im, x + 4, 61, 5, 2.5, mix(c, '#000000', 0.25))
-        ellipse(im, x + 4, 60, 5, 2.5, c)
-        px(im, x + 2, 59, '#ffffff')
-    box(im, 100, 72, 121, 90, 4, '#d29a62', W_, WD)           # 木箱
-    rect(im, 100, 80, 121, 80, WD)
+        h = 4 if 3 <= k <= 8 else 3 if k in (2, 9) else 2
+        rect(im, x, 32, x, 32 + h, '#c2453b' if stripe else '#e3d6bf')
+        px(im, x, 32 + h, '#7a2a24' if stripe else '#a8987c')
+    # 柱子（前面兩根）
+    for x0 in (6, 117):
+        rect(im, x0, 32, x0 + 4, 84, WD)
+        rect(im, x0, 32, x0 + 1, 84, W_)
+    # 吊牌
+    rect(im, 52, 38, 75, 48, '#f3ead9')
+    rect(im, 52, 48, 75, 48, '#a8987c')
+    rect(im, 57, 37, 57, 38, WDD)
+    rect(im, 70, 37, 70, 38, WDD)
+    ellipse(im, 63, 43, 5, 2.5, '#7fc8e8')                           # 魚的圖案
+    rect(im, 57, 42, 58, 44, '#7fc8e8')
+    px(im, 66, 42, '#1b2030')
+    # 櫃台：頂面（亮木板）＋正面（直木板）
+    rect(im, 10, 56, 117, 66, WL)
+    rect(im, 10, 56, 117, 56, '#f0c48c')
+    for x in range(10, 118, 9):
+        rect(im, x, 57, x, 66, '#c08a55')
+    rect(im, 10, 67, 117, 86, W_)
+    rect(im, 10, 67, 117, 68, WDD)
+    for x in range(16, 118, 9):
+        rect(im, x, 69, x, 86, WD)
+    rect(im, 113, 67, 117, 86, WD)
+    rect(im, 10, 86, 117, 87, WDD)
+    # 櫃台上一籃一籃的貨（從上面看：籃子邊＋一顆顆）
+    baskets = [(22, ('#e05a4f', '#ff8a7a')), (40, ('#f0a24a', '#ffc27a')), (58, ('#7fc8e8', '#c8ecff')),
+               (76, ('#8fd06e', '#c2ef9e')), (94, ('#ffe27a', '#fff3b8'))]
+    for cx, (c, hl) in baskets:
+        ellipse(im, cx, 61, 8, 4, '#8a5a30')
+        ellipse(im, cx, 60, 7, 3.2, '#c08a55')
+        for dx, dy in ((-3, -1), (0, -1), (3, -1), (-2, 1), (1, 1), (4, 0)):
+            rect(im, cx + dx - 1, 59 + dy, cx + dx, 60 + dy, c)
+            px(im, cx + dx - 1, 59 + dy, hl)
+    # 旁邊疊著的木箱（頂面＋正面）
+    box(im, 98, 70, 121, 91, 5, WL, W_, WD)
+    rect(im, 98, 81, 121, 81, WD)
+    box(im, 104, 60, 121, 70, 4, WL, W_, WD)
+    for x, y in ((107, 61), (112, 62), (117, 61)):
+        rect(im, x, y, x + 1, y + 1, '#e05a4f')
     outline(im, LINE_W)
     shadow_under(im, 66, 90, 60, 5)
     return im
 
 
 def casino():
-    """小賭場（4×3 格，128×96）：紫色屋頂（看得到屋頂斜面）、霓虹招牌、骰子裝飾、雙開門"""
+    """小賭場（4×3 格，128×96），斜俯視：大片紫色屋頂（一排排瓦片、金色屋脊）、
+    木板牆、閃著霓虹的招牌、內凹的紅色雙開門、透著暖光的骰子窗、門邊兩盞燈、門前石階"""
     im = new(128, 96)
-    # 牆
-    rect(im, 10, 36, 117, 88, '#4b2a7a')
-    rect(im, 10, 36, 13, 88, '#5f3a96')
-    rect(im, 113, 36, 117, 88, '#36205a')
-    for y in range(42, 88, 8):
-        rect(im, 14, y, 112, y, '#3f2468')
-    # 屋頂：從屋脊往下的斜面（左上亮、下緣深）
-    for y in range(6, 36):
-        t = (y - 6) / 29
-        x0, x1 = round(30 - t * 26), round(97 + t * 26)
-        for x in range(x0, x1 + 1):
-            c = '#7d5bc0' if (y // 4) % 2 else '#6c4bb0'
-            if x < (x0 + x1) // 2 - 20:
-                c = mix(c, '#ffffff', 0.12)
-            if y > 32:
-                c = '#2e1a4a'
-            px(im, x, y, c)
-    rect(im, 30, 5, 97, 6, '#a98be0')
-    # 霓虹招牌
-    rect(im, 34, 40, 93, 52, '#1b1030')
-    for x in range(36, 92, 2):
-        px(im, x, 40, '#ff5fa8' if x % 4 else '#ffe27a')
-        px(im, x, 52, '#ff5fa8' if x % 4 else '#ffe27a')
-    for x in range(40, 88, 7):
-        rect(im, x, 44, x + 4, 48, '#ffe27a')
-    # 門
-    rect(im, 50, 60, 77, 88, '#2e1a4a')
-    rect(im, 52, 62, 63, 88, '#8a4a12')
-    rect(im, 64, 62, 75, 88, '#7a3e0e')
-    px(im, 61, 75, '#ffe27a')
-    px(im, 66, 75, '#ffe27a')
-    # 骰子窗
+    ROOF = ('#b39ae8', '#8f72d0', '#6f52b4', '#46307e')
+    rect(im, 22, 3, 105, 7, '#5a3f98')                               # 後坡露出的一條
+    shingles(im, 8, 8, 119, 42, ROOF, 6, edge_l=lambda y: 20 - (y - 8) // 3, edge_r=lambda y: 107 + (y - 8) // 3, seed=2)
+    rect(im, 20, 7, 107, 8, '#ffd25a')                               # 金色屋脊
+    for x in (20, 62, 104):
+        rect(im, x, 4, x + 3, 8, '#ffd25a')
+        px(im, x + 1, 4, '#fff3b8')
+    rect(im, 5, 42, 122, 46, '#2e1a4a')                              # 屋簷（厚度）
+    rect(im, 5, 42, 122, 42, '#5a3f98')
+    # 牆：深紫木板，左亮右暗，屋簷下有影子
+    rect(im, 10, 47, 117, 87, '#4b2a7a')
+    for x in range(10, 118, 6):
+        rect(im, x, 47, x, 87, '#3f2468')
+    rect(im, 10, 47, 13, 87, '#5f3a96')
+    rect(im, 112, 47, 117, 87, '#36205a')
+    rect(im, 10, 47, 117, 50, '#2e1a4a')
+    # 霓虹招牌（亮燈與光暈）
+    for y in range(49, 62):
+        for x in range(32, 96):
+            if not (36 <= x <= 91 and 51 <= y <= 59):
+                blend = (255, 95, 168, 60)
+                cur = im.getpixel((x, y))
+                im.putpixel((x, y), tuple(round(cur[i] + (blend[i] - cur[i]) * 0.25) for i in range(3)) + (255,))
+    rect(im, 36, 51, 91, 59, '#1b1030')
+    for x in range(37, 91, 2):
+        px(im, x, 51, '#ff5fa8' if x % 4 == 1 else '#ffe27a')
+        px(im, x, 59, '#ff5fa8' if x % 4 == 1 else '#ffe27a')
+    for x in range(41, 88, 8):                                        # 招牌上的字（亮點）
+        rect(im, x, 54, x + 4, 56, '#ffe27a')
+        rect(im, x + 1, 53, x + 3, 53, '#fff3b8')
+    # 門：內凹、紅色雙開門、金色門把
+    rect(im, 50, 63, 77, 88, '#1b1030')
+    rect(im, 52, 66, 63, 88, '#b0303a')
+    rect(im, 64, 66, 75, 88, '#962834')
+    rect(im, 52, 66, 75, 67, '#d84a52')
+    for x in (55, 60, 67, 72):
+        rect(im, x, 69, x, 86, '#7a1f2a')
+    px(im, 62, 77, '#ffd25a')
+    px(im, 65, 77, '#ffd25a')
+    # 骰子窗：透出暖光
     for x0 in (20, 92):
-        box(im, x0, 60, x0 + 15, 75, 3, '#ffffff', '#e8e2f0', '#c9c1d6')
-        for dx, dy in ((4, 7), (11, 7), (4, 12), (11, 12), (7, 9)):
-            rect(im, x0 + dx, 60 + dy, x0 + dx + 1, 60 + dy + 1, '#d1495b')
-    box(im, 8, 86, 119, 91, 2, '#9c8aa8', '#6e5e7c', '#55476a')   # 台階
+        rect(im, x0 - 2, 64, x0 + 17, 81, '#2e1a4a')
+        rect(im, x0, 66, x0 + 15, 79, '#ffd98a')
+        rect(im, x0, 66, x0 + 15, 68, '#e0a93a')
+        rect(im, x0 + 4, 70, x0 + 11, 77, '#ffffff')
+        rect(im, x0 + 4, 76, x0 + 11, 77, '#e0d8ec')
+        for dx, dy in ((6, 72), (9, 72), (6, 75), (9, 75)):
+            px(im, x0 + dx, dy, '#d1495b')
+    # 門邊兩盞燈
+    for x0 in (42, 82):
+        rect(im, x0, 66, x0 + 3, 72, '#ffe27a')
+        rect(im, x0, 66, x0 + 3, 66, '#fff3b8')
+        rect(im, x0 + 1, 64, x0 + 2, 65, '#2e1a4a')
+    # 石階（兩階，頂面亮）
+    box(im, 44, 87, 83, 91, 2, '#d8d0e0', '#a89cb8', '#8a7e9c')
+    box(im, 40, 91, 87, 95, 2, '#c9c1d6', '#9a8eae', '#7c7090')
+    rect(im, 8, 87, 119, 88, '#2e1a4a')
     outline(im, '#1b1030')
-    shadow_under(im, 66, 92, 60, 5)
+    shadow_under(im, 66, 92, 60, 4)
+    return im
+
+
+def tank():
+    """魚缸（2×1 格，64×32），斜俯視：木頭矮櫃（頂面＋正面＋腳）上一個玻璃缸，
+    看得到缸口的水面（亮、有波光）、正面的水和魚、玻璃邊的反光"""
+    r = random.Random(3)
+    im = new(64, 32)
+    WL, W_, WD, WDD = '#d9a56c', '#b07a48', '#8a5a30', '#6a4224'
+    box(im, 2, 21, 61, 28, 2, WL, W_, WD)                            # 矮櫃
+    rect(im, 4, 29, 7, 30, WDD)
+    rect(im, 56, 29, 59, 30, WDD)
+    rect(im, 10, 24, 53, 24, WD)                                     # 抽屜縫
+    px(im, 31, 26, '#ffd25a')
+    # 玻璃缸：缸口（水面）
+    rect(im, 4, 2, 59, 7, '#a8e4f8')
+    rect(im, 4, 2, 59, 2, '#e8f8ff')
+    for x, y in ((10, 4), (24, 5), (40, 4), (52, 5)):
+        rect(im, x, y, x + 3, y, '#ffffff')
+    # 正面：水（上淺下深）、沙、水草、魚
+    for y in range(8, 21):
+        c = mix('#6fc4e8', '#3f8fbd', (y - 8) / 12)
+        rect(im, 4, y, 59, y, c)
+    rect(im, 4, 18, 59, 20, '#d8b878')
+    rect(im, 4, 18, 59, 18, '#e8cf96')
+    for x in (9, 13, 47, 52):
+        for y in range(10, 18):
+            px(im, x + (y % 2), y, '#4f9a4c')
+            if y % 3 == 0:
+                px(im, x + 2, y, '#6fbf5c')
+    for x, y, c in ((20, 12, '#ff9a5c'), (36, 10, '#f7b6cf'), (28, 15, '#ffe27a')):
+        rect(im, x, y, x + 3, y + 1, c)
+        px(im, x - 1, y, c)
+        px(im, x + 3, y, '#1b2030')
+    for _ in range(5):
+        px(im, r.randrange(8, 56), r.randrange(9, 15), '#d8f2ff')
+    rect(im, 4, 8, 59, 8, '#bfe9f8')                                  # 玻璃上緣
+    rect(im, 5, 9, 5, 17, '#e8f8ff')                                  # 玻璃反光
+    rect(im, 7, 9, 7, 13, '#e8f8ff')
+    rect(im, 58, 3, 59, 20, '#2f7aa8')                                # 右側玻璃邊（暗）
+    outline(im, LINE)
+    shadow_under(im, 34, 29, 30, 3)
     return im
 
 
@@ -830,6 +1020,7 @@ def main():
         save(fishspot(), 'sprites', 'fishspot.png'), save(offering(), 'sprites', 'offering.png'),
         save(pond_rock(False), 'sprites', 'pond.png'), save(pond_rock(True), 'sprites', 'pond-found.png'),
         save(bugs(), 'sprites', 'bug.png'), save(tank(), 'sprites', 'tank.png'),
+        save(hut(), 'decor', 'hut.png'), save(hut().crop((64, 96, 128, 128)), 'sprites', 'hut-door.png'),
         save(market(), 'sprites', 'market.png'), save(casino(), 'sprites', 'casino.png'),
         save(bridge(), 'sprites', 'bridge.png'), save(decor_paths(), 'decor', 'paths.png'),
         save(strip([tile_forest(1), tile_forest(2), tile_forest(3)]), 'tiles', 'forest.png'),

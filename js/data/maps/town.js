@@ -73,8 +73,8 @@ export const town = {
     'S': { key: 'grass', solid: false, color: '#d8ccb8', name: '台階' },
     '~': { key: 'water', solid: true, color: '#4f8fc0', name: '水' },
     '=': { key: 'bridge', solid: false, color: '#a47148', name: '橋' },
-    'r': { key: 'reed', solid: false, color: '#3a6b45', name: '蘆葦' },
-    'H': { key: 'hut', solid: true, color: '#b5651d', name: '小屋' },
+    'r': { key: 'grass', solid: false, color: '#3a6b45', name: '蘆葦' },   // 外觀是 decor.paths 裡亂亂的一叢叢蘆葦
+    'H': { key: 'grass', solid: true, color: '#b5651d', name: '小屋' },   // 外觀是 decor.hut（屋頂兩側是斜的，底下露出草地）
     'd': { key: 'door', solid: false, color: '#5d4037', name: '門口' },
   },
   rows: g.map((r) => r.join('')),
